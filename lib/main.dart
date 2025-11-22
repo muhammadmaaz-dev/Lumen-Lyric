@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:musicapp/ui/library-screen.dart';
-import 'package:musicapp/ui/login-screen.dart';
-import 'package:musicapp/ui/home-screen.dart';
+import 'package:musicapp/core/configs/theme/app_theme.dart';
+import 'package:musicapp/presentation/setting_screen/pages/setting_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,15 +20,11 @@ class MyApp extends StatelessWidget {
       builder: (context, child) {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
-          title: 'Responsive App',
-          theme: ThemeData(
-            colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueAccent),
-            useMaterial3: true,
-          ),
-          home: child,
+          title: 'Music App',
+          theme: AppTheme.lighttheme,
+          home: SettingScreen(),
         );
       },
-      child: const HomeScreen(),
     );
   }
 }

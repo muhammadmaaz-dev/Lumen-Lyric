@@ -13,12 +13,15 @@ class Login extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            Image.asset("assets/images/loginbg.png", fit: BoxFit.cover),
+            Image.asset("assets/images/loginbg.png", fit: BoxFit.cover), // Login background Image
 
             Column(
               mainAxisAlignment: MainAxisAlignment.end,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
+
+                // Button Background Sheet
+                
                 Container(
                   height: 220.h,
                   width: 370.h,
@@ -29,6 +32,9 @@ class Login extends StatelessWidget {
                       topRight: Radius.circular(35.r),
                     ),
                   ),
+
+                  // Bottom Buttons
+
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.start,
                     children: [
