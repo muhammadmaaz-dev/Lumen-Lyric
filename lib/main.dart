@@ -1,10 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:hydrated_bloc/hydrated_bloc.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:musicapp/core/configs/theme/app_theme.dart';
-import 'package:musicapp/presentation/setting_screen/pages/setting_screen.dart';
+import 'package:musicapp/presentation/bloc/theme/theme_cubit.dart';
+import 'package:musicapp/presentation/bloc/theme/theme_state.dart';
+import 'package:musicapp/presentation/main_navigation/pages/main_navigation.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  final storage = await getApplicationDocumentsDirectory();
+  HydratedBloc.storage = await HydratedStorage.build(
+    storageDirectory: HydratedStorageDirectory(storage.path),
+  );
   runApp(const MyApp());
 }
 
@@ -13,18 +22,27 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ScreenUtilInit(
-      designSize: const Size(375, 812), // iPhone 11 base size
-      minTextAdapt: true,
-      splitScreenMode: true,
-      builder: (context, child) {
-        return MaterialApp(
-          debugShowCheckedModeBanner: false,
-          title: 'Music App',
-          theme: AppTheme.lighttheme,
-          home: SettingScreen(),
-        );
-      },
+    return BlocProvider(
+      create: (context) => ThemeCubit(),
+      child: ScreenUtilInit(
+        designSize: const Size(375, 812), // iPhone 11 base size
+        minTextAdapt: true,
+        splitScreenMode: true,
+        builder: (context, child) {
+          return BlocBuilder<ThemeCubit, ThemeState>(
+            builder: (context, themeState) {
+              return MaterialApp(
+                debugShowCheckedModeBanner: false,
+                title: 'Music App',
+                theme: AppTheme.lighttheme,
+                darkTheme: AppTheme.darktheme,
+                themeMode: themeState.themeMode,
+                home: const MainNavigation(),
+              );
+            },
+          );
+        },
+      ),
     );
   }
 }

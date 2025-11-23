@@ -13,6 +13,9 @@ dependencies:
 
   cupertino_icons: ^1.0.8
   flutter_screenutil: ^5.9.3
+  hydrated_bloc: ^10.1.1
+  flutter_bloc: ^9.1.1
+  path_provider: ^2.1.4
 
 dev_dependencies:
   flutter_test:
