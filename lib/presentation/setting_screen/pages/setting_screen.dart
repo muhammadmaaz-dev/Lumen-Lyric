@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:musicapp/presentation/bloc/theme/theme_cubit.dart';
+import 'package:flutter/cupertino.dart';
 
 class SettingScreen extends StatefulWidget {
   const SettingScreen({super.key});
@@ -125,15 +126,21 @@ class _SettingScreenState extends State<SettingScreen> {
                             color: textColor,
                           ),
                         ),
-                        trailing: Switch(
+                        trailing: CupertinoSwitch(
                           value: isDarkTheme,
                           onChanged: (value) {
                             context.read<ThemeCubit>().toggleTheme();
                           },
-                          activeColor: Colors.white,
-                          activeTrackColor: Colors.grey[800],
-                          inactiveThumbColor: Colors.grey[700],
-                          inactiveTrackColor: Colors.grey[300],
+                          // Jab switch ON ho to ye color dikhega
+                          activeColor: CupertinoColors.activeGreen,
+
+                          // Jab switch OFF ho to ye background color dikhega (Replacement for inactiveTrackColor)
+                          trackColor: Colors.grey[300],
+
+                          // Thumb (gola) ka color. Agar state ke hisaab se change karna hai to condition lagani padegi
+                          thumbColor: isDarkTheme
+                              ? Colors.white
+                              : const Color.fromARGB(255, 0, 0, 0),
                         ),
                         visualDensity: VisualDensity.compact,
                       ),

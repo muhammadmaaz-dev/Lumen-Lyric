@@ -51,7 +51,7 @@ class _MainNavigationState extends State<MainNavigation> {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 _buildNavItem(
                   icon: Icons.home_outlined,
@@ -98,18 +98,22 @@ class _MainNavigationState extends State<MainNavigation> {
   }) {
     final isSelected = _currentIndex == index;
 
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _currentIndex = index;
-        });
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: Icon(
-          isSelected ? selectedIcon : icon,
-          color: isSelected ? selectedColor : unselectedColor,
-          size: 28,
+    return Expanded(
+      child: InkWell(
+        onTap: () {
+          setState(() {
+            _currentIndex = index;
+          });
+        },
+        splashColor: Colors.transparent,
+        highlightColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Icon(
+            isSelected ? selectedIcon : icon,
+            color: isSelected ? selectedColor : unselectedColor,
+            size: 28,
+          ),
         ),
       ),
     );
