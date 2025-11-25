@@ -6,7 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:musicapp/core/configs/theme/app_theme.dart';
 import 'package:musicapp/presentation/bloc/theme/theme_cubit.dart';
 import 'package:musicapp/presentation/bloc/theme/theme_state.dart';
-import 'package:musicapp/presentation/main_navigation/pages/main_navigation.dart';
+import 'package:musicapp/presentation/pages/main_navigation.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
