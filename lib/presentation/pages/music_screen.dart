@@ -137,6 +137,75 @@ class MusicScreen extends StatelessWidget {
                 const SizedBox(height: 15),
 
                 // 5. List of Songs
+                // ListView.builder(
+                //   shrinkWrap: true,
+                //   physics: const NeverScrollableScrollPhysics(),
+                //   itemCount: recentConversions.length,
+                //   itemBuilder: (context, index) {
+                //     final song = recentConversions[index];
+                //     return Padding(
+                //       padding: const EdgeInsets.only(bottom: 15.0),
+                //       child: Row(
+                //         children: [
+                //           // Album Art / Image
+                //           ClipRRect(
+                //             borderRadius: BorderRadius.circular(12),
+                //             child: Container(
+                //               height: 60,
+                //               width: 60,
+                //               color: cardColor,
+                //               child: Image.network(
+                //                 song.imageUrl,
+                //                 fit: BoxFit.cover,
+                //                 errorBuilder: (c, o, s) => Container(
+                //                   color: cardColor,
+                //                   child: Icon(
+                //                     Icons.music_note,
+                //                     color: secondaryTextColor,
+                //                   ),
+                //                 ),
+                //               ),
+                //             ),
+                //           ),
+                //           const SizedBox(width: 15),
+
+                //           // Title and Subtitle
+                //           Expanded(
+                //             child: Column(
+                //               crossAxisAlignment: CrossAxisAlignment.start,
+                //               children: [
+                //                 Text(
+                //                   song.title,
+                //                   style: TextStyle(
+                //                     fontSize: 16,
+                //                     fontWeight: FontWeight.bold,
+                //                     color: textColor,
+                //                   ),
+                //                 ),
+                //                 const SizedBox(height: 4),
+                //                 Text(
+                //                   '${song.genre} · ${song.duration}',
+                //                   style: TextStyle(
+                //                     fontSize: 13,
+                //                     color: secondaryTextColor,
+                //                     fontWeight: FontWeight.w500,
+                //                   ),
+                //                 ),
+                //               ],
+                //             ),
+                //           ),
+
+                //           // Menu Icon
+                //           IconButton(
+                //             onPressed: () {},
+                //             icon: Icon(Icons.more_vert),
+                //             color: textColor,
+                //           ),
+                //         ],
+                //       ),
+                //     );
+                //   },
+                // ),
                 ListView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
@@ -144,30 +213,35 @@ class MusicScreen extends StatelessWidget {
                   itemBuilder: (context, index) {
                     final song = recentConversions[index];
                     return Padding(
-                      padding: const EdgeInsets.only(bottom: 15.0),
+                      padding: const EdgeInsets.only(bottom: 16.0),
                       child: Row(
                         children: [
-                          // Album Art / Image
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Container(
-                              height: 60,
-                              width: 60,
-                              color: cardColor,
+                          // Album Art Placeholder
+                          Container(
+                            width: 55,
+                            height: 55,
+                            decoration: BoxDecoration(
+                              color: isDarkTheme
+                                  ? const Color(0xff2a2a2a)
+                                  : const Color(0xfff0f0f0),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
                               child: Image.network(
-                                song.imageUrl,
+                                'https://picsum.photos/200?random=$index',
                                 fit: BoxFit.cover,
-                                errorBuilder: (c, o, s) => Container(
-                                  color: cardColor,
-                                  child: Icon(
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Icon(
                                     Icons.music_note,
                                     color: secondaryTextColor,
-                                  ),
-                                ),
+                                    size: 30,
+                                  );
+                                },
                               ),
                             ),
                           ),
-                          const SizedBox(width: 15),
+                          const SizedBox(width: 16),
 
                           // Title and Subtitle
                           Expanded(
@@ -177,18 +251,18 @@ class MusicScreen extends StatelessWidget {
                                 Text(
                                   song.title,
                                   style: TextStyle(
+                                    color: textColor,
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
-                                    color: textColor,
                                   ),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
                                   '${song.genre} · ${song.duration}',
                                   style: TextStyle(
-                                    fontSize: 13,
                                     color: secondaryTextColor,
-                                    fontWeight: FontWeight.w500,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w400,
                                   ),
                                 ),
                               ],
@@ -198,8 +272,10 @@ class MusicScreen extends StatelessWidget {
                           // Menu Icon
                           IconButton(
                             onPressed: () {},
-                            icon: Icon(Icons.more_vert),
-                            color: textColor,
+                            icon: Icon(
+                              Icons.more_vert,
+                              color: isDarkTheme ? Colors.white : Colors.black,
+                            ),
                           ),
                         ],
                       ),
