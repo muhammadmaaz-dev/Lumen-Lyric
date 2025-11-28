@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:hydrated_bloc/hydrated_bloc.dart';
+import 'package:musicapp/presentation/pages/login_screen.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:musicapp/core/configs/theme/app_theme.dart';
@@ -37,7 +38,7 @@ class MyApp extends StatelessWidget {
                 theme: AppTheme.lighttheme,
                 darkTheme: AppTheme.darktheme,
                 themeMode: themeState.themeMode,
-                home: const MainNavigation(),
+                home: const Login(),
               );
             },
           );

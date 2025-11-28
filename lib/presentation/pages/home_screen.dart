@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:musicapp/presentation/bloc/theme/theme_cubit.dart';
+import 'package:musicapp/presentation/pages/search_screen.dart';
 
 // Data Models - Ready for backend integration
 class ArtistModel {
@@ -221,7 +222,10 @@ class HomeScreen extends StatelessWidget {
         // Search Button
         GestureDetector(
           onTap: () {
-            // TODO: Navigate to search screen
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const SearchScreen()),
+            );
           },
           child: Container(
             width: 50,
