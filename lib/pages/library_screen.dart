@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:musicapp/presentation/bloc/theme/theme_cubit.dart';
+import 'package:musicapp/bloc/theme/theme_cubit.dart';
 
 class LibraryScreen extends StatelessWidget {
   const LibraryScreen({super.key});
@@ -18,9 +18,6 @@ class LibraryScreen extends StatelessWidget {
         : const Color(0xffffffff);
     final textColor = isDarkTheme ? Colors.white : Colors.black;
     final secondaryTextColor = isDarkTheme ? Colors.grey[400] : Colors.grey;
-
-    // Search Bar Colors
-    final searchIconColor = isDarkTheme ? Colors.grey[400] : Colors.grey[600];
 
     // Button Colors
     final activeBtnColor = isDarkTheme

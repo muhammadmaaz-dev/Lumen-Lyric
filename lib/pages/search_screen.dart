@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:musicapp/presentation/bloc/theme/theme_cubit.dart';
+import 'package:musicapp/bloc/theme/theme_cubit.dart';
 
 // Data Model - Ready for backend integration
 class SearchResultModel {
@@ -119,9 +119,6 @@ class _SearchScreenState extends State<SearchScreen> {
     final backgroundColor = isDarkTheme
         ? const Color(0xff000000)
         : const Color(0xfff3f4f6);
-    final cardColor = isDarkTheme
-        ? const Color(0xff1a1a1a)
-        : const Color(0xffffffff);
     final textColor = isDarkTheme ? Colors.white : Colors.black;
     final secondaryTextColor = isDarkTheme
         ? Colors.grey[400]

@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:hydrated_bloc/hydrated_bloc.dart';
-import 'package:musicapp/presentation/pages/login_screen.dart';
+import 'package:musicapp/pages/login_screen.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:musicapp/core/configs/theme/app_theme.dart';
-import 'package:musicapp/presentation/bloc/theme/theme_cubit.dart';
-import 'package:musicapp/presentation/bloc/theme/theme_state.dart';
-import 'package:musicapp/presentation/pages/main_navigation.dart';
+import 'package:musicapp/bloc/theme/theme_cubit.dart';
+import 'package:musicapp/bloc/theme/theme_state.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

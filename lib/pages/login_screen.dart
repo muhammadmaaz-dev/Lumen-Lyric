@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:musicapp/presentation/pages/main_navigation.dart';
+import 'package:musicapp/pages/main_navigation.dart';
 
 class Login extends StatelessWidget {
   const Login({super.key});

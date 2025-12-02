@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:musicapp/presentation/bloc/theme/theme_cubit.dart';
+import 'package:musicapp/bloc/theme/theme_cubit.dart';
 import 'package:flutter/cupertino.dart';
 
 class SettingScreen extends StatefulWidget {

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:musicapp/presentation/bloc/theme/theme_cubit.dart';
-import 'package:musicapp/presentation/pages/search_screen.dart';
+import 'package:musicapp/bloc/theme/theme_cubit.dart';
+import 'package:musicapp/pages/search_screen.dart';
 
 // Data Models - Ready for backend integration
 class ArtistModel {

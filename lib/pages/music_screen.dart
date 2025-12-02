@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:musicapp/presentation/bloc/theme/theme_cubit.dart';
+import 'package:musicapp/bloc/theme/theme_cubit.dart';
 
 class MusicScreen extends StatelessWidget {
   const MusicScreen({super.key});
@@ -18,10 +18,6 @@ class MusicScreen extends StatelessWidget {
         : const Color(0xffffffff);
     final textColor = isDarkTheme ? Colors.white : Colors.black;
     final secondaryTextColor = isDarkTheme ? Colors.grey[400] : Colors.grey;
-    final avatarBgColor = isDarkTheme
-        ? const Color(0xff3a3a3c)
-        : const Color(0xffffffff);
-    final dividerColor = isDarkTheme ? Colors.grey[800] : Colors.grey[300];
 
     return Scaffold(
       backgroundColor: backgroundColor,

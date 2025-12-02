@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:musicapp/presentation/bloc/theme/theme_cubit.dart';
-import 'package:musicapp/presentation/pages/home_screen.dart';
-import 'package:musicapp/presentation/pages/library_screen.dart';
-import 'package:musicapp/presentation/pages/music_screen.dart';
-import 'package:musicapp/presentation/pages/setting_screen.dart';
+import 'package:musicapp/bloc/theme/theme_cubit.dart';
+import 'package:musicapp/pages/home_screen.dart';
+import 'package:musicapp/pages/library_screen.dart';
+import 'package:musicapp/pages/music_screen.dart';
+import 'package:musicapp/pages/setting_screen.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
