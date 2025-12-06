@@ -1,56 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:musicapp/bloc/theme/theme_cubit.dart';
+import 'package:musicapp/models/artist_model.dart';
+import 'package:musicapp/models/song_model.dart';
 import 'package:musicapp/pages/search_screen.dart';
-
-// Data Models - Ready for backend integration
-class ArtistModel {
-  final String id;
-  final String name;
-  final String songTitle;
-  final String imageUrl;
-
-  ArtistModel({
-    required this.id,
-    required this.name,
-    required this.songTitle,
-    required this.imageUrl,
-  });
-
-  // Factory constructor for JSON parsing (backend ready)
-  factory ArtistModel.fromJson(Map<String, dynamic> json) {
-    return ArtistModel(
-      id: json['id'] ?? '',
-      name: json['name'] ?? '',
-      songTitle: json['songTitle'] ?? '',
-      imageUrl: json['imageUrl'] ?? '',
-    );
-  }
-}
-
-class SongModel {
-  final String id;
-  final String title;
-  final String genre;
-  final String imageUrl;
-
-  SongModel({
-    required this.id,
-    required this.title,
-    required this.genre,
-    required this.imageUrl,
-  });
-
-  // Factory constructor for JSON parsing (backend ready)
-  factory SongModel.fromJson(Map<String, dynamic> json) {
-    return SongModel(
-      id: json['id'] ?? '',
-      title: json['title'] ?? '',
-      genre: json['genre'] ?? '',
-      imageUrl: json['imageUrl'] ?? '',
-    );
-  }
-}
+import 'package:musicapp/widgets/home/featured_artist_card.dart';
+import 'package:musicapp/widgets/home/song_card.dart';
+import 'package:musicapp/widgets/section_header.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -131,7 +87,6 @@ class HomeScreen extends StatelessWidget {
         ? const Color(0xff1a1a1a)
         : const Color(0xffffffff);
     final textColor = isDarkTheme ? Colors.white : Colors.black;
-    final secondaryTextColor = isDarkTheme ? Colors.grey[400] : Colors.grey;
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -159,12 +114,29 @@ class HomeScreen extends StatelessWidget {
               const SizedBox(height: 24),
 
               // Featured Artists Horizontal List
-              _buildFeaturedArtists(
-                context,
-                isDarkTheme,
-                cardColor,
-                textColor,
-                secondaryTextColor,
+              SizedBox(
+                height: 80,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  itemCount: featuredArtists.length,
+                  itemBuilder: (context, index) {
+                    final artist = featuredArtists[index];
+                    return Padding(
+                      padding: EdgeInsets.only(
+                        right: index < featuredArtists.length - 1 ? 12 : 0,
+                      ),
+                      child: FeaturedArtistCard(
+                        artist: artist,
+                        isDarkTheme: isDarkTheme,
+                        showPlayButton: index == 0,
+                        onTap: () {
+                          // TODO: Navigate to artist/song detail
+                        },
+                      ),
+                    );
+                  },
+                ),
               ),
 
               const SizedBox(height: 30),
@@ -172,7 +144,7 @@ class HomeScreen extends StatelessWidget {
               // Discover Section
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: _buildSectionTitle('Discover', textColor),
+                child: SectionHeader(title: 'Discover', textColor: textColor),
               ),
               const SizedBox(height: 16),
               _buildSongsList(discoverSongs),
@@ -182,7 +154,10 @@ class HomeScreen extends StatelessWidget {
               // New Release Section
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: _buildSectionTitle('New Release', textColor),
+                child: SectionHeader(
+                  title: 'New Release',
+                  textColor: textColor,
+                ),
               ),
               const SizedBox(height: 16),
               _buildSongsList(newReleases),
@@ -267,136 +242,6 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildFeaturedArtists(
-    BuildContext context,
-    bool isDarkTheme,
-    Color cardColor,
-    Color textColor,
-    Color? secondaryTextColor,
-  ) {
-    return SizedBox(
-      height: 80,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        itemCount: featuredArtists.length,
-        itemBuilder: (context, index) {
-          final artist = featuredArtists[index];
-          return GestureDetector(
-            onTap: () {
-              // TODO: Navigate to artist/song detail
-            },
-            child: Container(
-              margin: EdgeInsets.only(
-                right: index < featuredArtists.length - 1 ? 12 : 0,
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: cardColor,
-                borderRadius: BorderRadius.circular(40),
-                boxShadow: isDarkTheme
-                    ? null
-                    : [
-                        BoxShadow(
-                          color: Colors.grey.withOpacity(0.1),
-                          blurRadius: 10,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-              ),
-              child: Row(
-                children: [
-                  // Artist Image
-                  Container(
-                    width: 55,
-                    height: 55,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.amber.withOpacity(0.3),
-                    ),
-                    child: ClipOval(
-                      child: Image.network(
-                        artist.imageUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Icon(Icons.person, color: secondaryTextColor);
-                        },
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-
-                  // Artist Info
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        artist.name,
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: textColor,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.music_note,
-                            size: 14,
-                            color: const Color(0xff10B981),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            artist.songTitle,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: secondaryTextColor,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(width: 12),
-
-                  // Play Button (only on first card in design)
-                  if (index == 0)
-                    Container(
-                      width: 35,
-                      height: 35,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.black,
-                      ),
-                      child: const Icon(
-                        Icons.play_arrow,
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildSectionTitle(String title, Color textColor) {
-    return Text(
-      title,
-      style: TextStyle(
-        fontSize: 22,
-        fontWeight: FontWeight.bold,
-        color: textColor,
-      ),
-    );
-  }
-
   Widget _buildSongsList(List<SongModel> songs) {
     return SizedBox(
       height: 200,
@@ -406,106 +251,13 @@ class HomeScreen extends StatelessWidget {
         itemCount: songs.length,
         itemBuilder: (context, index) {
           final song = songs[index];
-          return GestureDetector(
-            onTap: () {
-              // TODO: Navigate to song detail or play song
-            },
-            child: Container(
-              width: 160,
-              margin: EdgeInsets.only(right: index < songs.length - 1 ? 16 : 0),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Stack(
-                children: [
-                  // Song Image
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: Image.network(
-                      song.imageUrl,
-                      width: 160,
-                      height: 200,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          width: 160,
-                          height: 200,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(20),
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                Colors.teal.shade300,
-                                Colors.purple.shade300,
-                              ],
-                            ),
-                          ),
-                          child: const Icon(
-                            Icons.music_note,
-                            size: 50,
-                            color: Colors.white,
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-
-                  // Gradient Overlay
-                  Positioned(
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    child: Container(
-                      height: 80,
-                      decoration: BoxDecoration(
-                        borderRadius: const BorderRadius.only(
-                          bottomLeft: Radius.circular(20),
-                          bottomRight: Radius.circular(20),
-                        ),
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.transparent,
-                            Colors.black.withOpacity(0.7),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  // Song Info
-                  Positioned(
-                    bottom: 16,
-                    left: 12,
-                    right: 12,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          song.title,
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          song.genre,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.white.withOpacity(0.8),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+          return Padding(
+            padding: EdgeInsets.only(right: index < songs.length - 1 ? 16 : 0),
+            child: SongCard(
+              song: song,
+              onTap: () {
+                // TODO: Navigate to song detail or play song
+              },
             ),
           );
         },

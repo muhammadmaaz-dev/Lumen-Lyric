@@ -1,9 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:musicapp/bloc/theme/theme_cubit.dart';
+import 'package:musicapp/controller/audio_controller.dart';
+import 'package:musicapp/models/local_song_model.dart';
+import 'package:musicapp/widgets/custom_text_field.dart';
+import 'package:musicapp/widgets/section_header.dart';
+import 'package:musicapp/widgets/song_tile.dart';
 
-class MusicScreen extends StatelessWidget {
+class MusicScreen extends StatefulWidget {
   const MusicScreen({super.key});
+
+  @override
+  State<MusicScreen> createState() => _MusicScreenState();
+}
+
+class _MusicScreenState extends State<MusicScreen> {
+  @override
+  void initState() {
+    super.initState();
+    if (AudioController.instance.songs.value.isEmpty) {
+      AudioController.instance.loadSongs();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -17,7 +35,6 @@ class MusicScreen extends StatelessWidget {
         ? const Color(0xff1a1a1a)
         : const Color(0xffffffff);
     final textColor = isDarkTheme ? Colors.white : Colors.black;
-    final secondaryTextColor = isDarkTheme ? Colors.grey[400] : Colors.grey;
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -43,35 +60,11 @@ class MusicScreen extends StatelessWidget {
                 const SizedBox(height: 30),
 
                 // 2. Input Field (Paste Link)
-                Container(
-                  decoration: BoxDecoration(
-                    color: cardColor,
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  child: TextField(
-                    style: TextStyle(color: textColor),
-                    decoration: InputDecoration(
-                      fillColor: cardColor,
-                      hintText: 'Paste YouTube Link Here...',
-                      hintStyle: TextStyle(
-                        color: secondaryTextColor,
-                        fontSize: 14,
-                      ),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 25,
-                        vertical: 18,
-                      ),
-                      suffixIcon: Padding(
-                        padding: const EdgeInsets.only(right: 10),
-                        child: IconButton(
-                          onPressed: () {},
-                          icon: Icon(Icons.sync),
-                          color: textColor,
-                        ),
-                      ),
-                    ),
-                  ),
+                CustomTextField(
+                  hintText: 'Paste YouTube Link Here...',
+                  suffixIcon: Icons.sync,
+                  onSuffixTap: () {},
+                  isDarkTheme: isDarkTheme,
                 ),
                 const SizedBox(height: 20),
 
@@ -109,172 +102,35 @@ class MusicScreen extends StatelessWidget {
                 const SizedBox(height: 30),
 
                 // 4. Section Header
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Recent Conversion',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: textColor,
-                      ),
-                    ),
-
-                    TextButton(
-                      onPressed: () {},
-                      child: Text(
-                        "Clear",
-                        style: TextStyle(fontSize: 16, color: textColor),
-                      ),
-                    ),
-                  ],
+                SectionHeader(
+                  title: 'Recent Conversion',
+                  actionText: 'Clear',
+                  onActionTap: () {},
+                  textColor: textColor,
                 ),
                 const SizedBox(height: 15),
 
                 // 5. List of Songs
-                // ListView.builder(
-                //   shrinkWrap: true,
-                //   physics: const NeverScrollableScrollPhysics(),
-                //   itemCount: recentConversions.length,
-                //   itemBuilder: (context, index) {
-                //     final song = recentConversions[index];
-                //     return Padding(
-                //       padding: const EdgeInsets.only(bottom: 15.0),
-                //       child: Row(
-                //         children: [
-                //           // Album Art / Image
-                //           ClipRRect(
-                //             borderRadius: BorderRadius.circular(12),
-                //             child: Container(
-                //               height: 60,
-                //               width: 60,
-                //               color: cardColor,
-                //               child: Image.network(
-                //                 song.imageUrl,
-                //                 fit: BoxFit.cover,
-                //                 errorBuilder: (c, o, s) => Container(
-                //                   color: cardColor,
-                //                   child: Icon(
-                //                     Icons.music_note,
-                //                     color: secondaryTextColor,
-                //                   ),
-                //                 ),
-                //               ),
-                //             ),
-                //           ),
-                //           const SizedBox(width: 15),
-
-                //           // Title and Subtitle
-                //           Expanded(
-                //             child: Column(
-                //               crossAxisAlignment: CrossAxisAlignment.start,
-                //               children: [
-                //                 Text(
-                //                   song.title,
-                //                   style: TextStyle(
-                //                     fontSize: 16,
-                //                     fontWeight: FontWeight.bold,
-                //                     color: textColor,
-                //                   ),
-                //                 ),
-                //                 const SizedBox(height: 4),
-                //                 Text(
-                //                   '${song.genre} · ${song.duration}',
-                //                   style: TextStyle(
-                //                     fontSize: 13,
-                //                     color: secondaryTextColor,
-                //                     fontWeight: FontWeight.w500,
-                //                   ),
-                //                 ),
-                //               ],
-                //             ),
-                //           ),
-
-                //           // Menu Icon
-                //           IconButton(
-                //             onPressed: () {},
-                //             icon: Icon(Icons.more_vert),
-                //             color: textColor,
-                //           ),
-                //         ],
-                //       ),
-                //     );
-                //   },
-                // ),
-                ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: recentConversions.length,
-                  itemBuilder: (context, index) {
-                    final song = recentConversions[index];
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 16.0),
-                      child: Row(
-                        children: [
-                          // Album Art Placeholder
-                          Container(
-                            width: 55,
-                            height: 55,
-                            decoration: BoxDecoration(
-                              color: isDarkTheme
-                                  ? const Color(0xff2a2a2a)
-                                  : const Color(0xfff0f0f0),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: Image.network(
-                                'https://picsum.photos/200?random=$index',
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Icon(
-                                    Icons.music_note,
-                                    color: secondaryTextColor,
-                                    size: 30,
-                                  );
-                                },
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-
-                          // Title and Subtitle
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  song.title,
-                                  style: TextStyle(
-                                    color: textColor,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  '${song.genre} · ${song.duration}',
-                                  style: TextStyle(
-                                    color: secondaryTextColor,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w400,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          // Menu Icon
-                          IconButton(
-                            onPressed: () {},
-                            icon: Icon(
-                              Icons.more_vert,
-                              color: isDarkTheme ? Colors.white : Colors.black,
-                            ),
-                          ),
-                        ],
-                      ),
+                ValueListenableBuilder<List<LocalSongModel>>(
+                  valueListenable: AudioController.instance.songs,
+                  builder: (context, songs, child) {
+                    return ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: songs.length,
+                      itemBuilder: (context, index) {
+                        final song = songs[index];
+                        return SongTile(
+                          title: song.title,
+                          artist: song.artist,
+                          songId: song.id,
+                          onTap: () {
+                            AudioController.instance.playSong(index);
+                          },
+                          onMenuTap: () {},
+                          isDarkTheme: isDarkTheme,
+                        );
+                      },
                     );
                   },
                 ),
@@ -286,89 +142,3 @@ class MusicScreen extends StatelessWidget {
     );
   }
 }
-
-// --- Data Model & Dummy Data ---
-class SongModel {
-  final String title;
-  final String genre;
-  final String duration;
-  final String imageUrl;
-
-  SongModel(this.title, this.genre, this.duration, this.imageUrl);
-}
-
-// Dummy data to match the screenshot
-List<SongModel> recentConversions = [
-  SongModel(
-    'Out of My Mine',
-    'Dance',
-    '4:24',
-    'https://picsum.photos/200?random=1',
-  ),
-  SongModel(
-    'Freak in Me',
-    'Electronic',
-    '4:24',
-    'https://picsum.photos/200?random=2',
-  ),
-  SongModel(
-    'Out of My Mine',
-    'Dance',
-    '4:24',
-    'https://picsum.photos/200?random=3',
-  ),
-  SongModel(
-    'Out of My Mine',
-    'Dance',
-    '4:24',
-    'https://picsum.photos/200?random=4',
-  ),
-  SongModel(
-    'Out of My Mine',
-    'Dance',
-    '4:24',
-    'https://picsum.photos/200?random=5',
-  ),
-  SongModel(
-    'Out of My Mine',
-    'Dance',
-    '4:24',
-    'https://picsum.photos/200?random=6',
-  ),
-  SongModel(
-    'Out of My Mine',
-    'Dance',
-    '4:24',
-    'https://picsum.photos/200?random=1',
-  ),
-  SongModel(
-    'Freak in Me',
-    'Electronic',
-    '4:24',
-    'https://picsum.photos/200?random=2',
-  ),
-  SongModel(
-    'Out of My Mine',
-    'Dance',
-    '4:24',
-    'https://picsum.photos/200?random=3',
-  ),
-  SongModel(
-    'Out of My Mine',
-    'Dance',
-    '4:24',
-    'https://picsum.photos/200?random=4',
-  ),
-  SongModel(
-    'Out of My Mine',
-    'Dance',
-    '4:24',
-    'https://picsum.photos/200?random=5',
-  ),
-  SongModel(
-    'Out of My Mine',
-    'Dance',
-    '4:24',
-    'https://picsum.photos/200?random=6',
-  ),
-];

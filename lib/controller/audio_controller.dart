@@ -48,6 +48,17 @@ class AudioController {
 
   //funtion to loadsongs
   Future<void> loadSongs() async {
+    // Request permission
+    bool hasPermission = await audioQuery.permissionsStatus();
+    if (!hasPermission) {
+      hasPermission = await audioQuery.permissionsRequest();
+    }
+
+    if (!hasPermission) {
+      debugPrint("Permission denied");
+      return;
+    }
+
     final fetchSongs = await audioQuery.querySongs(
       sortType: null,
       orderType: OrderType.ASC_OR_SMALLER,
