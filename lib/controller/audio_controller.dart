@@ -9,8 +9,10 @@ class AudioController {
   AudioController._instance() {
     _setupAudioPlayer();
   }
+
   final AudioPlayer audioPlayer = AudioPlayer();
   final OnAudioQuery audioQuery = OnAudioQuery();
+
   final ValueNotifier<List<LocalSongModel>> songs =
       ValueNotifier<List<LocalSongModel>>([]);
 
@@ -22,42 +24,35 @@ class AudioController {
       ? songs.value[currentIndex.value]
       : null;
 
-  //function for _setupAudioPlayer()
+  // **********************************************************************
+  // SETUP PLAYER STREAM LISTENERS
+  // **********************************************************************
   void _setupAudioPlayer() {
-    //listen to player state change
     audioPlayer.playerStateStream.listen((playerState) {
       isPlaying.value = playerState.playing;
 
-      //autoplay next song when current song end
+      // Auto play next song when current finishes
       if (playerState.processingState == ProcessingState.completed) {
-        if (currentIndex.value < songs.value.length - 1) {
-          //here we play song
-          playSong(currentIndex.value + 1);
-        } else {
-          currentIndex.value = -1;
-          isPlaying.value = false;
-        }
+        nextSong();
       }
     });
 
-    // listen to position change
     audioPlayer.positionStream.listen((_) {
-      //this update the ui for progress bar
+      // updates UI progress bar
     });
   }
 
-  //funtion to loadsongs
+  // **********************************************************************
+  // LOAD SONGS
+  // **********************************************************************
   Future<void> loadSongs() async {
-    // Request permission
+    if (songs.value.isNotEmpty) return; // already loaded
+
     bool hasPermission = await audioQuery.permissionsStatus();
     if (!hasPermission) {
       hasPermission = await audioQuery.permissionsRequest();
     }
-
-    if (!hasPermission) {
-      debugPrint("Permission denied");
-      return;
-    }
+    if (!hasPermission) return;
 
     final fetchSongs = await audioQuery.querySongs(
       sortType: null,
@@ -65,36 +60,38 @@ class AudioController {
       uriType: UriType.EXTERNAL,
       ignoreCase: true,
     );
+
     songs.value = fetchSongs
         .map(
-          (songs) => LocalSongModel(
-            id: songs.id,
-            artist: songs.artist ?? "Unknown Artist",
-            title: songs.title,
-            uri: songs.uri ?? "",
-            albumArt: songs.album ?? "",
-            duration: songs.duration ?? 0,
+          (s) => LocalSongModel(
+            id: s.id,
+            artist: s.artist ?? "Unknown Artist",
+            title: s.title,
+            uri: s.uri ?? "",
+            albumArt: s.album ?? "",
+            duration: s.duration ?? 0,
           ),
         )
         .toList();
   }
 
-  //ffunction to play song
+  // **********************************************************************
+  // PLAY SONG
+  // **********************************************************************
   Future<void> playSong(int index) async {
     if (index < 0 || index >= songs.value.length) return;
 
     try {
-      if (currentIndex.value == index && isPlaying.value) {
-        await pauseSong();
-        return;
-      }
       currentIndex.value = index;
       final song = songs.value[index];
+
       await audioPlayer.stop();
-      await audioPlayer.setAudioSource(
-        AudioSource.uri(Uri.parse(song.uri)),
-        preload: true,
-      );
+
+      // FIX: Local files require Uri.file(...) instead of Uri.parse(...)
+      final uri = _buildUri(song.uri);
+
+      await audioPlayer.setAudioSource(AudioSource.uri(uri), preload: true);
+
       await audioPlayer.play();
       isPlaying.value = true;
     } catch (e) {
@@ -102,48 +99,75 @@ class AudioController {
     }
   }
 
-  //function to pause song
+  // Detect correct URI type
+  Uri _buildUri(String uri) {
+    if (uri.startsWith("/storage") || uri.startsWith("/sdcard")) {
+      return Uri.file(uri);
+    }
+    return Uri.parse(uri);
+  }
+
+  // **********************************************************************
+  // PAUSE SONG
+  // **********************************************************************
   Future<void> pauseSong() async {
     await audioPlayer.pause();
     isPlaying.value = false;
   }
 
-  //function to resume song
+  // **********************************************************************
+  // RESUME SONG
+  // **********************************************************************
   Future<void> resumeSong() async {
     await audioPlayer.play();
     isPlaying.value = true;
   }
 
-  //fuction to toogle play - pause
+  // **********************************************************************
+  // PLAY/PAUSE TOGGLE
+  // **********************************************************************
   void tooglePlayPause() async {
     if (currentIndex.value == -1) return;
 
-    try {
-      if (isPlaying.value) {
-        await pauseSong();
-      } else {
-        await resumeSong();
-      }
-    } catch (e) {
-      print("Erro toogling Play and Pause: $e");
+    if (isPlaying.value) {
+      await pauseSong();
+    } else {
+      await resumeSong();
     }
   }
 
-  //function for next song
+  // **********************************************************************
+  // NEXT SONG
+  // **********************************************************************
   Future<void> nextSong() async {
     if (currentIndex.value < songs.value.length - 1) {
       await playSong(currentIndex.value + 1);
+    } else {
+      // last song → stop playback and hide mini player
+      await audioPlayer.stop();
+      currentIndex.value = -1;
+      isPlaying.value = false;
     }
   }
 
-  //function for previous song
+  // **********************************************************************
+  // PREVIOUS SONG (FIXED CRASH)
+  // **********************************************************************
   Future<void> previousSong() async {
-    if (currentIndex.value > 0) {
-      await playSong(currentIndex.value - 1);
+    if (currentIndex.value <= 0) {
+      // First song → stop + hide mini player (prevent crash)
+      await audioPlayer.stop();
+      currentIndex.value = -1;
+      isPlaying.value = false;
+      return;
     }
+
+    await playSong(currentIndex.value - 1);
   }
 
-  //function to dispose
+  // **********************************************************************
+  // DISPOSE PLAYER
+  // **********************************************************************
   void dispose() {
     audioPlayer.dispose();
   }

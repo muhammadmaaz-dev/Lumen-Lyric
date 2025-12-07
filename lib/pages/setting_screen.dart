@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:musicapp/bloc/theme/theme_cubit.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:musicapp/widgets/setting_tile.dart';
 
 class SettingScreen extends StatefulWidget {
   const SettingScreen({super.key});
@@ -164,10 +165,11 @@ class _SettingScreenState extends State<SettingScreen> {
                       ),
                       child: Column(
                         children: [
-                          _buildMenuItem(
+                          SettingsTile(
                             icon: Icons.favorite_border,
                             title: 'Liked Songs',
                             onTap: () {},
+                            isDarkTheme: isDarkTheme,
                             textColor: textColor,
                           ),
                           Divider(
@@ -176,10 +178,11 @@ class _SettingScreenState extends State<SettingScreen> {
                             indent: 10,
                             endIndent: 10,
                           ),
-                          _buildMenuItem(
+                          SettingsTile(
                             icon: Icons.restore,
-                            title: 'Recently Played',
+                            title: 'Playlist',
                             onTap: () {},
+                            isDarkTheme: isDarkTheme,
                             textColor: textColor,
                           ),
                           Divider(
@@ -188,10 +191,11 @@ class _SettingScreenState extends State<SettingScreen> {
                             indent: 10,
                             endIndent: 10,
                           ),
-                          _buildMenuItem(
+                          SettingsTile(
                             icon: Icons.download_outlined,
                             title: 'Downloads',
                             onTap: () {},
+                            isDarkTheme: isDarkTheme,
                             isLast: true,
                             textColor: textColor,
                           ),
@@ -217,10 +221,11 @@ class _SettingScreenState extends State<SettingScreen> {
                       ),
                       child: Column(
                         children: [
-                          _buildMenuItem(
+                          SettingsTile(
                             icon: Icons.key_outlined,
                             title: 'Change Password',
                             onTap: () {},
+                            isDarkTheme: isDarkTheme,
                             textColor: textColor,
                           ),
                           Divider(
@@ -229,10 +234,11 @@ class _SettingScreenState extends State<SettingScreen> {
                             indent: 10,
                             endIndent: 10,
                           ),
-                          _buildMenuItem(
+                          SettingsTile(
                             icon: Icons.person_outline,
                             title: 'Linked Account',
                             onTap: () {},
+                            isDarkTheme: isDarkTheme,
                             isLast: true,
                             textColor: textColor,
                           ),
@@ -258,10 +264,11 @@ class _SettingScreenState extends State<SettingScreen> {
                       ),
                       child: Column(
                         children: [
-                          _buildMenuItem(
+                          SettingsTile(
                             icon: Icons.help_outline,
                             title: 'FAQs',
                             onTap: () {},
+                            isDarkTheme: isDarkTheme,
                             textColor: textColor,
                           ),
                           Divider(
@@ -270,10 +277,11 @@ class _SettingScreenState extends State<SettingScreen> {
                             indent: 10,
                             endIndent: 10,
                           ),
-                          _buildMenuItem(
+                          SettingsTile(
                             icon: Icons.headset_mic_outlined,
                             title: 'Contact Support',
                             onTap: () {},
+                            isDarkTheme: isDarkTheme,
                             textColor: textColor,
                           ),
                           Divider(
@@ -282,10 +290,11 @@ class _SettingScreenState extends State<SettingScreen> {
                             indent: 10,
                             endIndent: 10,
                           ),
-                          _buildMenuItem(
+                          SettingsTile(
                             icon: Icons.bug_report_outlined,
                             title: 'Report a Bug',
                             onTap: () {},
+                            isDarkTheme: isDarkTheme,
                             isLast: true,
                             textColor: textColor,
                           ),
@@ -331,40 +340,4 @@ class _SettingScreenState extends State<SettingScreen> {
       ),
     );
   }
-}
-
-Widget _buildMenuItem({
-  required IconData icon,
-  required String title,
-  required VoidCallback onTap,
-  required Color textColor,
-  bool isLast = false,
-}) {
-  return Material(
-    color: Colors.transparent,
-    child: InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
-          children: [
-            Icon(icon, size: 26, color: textColor),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Text(
-                title,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: textColor,
-                ),
-              ),
-            ),
-            Icon(Icons.chevron_right, size: 24, color: textColor),
-          ],
-        ),
-      ),
-    ),
-  );
 }
