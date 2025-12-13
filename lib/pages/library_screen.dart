@@ -145,7 +145,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
             right: 0,
             bottom: 3,
             child: const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12),
+              padding: EdgeInsets.symmetric(horizontal: 2),
               child: MiniPlayer(),
             ),
           ),

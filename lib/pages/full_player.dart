@@ -20,6 +20,13 @@ class FullPlayer extends StatelessWidget {
     final textColor = isDarkTheme ? Colors.white : Colors.black;
     final subTextColor = isDarkTheme ? Colors.grey[400] : Colors.grey[600];
     final iconColor = isDarkTheme ? Colors.white : Colors.black;
+
+    final thumbColor = isDarkTheme
+        ? const Color.fromARGB(255, 0, 0, 0)
+        : const Color.fromARGB(255, 255, 255, 255);
+    final trackColors = isDarkTheme ? Colors.white : Colors.black;
+    final playpause = isDarkTheme ? Colors.white : Colors.black;
+    final playpauseicon = isDarkTheme ? Colors.black : Colors.white;
     final containerColor = isDarkTheme
         ? const Color(0xff1a1a1a)
         : Colors.grey[50];
@@ -51,23 +58,17 @@ class FullPlayer extends StatelessWidget {
             style: TextStyle(
               color: textColor,
               fontWeight: FontWeight.bold,
-              fontSize: 18,
+              fontSize: 25,
             ),
           ),
           leading: IconButton(
             icon: Icon(
               Icons.keyboard_arrow_down_rounded,
               color: iconColor,
-              size: 20,
+              size: 35,
             ),
             onPressed: () => Navigator.pop(context),
           ),
-          actions: [
-            IconButton(
-              icon: Icon(Icons.more_horiz, color: iconColor),
-              onPressed: () {},
-            ),
-          ],
         ),
 
         body: ValueListenableBuilder<int>(
@@ -207,25 +208,29 @@ class FullPlayer extends StatelessWidget {
 
                       return Column(
                         children: [
-                          SliderTheme(
-                            data: SliderTheme.of(context).copyWith(
-                              activeTrackColor: const Color(0xFF8E97FD),
-                              inactiveTrackColor: sliderInactiveColor,
-                              thumbColor: Colors.transparent,
-                              overlayShape: SliderComponentShape.noOverlay,
-                              thumbShape: const RoundSliderThumbShape(
-                                enabledThumbRadius: 0,
+                          SizedBox(
+                            height: 20,
+                            child: SliderTheme(
+                              data: SliderTheme.of(context).copyWith(
+                                activeTrackColor: trackColors,
+                                inactiveTrackColor: sliderInactiveColor,
+                                thumbColor: thumbColor,
+                                overlayShape: SliderComponentShape.noOverlay,
+
+                                thumbShape: const RoundSliderThumbShape(
+                                  enabledThumbRadius: 10,
+                                ),
+                                trackHeight: 9,
                               ),
-                              trackHeight: 9,
-                            ),
-                            child: Slider(
-                              value: value,
-                              max: max,
-                              onChanged: (v) {
-                                controller.audioPlayer.seek(
-                                  Duration(seconds: v.toInt()),
-                                );
-                              },
+                              child: Slider(
+                                value: value,
+                                max: max,
+                                onChanged: (v) {
+                                  controller.audioPlayer.seek(
+                                    Duration(milliseconds: (v * 1000).round()),
+                                  );
+                                },
+                              ),
                             ),
                           ),
 
@@ -239,14 +244,14 @@ class FullPlayer extends StatelessWidget {
                                 _format(position),
                                 style: TextStyle(
                                   color: subTextColor,
-                                  fontSize: 12,
+                                  fontSize: 15,
                                 ),
                               ),
                               Text(
                                 _format(duration),
                                 style: TextStyle(
                                   color: subTextColor,
-                                  fontSize: 12,
+                                  fontSize: 15,
                                 ),
                               ),
                             ],
@@ -273,7 +278,7 @@ class FullPlayer extends StatelessWidget {
                         onPressed: controller.previousSong,
                       ),
 
-                      const SizedBox(width: 30),
+                      const SizedBox(width: 25),
 
                       // Play / Pause
                       ValueListenableBuilder<bool>(
@@ -284,23 +289,14 @@ class FullPlayer extends StatelessWidget {
                             height: 70,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: controlBgColor,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(
-                                    0xFF8E97FD,
-                                  ).withOpacity(0.2),
-                                  blurRadius: 20,
-                                  offset: const Offset(0, 10),
-                                ),
-                              ],
+                              color: playpause,
                             ),
                             child: IconButton(
                               icon: Icon(
                                 isPlaying
                                     ? Icons.pause_rounded
                                     : Icons.play_arrow_rounded,
-                                color: iconColor,
+                                color: playpauseicon,
                               ),
                               iconSize: 36,
                               onPressed: controller.tooglePlayPause,
