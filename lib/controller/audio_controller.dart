@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:musicapp/models/local_song_model.dart';
 import 'package:on_audio_query/on_audio_query.dart';
+import 'package:flutter_audio_tagger/flutter_audio_tagger.dart';
 
 class AudioController {
   static final AudioController instance = AudioController._instance();
@@ -12,12 +13,16 @@ class AudioController {
 
   final AudioPlayer audioPlayer = AudioPlayer();
   final OnAudioQuery audioQuery = OnAudioQuery();
+  final FlutterAudioTagger _tagger = FlutterAudioTagger();
 
   final ValueNotifier<List<LocalSongModel>> songs =
       ValueNotifier<List<LocalSongModel>>([]);
 
   final ValueNotifier<int> currentIndex = ValueNotifier<int>(-1);
   final ValueNotifier<bool> isPlaying = ValueNotifier<bool>(false);
+  final ValueNotifier<String> currentLyrics = ValueNotifier<String>(
+    "No Lyrics",
+  );
 
   LocalSongModel? get currentsong =>
       currentIndex.value != -1 && currentIndex.value < songs.value.length
@@ -74,7 +79,7 @@ class AudioController {
             id: s.id,
             artist: s.artist ?? "Unknown Artist",
             title: s.title,
-            uri: s.uri ?? "",
+            uri: s.data,
             albumArt: s.album ?? "",
             duration: s.duration ?? 0,
           ),
@@ -91,6 +96,8 @@ class AudioController {
     try {
       currentIndex.value = index;
       final song = songs.value[index];
+
+      _fetchLyrics(song.uri);
 
       // ERROR FIX: Ye line hata dein, iski waja se interruption error ata hai
       // await audioPlayer.stop();  <-- COMMENTED OUT / REMOVED
@@ -181,6 +188,40 @@ class AudioController {
     }
 
     await playSong(currentIndex.value - 1);
+  }
+
+  // **********************************************************************
+  // Fetch Lyrcis
+  // **********************************************************************
+  Future<void> _fetchLyrics(String path) async {
+    currentLyrics.value = "Loading Lyrics..."; // Reset text
+
+    // 1. Check: Agar path content:// hai (Previous fix)
+    if (path.startsWith("content://")) {
+      currentLyrics.value = "Cannot read lyrics from Content URI";
+      return;
+    }
+
+    // 2. NEW FIX: Agar file .opus hai tou skip karein
+    if (path.toLowerCase().endsWith(".opus")) {
+      currentLyrics.value = "Lyrics not supported for .opus files";
+      return;
+    }
+
+    try {
+      // Tagger se tags nikalein
+      final tag = await _tagger.getAllTags(path);
+
+      if (tag != null && tag.lyrics != null && tag.lyrics!.isNotEmpty) {
+        currentLyrics.value = tag.lyrics!;
+      } else {
+        currentLyrics.value = "No Lyrics Found";
+      }
+    } catch (e) {
+      // Agar koi aur format error aye to app crash na ho
+      print("Lyrics Error: $e");
+      currentLyrics.value = "No Lyrics Available";
+    }
   }
 
   // **********************************************************************
