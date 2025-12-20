@@ -1,19 +1,19 @@
 // ignore_for_file: unused_local_variable
 
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:musicapp/bloc/theme/theme_cubit.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:musicapp/provider/theme_provider.dart';
 import 'package:musicapp/controller/audio_controller.dart';
 import 'package:musicapp/pages/full_player.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 
-class MiniPlayer extends StatelessWidget {
+class MiniPlayer extends ConsumerWidget {
   const MiniPlayer({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final themeCubit = context.watch<ThemeCubit>();
-    final isDarkTheme = themeCubit.isDarkMode;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeProvider);
+    final isDarkTheme = themeMode == ThemeMode.dark;
     final controller = AudioController.instance;
 
     return ValueListenableBuilder(

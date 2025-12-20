@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:musicapp/bloc/theme/theme_cubit.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:musicapp/provider/theme_provider.dart';
 
 // Data Model - Ready for backend integration
 class SearchResultModel {
@@ -27,14 +27,14 @@ class SearchResultModel {
   }
 }
 
-class SearchScreen extends StatefulWidget {
+class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
 
   @override
-  State<SearchScreen> createState() => _SearchScreenState();
+  ConsumerState<SearchScreen> createState() => _SearchScreenState();
 }
 
-class _SearchScreenState extends State<SearchScreen> {
+class _SearchScreenState extends ConsumerState<SearchScreen> {
   final TextEditingController _searchController = TextEditingController();
   List<SearchResultModel> _searchResults = [];
   bool _isSearching = false;
@@ -113,8 +113,8 @@ class _SearchScreenState extends State<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final themeCubit = context.watch<ThemeCubit>();
-    final isDarkTheme = themeCubit.isDarkMode;
+    final themeMode = ref.watch(themeProvider);
+    final isDarkTheme = themeMode == ThemeMode.dark;
 
     final backgroundColor = isDarkTheme
         ? const Color(0xff000000)

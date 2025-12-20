@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:musicapp/bloc/theme/theme_cubit.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:musicapp/provider/theme_provider.dart';
 import 'package:musicapp/pages/home_screen.dart';
 import 'package:musicapp/pages/library_screen.dart';
 import 'package:musicapp/pages/music_screen.dart';
 import 'package:musicapp/pages/setting_screen.dart';
 
-class MainNavigation extends StatefulWidget {
+class MainNavigation extends ConsumerStatefulWidget {
   const MainNavigation({super.key});
 
   @override
-  State<MainNavigation> createState() => _MainNavigationState();
+  ConsumerState<MainNavigation> createState() => _MainNavigationState();
 }
 
-class _MainNavigationState extends State<MainNavigation> {
+class _MainNavigationState extends ConsumerState<MainNavigation> {
   int _currentIndex = 0;
 
   final List<Widget> _screens = const [
@@ -25,8 +25,8 @@ class _MainNavigationState extends State<MainNavigation> {
 
   @override
   Widget build(BuildContext context) {
-    final themeCubit = context.watch<ThemeCubit>();
-    final isDarkTheme = themeCubit.isDarkMode;
+    final themeMode = ref.watch(themeProvider);
+    final isDarkTheme = themeMode == ThemeMode.dark;
 
     final bottomNavColor = isDarkTheme
         ? const Color(0xff1a1a1a)

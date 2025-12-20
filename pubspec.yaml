@@ -13,9 +13,6 @@ dependencies:
 
   cupertino_icons: ^1.0.8
   flutter_screenutil: ^5.9.3
-  hydrated_bloc: ^10.1.1
-  flutter_bloc: ^9.1.1
-  path_provider: ^2.1.4
   just_audio: ^0.10.5
   marquee: ^2.3.0
   audio_video_progress_bar: ^2.0.3
@@ -24,6 +21,9 @@ dependencies:
   on_audio_query: ^2.9.0
   provider: ^6.1.5+1
   flutter_audio_tagger: ^5.1.1
+  flutter_riverpod: ^3.0.3
+  shared_preferences: ^2.5.4
+  interactive_slider: ^0.5.1
   
 
 dev_dependencies:

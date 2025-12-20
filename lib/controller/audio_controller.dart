@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:musicapp/models/local_song_model.dart';
@@ -221,6 +222,41 @@ class AudioController {
       // Agar koi aur format error aye to app crash na ho
       print("Lyrics Error: $e");
       currentLyrics.value = "No Lyrics Available";
+    }
+  }
+
+  // Apne Provider ya Controller class ke andar ye function dalo:
+  Future<void> deleteSong(int songId, String filePath) async {
+    bool deleted = false;
+    try {
+      // 1. Mobile Storage se File Delete karo
+      final file = File(filePath);
+      if (await file.exists()) {
+        await file.delete();
+        print("File deleted from storage");
+        deleted = true;
+      } else {
+        print("File not found, removing from list");
+        deleted = true;
+      }
+    } catch (e) {
+      print("Error deleting song: $e");
+      // Agar file nahi mili to bhi list se hata do
+      if (e.toString().contains("PathNotFoundException") ||
+          e.toString().contains("No such file")) {
+        deleted = true;
+      }
+    }
+
+    if (deleted) {
+      // 2. App ki List (State) se Song Hatao
+      songs.value = songs.value.where((song) => song.id != songId).toList();
+
+      // 3. Agar current song delete hua hai to player stop karo ya next chalao
+      if (currentsong?.id == songId) {
+        audioPlayer.stop();
+        currentIndex.value = -1;
+      }
     }
   }
 

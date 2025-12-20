@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:musicapp/bloc/theme/theme_cubit.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:musicapp/provider/theme_provider.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:musicapp/widgets/setting_tile.dart';
 
-class SettingScreen extends StatefulWidget {
+class SettingScreen extends ConsumerStatefulWidget {
   const SettingScreen({super.key});
 
   @override
-  State<SettingScreen> createState() => _SettingScreenState();
+  ConsumerState<SettingScreen> createState() => _SettingScreenState();
 }
 
-class _SettingScreenState extends State<SettingScreen> {
+class _SettingScreenState extends ConsumerState<SettingScreen> {
   @override
   Widget build(BuildContext context) {
-    final themeCubit = context.watch<ThemeCubit>();
-    final isDarkTheme = themeCubit.isDarkMode;
+    final themeMode = ref.watch(themeProvider);
+    final isDarkTheme = themeMode == ThemeMode.dark;
 
     final backgroundColor = isDarkTheme
         ? const Color(0xff000000)
@@ -130,7 +130,7 @@ class _SettingScreenState extends State<SettingScreen> {
                         trailing: CupertinoSwitch(
                           value: isDarkTheme,
                           onChanged: (value) {
-                            context.read<ThemeCubit>().toggleTheme();
+                            ref.read(themeProvider.notifier).toggleTheme();
                           },
                           // Jab switch ON ho to ye color dikhega
                           activeColor: CupertinoColors.activeGreen,
