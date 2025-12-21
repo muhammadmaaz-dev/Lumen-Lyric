@@ -5,6 +5,8 @@ class LocalSongModel {
   final String uri;
   final String albumArt;
   final int duration;
+  final bool isDownloaded;
+  final bool isLiked;
 
   LocalSongModel({
     required this.id,
@@ -13,5 +15,7 @@ class LocalSongModel {
     required this.uri,
     required this.albumArt,
     required this.duration,
+    required this.isDownloaded,
+    required this.isLiked,
   });
 }

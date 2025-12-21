@@ -74,18 +74,19 @@ class AudioController {
       ignoreCase: true,
     );
 
-    songs.value = fetchSongs
-        .map(
-          (s) => LocalSongModel(
-            id: s.id,
-            artist: s.artist ?? "Unknown Artist",
-            title: s.title,
-            uri: s.data,
-            albumArt: s.album ?? "",
-            duration: s.duration ?? 0,
-          ),
-        )
-        .toList();
+    songs.value = fetchSongs.map((s) {
+      bool isFromMyApp = s.data.contains("MyMusicApp");
+      return LocalSongModel(
+        id: s.id,
+        artist: s.artist ?? "Unknown Artist",
+        title: s.title,
+        uri: s.data,
+        albumArt: s.album ?? "",
+        duration: s.duration ?? 0,
+        isDownloaded: isFromMyApp,
+        isLiked: false,
+      );
+    }).toList();
   }
 
   // **********************************************************************

@@ -33,9 +33,11 @@ class MyApp extends ConsumerWidget {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
           title: 'Music App',
+
           theme: AppTheme.lighttheme,
           darkTheme: AppTheme.darktheme,
           themeMode: themeMode,
+
           home: const Login(),
         );
       },

@@ -41,7 +41,7 @@ class FilterButton extends StatelessWidget {
           style: TextStyle(
             color: isActive ? activeBtnText : inactiveBtnText,
             fontWeight: FontWeight.w500,
-            fontSize: 15,
+            fontSize: 12,
           ),
         ),
       ),
