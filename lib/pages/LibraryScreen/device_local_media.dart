@@ -35,12 +35,17 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   // Filter Logic
 
   List<LocalSongModel> _getFilteredSongs(List<LocalSongModel> allSongs) {
+    // 1. Agar User ne 'Liked' tab dabaya hai
     if (_selectedFilter == 'Liked') {
+      // Sirf wo songs return karo jinka isLiked == true hai
       return allSongs.where((s) => s.isLiked == true).toList();
-    } else if (_selectedFilter == 'Downloaded') {
+    }
+    // 2. Agar 'Downloaded' tab dabaya hai (Optional logic)
+    else if (_selectedFilter == 'Downloaded') {
       return allSongs.where((s) => s.isDownloaded == true).toList();
     }
 
+    // 3. Default: 'Local Media' (Sab dikhao)
     return allSongs;
   }
 
@@ -70,190 +75,157 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
 
       body: Stack(
         children: [
-          // Change 1: SingleChildScrollView wapis lagaya taake sab scroll ho
-          SingleChildScrollView(
-            child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-
-                  children: [
-                    const SizedBox(height: 16),
-
-                    // Search Bar (Ab ye bhi scroll karega)
-                    CustomTextField(
-                      hintText: 'Search',
-
-                      prefixIcon: Icons.search,
-
-                      onPrefixTap: () {},
-
-                      isDarkTheme: isDarkTheme,
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // Filter Buttons Row
-                    Row(
+          // CustomScrollView with proper sliver structure
+          CustomScrollView(
+            slivers: [
+              // Header Section (Search + Filters)
+              SliverToBoxAdapter(
+                child: SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        FilterButton(
-                          text: 'Downloaded',
+                        const SizedBox(height: 16),
 
-                          isActive: _selectedFilter == 'Downloaded',
-
-                          onTap: () {
-                            setState(() {
-                              _selectedFilter = "Downloaded";
-                            });
-                          },
-
+                        // Search Bar
+                        CustomTextField(
+                          hintText: 'Search',
+                          prefixIcon: Icons.search,
+                          onPrefixTap: () {},
                           isDarkTheme: isDarkTheme,
                         ),
 
-                        const SizedBox(width: 12),
+                        const SizedBox(height: 24),
 
-                        FilterButton(
-                          text: 'Liked',
-
-                          isActive: _selectedFilter == 'Liked',
-
-                          onTap: () {
-                            setState(() {
-                              _selectedFilter = "Liked";
-                            });
-                          },
-
-                          isDarkTheme: isDarkTheme,
-                        ),
-
-                        const SizedBox(width: 12),
-
-                        FilterButton(
-                          text: 'Local Media',
-
-                          isActive: _selectedFilter == 'Local Media',
-
-                          onTap: () {
-                            setState(() {
-                              _selectedFilter = "Local Media";
-                            });
-                          },
-
-                          isDarkTheme: isDarkTheme,
-                        ),
-
-                        const Spacer(),
-
-                        ValueListenableBuilder(
-                          valueListenable: AudioController.instance.songs,
-
-                          builder: (context, songs, child) {
-                            final filteredCount = _getFilteredSongs(
-                              songs,
-                            ).length;
-
-                            return Text(
-                              '$filteredCount Songs',
-
-                              style: TextStyle(
-                                color: textColor,
-
-                                fontWeight: FontWeight.w500,
-
-                                fontSize: 12,
-                              ),
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    // Change 2: Expanded hata diya, direct ValueListenableBuilder
-                    ValueListenableBuilder(
-                      valueListenable: AudioController.instance.songs,
-
-                      builder: (context, allSongs, _) {
-                        final displaySongs = _getFilteredSongs(allSongs);
-
-                        if (displaySongs.isEmpty) {
-                          // Height deni paregi taake empty msg dikhe
-
-                          return SizedBox(
-                            height: 100,
-
-                            child: Center(
-                              child: Text(
-                                "No $_selectedFilter Songs Found",
-
-                                style: TextStyle(color: textColor),
-                              ),
-                            ),
-                          );
-                        }
-
-                        return ListView.builder(
-                          // Change 3: ShrinkWrap aur Physics zaroori hain
-                          shrinkWrap: true,
-
-                          physics: const NeverScrollableScrollPhysics(),
-
-                          itemCount: displaySongs.length,
-
-                          itemBuilder: (context, index) {
-                            final song = displaySongs[index];
-
-                            return SongTile(
-                              title: song.title,
-
-                              artist: song.artist,
-
-                              songId: song.id,
-
+                        // Filter Buttons Row
+                        Row(
+                          children: [
+                            FilterButton(
+                              text: 'Downloaded',
+                              isActive: _selectedFilter == 'Downloaded',
                               onTap: () {
-                                final originalIndex = allSongs.indexOf(song);
-
-                                AudioController.instance.playSong(
-                                  originalIndex,
-                                );
+                                setState(() {
+                                  _selectedFilter = "Downloaded";
+                                });
                               },
+                              isDarkTheme: isDarkTheme,
+                            ),
 
-                              onMenuTap: () {
-                                showModalBottomSheet(
-                                  context: context,
+                            const SizedBox(width: 12),
 
-                                  isScrollControlled: true,
+                            FilterButton(
+                              text: 'Liked',
+                              isActive: _selectedFilter == 'Liked',
+                              onTap: () {
+                                setState(() {
+                                  _selectedFilter = "Liked";
+                                });
+                              },
+                              isDarkTheme: isDarkTheme,
+                            ),
 
-                                  backgroundColor: Colors.transparent,
+                            const SizedBox(width: 12),
 
-                                  builder: (context) => SongOptionsWidget(
-                                    songId: song.id,
+                            FilterButton(
+                              text: 'Local Media',
+                              isActive: _selectedFilter == 'Local Media',
+                              onTap: () {
+                                setState(() {
+                                  _selectedFilter = "Local Media";
+                                });
+                              },
+                              isDarkTheme: isDarkTheme,
+                            ),
 
-                                    title: song.title,
+                            const Spacer(),
 
-                                    artist: song.artist,
-
-                                    filePath: song.uri,
+                            ValueListenableBuilder(
+                              valueListenable: AudioController.instance.songs,
+                              builder: (context, songs, child) {
+                                final filteredCount = _getFilteredSongs(
+                                  songs,
+                                ).length;
+                                return Text(
+                                  '$filteredCount Songs',
+                                  style: TextStyle(
+                                    color: textColor,
+                                    fontWeight: FontWeight.w500,
+                                    fontSize: 12,
                                   ),
                                 );
                               },
+                            ),
+                          ],
+                        ),
 
-                              isDarkTheme: isDarkTheme,
-                            );
-                          },
-                        );
-                      },
+                        const SizedBox(height: 20),
+                      ],
                     ),
-
-                    // Extra space taake last song MiniPlayer ke peeche na chupe
-                    const SizedBox(height: 80),
-                  ],
+                  ),
                 ),
               ),
-            ),
+
+              // Songs List - Now properly placed as a direct sliver child
+              ValueListenableBuilder(
+                valueListenable: AudioController.instance.songs,
+                builder: (context, allSongs, _) {
+                  final displaySongs = _getFilteredSongs(allSongs);
+
+                  // Empty state
+                  if (displaySongs.isEmpty) {
+                    return SliverToBoxAdapter(
+                      child: Container(
+                        height: 200,
+                        alignment: Alignment.center,
+                        child: Text(
+                          "No $_selectedFilter Songs Found",
+                          style: TextStyle(color: textColor),
+                        ),
+                      ),
+                    );
+                  }
+
+                  // Songs list
+                  return SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        final song = displaySongs[index];
+
+                        return SongTile(
+                          title: song.title,
+                          artist: song.artist,
+                          songId: song.id,
+
+                          onTap: () {
+                            final originalIndex = allSongs.indexOf(song);
+                            AudioController.instance.playSong(originalIndex);
+                          },
+                          onMenuTap: () {
+                            showModalBottomSheet(
+                              context: context,
+                              isScrollControlled: true,
+                              backgroundColor: Colors.transparent,
+                              builder: (context) => SongOptionsWidget(
+                                songId: song.id,
+                                title: song.title,
+                                artist: song.artist,
+                                filePath: song.uri,
+                              ),
+                            );
+                          },
+                          isDarkTheme: isDarkTheme,
+                        );
+                      }, childCount: displaySongs.length),
+                    ),
+                  );
+                },
+              ),
+
+              // Extra space at bottom for MiniPlayer
+              const SliverToBoxAdapter(child: SizedBox(height: 80)),
+            ],
           ),
 
           // MiniPlayer Fixed rahega bottom par

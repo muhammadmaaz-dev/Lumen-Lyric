@@ -1,136 +1,102 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'package:musicapp/provider/theme_provider.dart';
 import 'package:musicapp/pages/home_screen.dart';
 import 'package:musicapp/pages/LibraryScreen/device_local_media.dart';
 import 'package:musicapp/pages/music_screen.dart';
 import 'package:musicapp/pages/setting_screen.dart';
 
-class MainNavigation extends ConsumerStatefulWidget {
+// 1. Define the provider to hold the selected index (starts at 0)
+final bottomNavIndexProvider = StateProvider<int>((ref) => 0);
+
+class MainNavigation extends ConsumerWidget {
   const MainNavigation({super.key});
 
   @override
-  ConsumerState<MainNavigation> createState() => _MainNavigationState();
-}
-
-class _MainNavigationState extends ConsumerState<MainNavigation> {
-  int _selectedIndex = 0;
-
-  final List<Widget> _screens = const [
-    HomeScreen(),
-    LibraryScreen(),
-    MusicScreen(),
-    SettingScreen(),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // 2. Watch the theme provider
     final themeMode = ref.watch(themeProvider);
     final isDarkTheme = themeMode == ThemeMode.dark;
 
+    // 3. Watch the navigation index provider
+    final selectedIndex = ref.watch(bottomNavIndexProvider);
+
+    // Define colors based on theme
     final bottomNavColor = isDarkTheme
         ? const Color.fromARGB(255, 0, 0, 0)
         : const Color.fromARGB(255, 255, 255, 255);
     final selectedColor = isDarkTheme ? Colors.white : Colors.black;
-    final unselectedColor = isDarkTheme ? Colors.grey[600] : Colors.grey[400];
+    // Handle null safety for grey colors
+    final unselectedColor = isDarkTheme ? Colors.grey[600]! : Colors.grey[400]!;
     final barColor = isDarkTheme
         ? const Color.fromARGB(255, 155, 155, 155)
         : const Color.fromARGB(255, 117, 117, 117);
 
+    // List of Screens
+    const List<Widget> screens = [
+      HomeScreen(),
+      LibraryScreen(),
+      MusicScreen(),
+      SettingScreen(),
+    ];
+
     return Scaffold(
-      body: _screens[_selectedIndex],
+      body: IndexedStack(
+        index: selectedIndex, // Uses the value from Riverpod
+        children: screens,
+      ),
       bottomNavigationBar: Container(
         height: 65,
         decoration: BoxDecoration(
           border: Border(top: BorderSide(color: barColor)),
         ),
-        child: BottomNavigationBar(
-          type: BottomNavigationBarType.fixed,
-          selectedItemColor: selectedColor,
-          backgroundColor: bottomNavColor,
-          currentIndex: _selectedIndex,
-          showSelectedLabels: false,
-          showUnselectedLabels: false,
+        child: Theme(
+          data: Theme.of(context).copyWith(
+            splashColor: Colors.transparent,
+            highlightColor: Colors.transparent,
+          ),
+          child: BottomNavigationBar(
+            type: BottomNavigationBarType.fixed,
+            selectedItemColor: selectedColor,
+            unselectedItemColor:
+                unselectedColor, // Added explicitly for better style control
+            backgroundColor: bottomNavColor,
+            currentIndex: selectedIndex, // Uses the value from Riverpod
+            showSelectedLabels: false,
+            showUnselectedLabels: false,
 
-          onTap: (i) => setState(() {
-            _selectedIndex = i;
-          }),
-          items: [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home),
-              activeIcon: Icon(Icons.home_filled),
-              label: "",
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.library_music_outlined),
-              activeIcon: Icon(Icons.library_music),
-              label: "",
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.music_note_outlined),
-              activeIcon: Icon(Icons.music_note),
-              label: "",
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person_2_outlined),
-              activeIcon: Icon(Icons.person_2_rounded),
-              label: "",
-            ),
-          ],
+            // 4. Update the provider on tap
+            onTap: (index) {
+              ref.read(bottomNavIndexProvider.notifier).state = index;
+            },
+
+            items: const [
+              BottomNavigationBarItem(
+                icon: Icon(Icons.home),
+                activeIcon: Icon(Icons.home_filled),
+                label:
+                    "Home", // Good practice to have labels for accessibility, even if hidden
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.library_music_outlined),
+                activeIcon: Icon(Icons.library_music),
+                label: "Library",
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.music_note_outlined),
+                activeIcon: Icon(Icons.music_note),
+                label: "Music",
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.person_2_outlined),
+                activeIcon: Icon(Icons.person_2_rounded),
+                label: "Profile",
+              ),
+            ],
+          ),
         ),
       ),
-
-      // body: _screens[_currentIndex],
-      // bottomNavigationBar: Container(
-      //   decoration: BoxDecoration(
-      //     color: bottomNavColor,
-      //     boxShadow: [
-      //       BoxShadow(
-      //         color: Colors.black.withOpacity(0.1),
-      //         blurRadius: 10,
-      //         offset: const Offset(0, -2),
-      //       ),
-      //     ],
-      //   ),
-      //   child: SafeArea(
-      //     child: Padding(
-      //       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      //       child: Row(
-      //         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      //         children: [
-      //           _buildNavItem(
-      //             icon: Icons.home_outlined,
-      //             selectedIcon: Icons.home,
-      //             index: 0,
-      //             selectedColor: selectedColor,
-      //             unselectedColor: unselectedColor!,
-      //           ),
-      //           _buildNavItem(
-      //             icon: Icons.folder_outlined,
-      //             selectedIcon: Icons.folder,
-      //             index: 1,
-      //             selectedColor: selectedColor,
-      //             unselectedColor: unselectedColor,
-      //           ),
-      //           _buildNavItem(
-      //             icon: Icons.music_note_outlined,
-      //             selectedIcon: Icons.music_note,
-      //             index: 2,
-      //             selectedColor: selectedColor,
-      //             unselectedColor: unselectedColor,
-      //           ),
-      //           _buildNavItem(
-      //             icon: Icons.person_outline,
-      //             selectedIcon: Icons.person,
-      //             index: 3,
-      //             selectedColor: selectedColor,
-      //             unselectedColor: unselectedColor,
-      //           ),
-      //         ],
-      //       ),
-      //     ),
-      //   ),
-      // ),
     );
   }
 }

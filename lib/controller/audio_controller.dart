@@ -4,6 +4,7 @@ import 'package:just_audio/just_audio.dart';
 import 'package:musicapp/models/local_song_model.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:flutter_audio_tagger/flutter_audio_tagger.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // <--- 1. NEW IMPORT
 
 class AudioController {
   static final AudioController instance = AudioController._instance();
@@ -33,21 +34,15 @@ class AudioController {
   // **********************************************************************
   // SETUP PLAYER STREAM LISTENERS
   // **********************************************************************
-  // **********************************************************************
-  // SETUP PLAYER STREAM LISTENERS
-  // **********************************************************************
   void _setupAudioPlayer() {
     audioPlayer.playerStateStream.listen((playerState) {
       isPlaying.value = playerState.playing;
 
       // Auto play next song when current finishes
       if (playerState.processingState == ProcessingState.completed) {
-        // Yahan check karein ke kya hum already last song par tou nahi hain
-        // Taa ke unnecessary next calls na hon
         if (currentIndex.value < songs.value.length - 1) {
           nextSong();
         } else {
-          // Agar playlist khatam ho gayi hai
           isPlaying.value = false;
           audioPlayer.stop();
         }
@@ -56,7 +51,7 @@ class AudioController {
   }
 
   // **********************************************************************
-  // LOAD SONGS
+  // LOAD SONGS (UPDATED)
   // **********************************************************************
   Future<void> loadSongs() async {
     if (songs.value.isNotEmpty) return; // already loaded
@@ -84,13 +79,72 @@ class AudioController {
         albumArt: s.album ?? "",
         duration: s.duration ?? 0,
         isDownloaded: isFromMyApp,
-        isLiked: false,
+        isLiked: false, // Default false, hum neeche restore karenge
       );
     }).toList();
+
+    // <--- 2. Yahan hum Likes ko restore karenge
+    await _restoreLikes();
   }
 
   // **********************************************************************
-  // PLAY SONG (FIXED)
+  // LIKE FEATURE LOGIC (NEW)
+  // **********************************************************************
+
+  // 1. Toggle Like Function
+  Future<void> toggleLike(int songId) async {
+    final currentList = songs.value;
+    final index = currentList.indexWhere((s) => s.id == songId);
+
+    if (index != -1) {
+      // List ki copy banayi (Immutability rule)
+      final newList = List<LocalSongModel>.from(currentList);
+
+      // Status flip kiya
+      final newStatus = !newList[index].isLiked;
+      newList[index] = newList[index].copyWith(isLiked: newStatus);
+
+      // UI Update
+      songs.value = newList;
+
+      // Save to Storage
+      await _saveLikesToPrefs();
+    }
+  }
+
+  // 2. Save Logic
+  Future<void> _saveLikesToPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    final likedIds = songs.value
+        .where((s) => s.isLiked)
+        .map((s) => s.id.toString())
+        .toList();
+
+    await prefs.setStringList('liked_songs', likedIds);
+  }
+
+  // 3. Restore Logic
+  Future<void> _restoreLikes() async {
+    final prefs = await SharedPreferences.getInstance();
+    final likedIds = prefs.getStringList('liked_songs') ?? [];
+
+    if (likedIds.isNotEmpty && songs.value.isNotEmpty) {
+      final newList = List<LocalSongModel>.from(songs.value);
+
+      for (int i = 0; i < newList.length; i++) {
+        // Check agar current song ID saved list mein hai
+        if (likedIds.contains(newList[i].id.toString())) {
+          newList[i] = newList[i].copyWith(isLiked: true);
+        }
+      }
+      songs.value = newList;
+    }
+  }
+
+  // LibraryScreen State class ke andar
+
+  // **********************************************************************
+  // PLAY SONG
   // **********************************************************************
   Future<void> playSong(int index) async {
     if (index < 0 || index >= songs.value.length) return;
@@ -101,22 +155,11 @@ class AudioController {
 
       _fetchLyrics(song.uri);
 
-      // ERROR FIX: Ye line hata dein, iski waja se interruption error ata hai
-      // await audioPlayer.stop();  <-- COMMENTED OUT / REMOVED
-
-      // FIX: Local files require Uri.file(...) instead of Uri.parse(...)
       final uri = _buildUri(song.uri);
-
-      // Try setting source
       await audioPlayer.setAudioSource(AudioSource.uri(uri), preload: true);
-
-      //---------------------------------------------------------------------
-
       await audioPlayer.play();
       isPlaying.value = true;
     } catch (e) {
-      // Agar error PlayerInterruptedException hai to usay ignore karein
-      // kyunke iska matlab hai naya song load hona shuru ho gaya hai.
       if (e.toString().contains("PlayerInterruptedException") ||
           e.toString().contains("aborted")) {
         print("Loading interrupted by new request (Normal behavior)");
@@ -126,7 +169,6 @@ class AudioController {
     }
   }
 
-  // Detect correct URI type
   Uri _buildUri(String uri) {
     if (uri.startsWith("/storage") || uri.startsWith("/sdcard")) {
       return Uri.file(uri);
@@ -135,27 +177,20 @@ class AudioController {
   }
 
   // **********************************************************************
-  // PAUSE SONG
+  // CONTROLS
   // **********************************************************************
   Future<void> pauseSong() async {
     await audioPlayer.pause();
     isPlaying.value = false;
   }
 
-  // **********************************************************************
-  // RESUME SONG
-  // **********************************************************************
   Future<void> resumeSong() async {
     await audioPlayer.play();
     isPlaying.value = true;
   }
 
-  // **********************************************************************
-  // PLAY/PAUSE TOGGLE
-  // **********************************************************************
   void tooglePlayPause() async {
     if (currentIndex.value == -1) return;
-
     if (isPlaying.value) {
       await pauseSong();
     } else {
@@ -163,74 +198,61 @@ class AudioController {
     }
   }
 
-  // **********************************************************************
-  // NEXT SONG
-  // **********************************************************************
   Future<void> nextSong() async {
     if (currentIndex.value < songs.value.length - 1) {
       await playSong(currentIndex.value + 1);
     } else {
-      // last song → stop playback and hide mini player
       await audioPlayer.stop();
       currentIndex.value = -1;
       isPlaying.value = false;
     }
   }
 
-  // **********************************************************************
-  // PREVIOUS SONG (FIXED CRASH)
-  // **********************************************************************
   Future<void> previousSong() async {
     if (currentIndex.value <= 0) {
-      // First song → stop + hide mini player (prevent crash)
       await audioPlayer.stop();
       currentIndex.value = -1;
       isPlaying.value = false;
       return;
     }
-
     await playSong(currentIndex.value - 1);
   }
 
   // **********************************************************************
-  // Fetch Lyrcis
+  // FETCH LYRICS
   // **********************************************************************
   Future<void> _fetchLyrics(String path) async {
-    currentLyrics.value = "Loading Lyrics..."; // Reset text
+    currentLyrics.value = "Loading Lyrics...";
 
-    // 1. Check: Agar path content:// hai (Previous fix)
     if (path.startsWith("content://")) {
       currentLyrics.value = "Cannot read lyrics from Content URI";
       return;
     }
 
-    // 2. NEW FIX: Agar file .opus hai tou skip karein
     if (path.toLowerCase().endsWith(".opus")) {
       currentLyrics.value = "Lyrics not supported for .opus files";
       return;
     }
 
     try {
-      // Tagger se tags nikalein
       final tag = await _tagger.getAllTags(path);
-
       if (tag != null && tag.lyrics != null && tag.lyrics!.isNotEmpty) {
         currentLyrics.value = tag.lyrics!;
       } else {
         currentLyrics.value = "No Lyrics Found";
       }
     } catch (e) {
-      // Agar koi aur format error aye to app crash na ho
       print("Lyrics Error: $e");
       currentLyrics.value = "No Lyrics Available";
     }
   }
 
-  // Apne Provider ya Controller class ke andar ye function dalo:
+  // **********************************************************************
+  // DELETE SONG
+  // **********************************************************************
   Future<void> deleteSong(int songId, String filePath) async {
     bool deleted = false;
     try {
-      // 1. Mobile Storage se File Delete karo
       final file = File(filePath);
       if (await file.exists()) {
         await file.delete();
@@ -242,7 +264,6 @@ class AudioController {
       }
     } catch (e) {
       print("Error deleting song: $e");
-      // Agar file nahi mili to bhi list se hata do
       if (e.toString().contains("PathNotFoundException") ||
           e.toString().contains("No such file")) {
         deleted = true;
@@ -250,20 +271,17 @@ class AudioController {
     }
 
     if (deleted) {
-      // 2. App ki List (State) se Song Hatao
       songs.value = songs.value.where((song) => song.id != songId).toList();
-
-      // 3. Agar current song delete hua hai to player stop karo ya next chalao
       if (currentsong?.id == songId) {
         audioPlayer.stop();
         currentIndex.value = -1;
       }
+
+      // NEW: Agar liked song delete hua to prefs bhi update karo
+      _saveLikesToPrefs();
     }
   }
 
-  // **********************************************************************
-  // DISPOSE PLAYER
-  // **********************************************************************
   void dispose() {
     audioPlayer.dispose();
   }
