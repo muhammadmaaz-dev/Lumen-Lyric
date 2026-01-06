@@ -1,6 +1,10 @@
-# 🎵 Open Source Music App & Downloader
 
-A powerful Flutter-based Music Player that lets you stream royalty-free music, play local files, and download music directly from YouTube links.
+
+## 🎵 Open Source Music App & Downloader
+
+A powerful **Flutter-based Music Player** that allows users to stream royalty-free music, play local audio files, and download music using YouTube links.
+
+---
 
 <div align="center">
   <img src="https://github.com/user-attachments/assets/492c0e13-6e1c-4b4d-98d1-196a7c665237" width="200" />
@@ -24,26 +28,113 @@ A powerful Flutter-based Music Player that lets you stream royalty-free music, p
   <img src="https://github.com/user-attachments/assets/d2a72b26-695b-4062-983e-7c235a85590c" width="200" />
 </div>
 
+---
+
 ## ✨ Key Features
 
-- **📥 In-Built Music Downloader:** Paste a YouTube link and convert it to MP3 instantly.
-- **🎧 Local Media Player:** Plays songs directly from your device storage.
-- **🔓 Royalty-Free Streaming:** Discover and stream copyright-free music.
-- **🔐 User Auth:** Secure login via Google or Email.
-- **🌗 Dark/Light Mode:** Fully supported theme switching.
-- **📂 Library Management:** Manage Liked songs, Downloads, and Playlists.
+* **📥 In-Built Music Downloader**
+  Paste a YouTube link and convert it into MP3 audio.
+
+* **🎧 Local Media Player**
+  Play music directly from your device storage.
+
+* **🔓 Royalty-Free Streaming**
+  Discover and stream copyright-free music.
+
+* **🔐 User Authentication**
+  Secure login using Google or Email.
+
+* **🌗 Dark / Light Mode**
+  Fully supported theme switching.
+
+* **📂 Library Management**
+  Manage liked songs, downloads, and playlists.
+
+---
 
 ## 🚀 Getting Started
 
-This project is currently **Under Construction** 🚧 and we welcome contributors!
+> ⚠️ This project is **Under Construction** and actively welcoming contributors.
 
 ### Prerequisites
-- Flutter SDK installed
-- Android Studio / VS Code
+
+* Flutter SDK
+* Android Studio or VS Code
 
 ### Installation
 
-1. **Fork** this repository.
-2. **Clone** it:
+1. **Fork** the repository.
+
+2. **Clone** the project:
+
    ```bash
    git clone https://github.com/muhammadmaaz-dev/Lumen-Lyric.git
+   ```
+
+3. **Navigate to the project directory:**
+
+   ```bash
+   cd musicapp
+   ```
+
+4. **Install dependencies:**
+
+   ```bash
+   flutter pub get
+   ```
+
+5. **Run the app:**
+
+   ```bash
+   flutter run
+   ```
+
+---
+
+## 🤝 How to Contribute
+
+Contributions are welcome and appreciated.
+
+1. Check the **Issues** tab.
+2. Fork the repository.
+3. Create a new branch.
+4. Submit a Pull Request (PR).
+
+---
+
+## 📄 License
+
+**Copyright © 2025 Muhammad Maaz**
+
+This project is **free software** licensed under the **GNU General Public License v3.0 (GPL-3.0)**.
+
+It is distributed **without any warranty**, including the implied warranty of merchantability or fitness for a particular purpose.
+
+---
+
+## ⚠️ Important Notice for Developers (GPL Compliance)
+
+Being **Open Source** does **not** mean you are free to copy, rebrand, or redistribute this application under closed-source or proprietary terms.
+
+Please read carefully:
+
+* Any copy or modification of this software **must remain under GPL v3.0 or later**.
+* You **cannot** upload this app to closed-source platforms (e.g., Play Store / App Store) **without making the full source code publicly available**.
+* You **cannot** sell or distribute this software under any **non-free or proprietary license**.
+* Any redistributed version **must**:
+
+  * Clearly disclose the **full source code**
+  * Retain **all original copyrights**
+  * Include the **same GPL license**
+  * Clearly **state all changes made**
+  * Provide instructions on how to obtain the original software
+
+### In simple terms:
+
+You may **only** use this code for **Open Source projects** under **GPL v3.0 or later**, with **complete source code disclosure** on a public platform (e.g., GitHub).
+
+Use of this software under any **non-free license is strictly prohibited**.
+
+For more details, refer to the **GNU General Public License**.
+
+
