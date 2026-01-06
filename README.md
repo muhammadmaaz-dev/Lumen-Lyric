@@ -52,6 +52,42 @@ A powerful **Flutter-based Music Player** that allows users to stream royalty-fr
 
 ---
 
+## 🛠️ Tech Stack
+
+This project is built using **Flutter** and the following technologies are currently used in the codebase.
+
+### Core
+- **Framework:** Flutter (Dart)
+- **State Management:** Riverpod (`flutter_riverpod`)
+- **Annotations / Code Generation:**  
+  `riverpod_annotation`, `freezed_annotation`
+
+### Audio & Media
+- **Audio Playback:** `just_audio`
+- **Local Audio Query:** `on_audio_query`
+- **Audio Metadata:** `flutter_audio_tagger`
+- **Playback Progress UI:** `audio_video_progress_bar`
+- **Mini Player UI:** `miniplayer`
+
+### UI / UX
+- **Icons:** `cupertino_icons`
+- **Responsive Layout:** `flutter_screenutil`
+- **Animations:** `lottie`, `flutter_animate`
+- **Scrolling Text:** `marquee`
+- **Custom Sliders:** `interactive_slider`
+
+### Storage & Permissions
+- **Local Storage:** `shared_preferences`
+- **Permissions:** `permission_handler`
+
+### Transitional
+- **Provider:** `provider`  
+  _(Used in some parts of the app; gradually being migrated to Riverpod)_
+
+> ⚠️ Tech choices are **not final** and may change as the project evolves.  
+> Contributors are welcome to suggest better alternatives via Issues.
+---
+
 ## 🚀 Getting Started
 
 > ⚠️ This project is **Under Construction** and actively welcoming contributors.
