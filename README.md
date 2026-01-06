@@ -6,7 +6,7 @@ A powerful **Flutter-based Music Player** that allows users to stream royalty-fr
 
 ---
 
-## 🚧 **Contributors Needed**
+> 🚧 **Contributors Needed**
 >
 > This project is intentionally open at an early stage.
 > Most features are incomplete or broken.
