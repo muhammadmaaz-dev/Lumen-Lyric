@@ -46,4 +46,4 @@ This project is currently **Under Construction** 🚧 and we welcome contributor
 1. **Fork** this repository.
 2. **Clone** it:
    ```bash
-   git clone https://github.com/muhammadmaaz-dev/Music-App.git
+   git clone https://github.com/muhammadmaaz-dev/Lumen-Lyric.git
