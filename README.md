@@ -6,6 +6,29 @@ A powerful **Flutter-based Music Player** that allows users to stream royalty-fr
 
 ---
 
+## 🚧 **Contributors Needed**
+>
+> This project is intentionally open at an early stage.
+> Most features are incomplete or broken.
+> If you want to fix bugs, build features, improve UI, or refactor code —
+> **your contribution will have real impact here.**
+
+
+## 🙌 How You Can Help
+
+You can contribute by working on:
+
+- Fixing existing bugs
+- Completing unfinished features
+- Improving UI/UX consistency
+- Refactoring messy or experimental code
+- Improving state management (Riverpod)
+- Cleaning up comments and documentation
+
+You do NOT need permission to start.
+
+---
+
 <div align="center">
   <img src="https://github.com/user-attachments/assets/492c0e13-6e1c-4b4d-98d1-196a7c665237" width="200" />
   <img src="https://github.com/user-attachments/assets/7c71e91d-3831-43bf-976e-4b488d6f4332" width="200" />
