@@ -14,11 +14,7 @@ import 'package:musicapp/widgets/custom_text_field.dart';
 
 import 'package:musicapp/widgets/filter_button.dart';
 
-import 'package:musicapp/widgets/mini_player.dart';
-
 import 'package:musicapp/widgets/song_tile.dart';
-
-import 'package:flutter_animate/flutter_animate.dart';
 
 class LibraryScreen extends ConsumerStatefulWidget {
   const LibraryScreen({super.key});
@@ -253,48 +249,6 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   ],
                 ),
               ),
-            ),
-          ),
-
-          // MiniPlayer Fixed rahega bottom par
-          Positioned(
-            left: 0,
-
-            right: 0,
-
-            bottom: 3,
-
-            child: ValueListenableBuilder(
-              valueListenable: AudioController.instance.songs,
-
-              builder: (context, songs, child) {
-                // Agar songs nahi hain to kuch mat dikhao (SizedBox)
-
-                if (songs.isEmpty) return const SizedBox.shrink();
-
-                return const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 2),
-
-                      child: MiniPlayer(),
-                    )
-                    .animate() // <--- Yahan se magic shuru
-                    .slideY(
-                      begin: 1.0, // Neeche se start hoga
-
-                      end: 0.0, // Apni jagah par aayega
-
-                      duration: 600.ms, // Duration
-
-                      curve: Curves
-                          .easeOutBack, // <--- YE HAI SECRET (Thora sa bounce karega)
-                    )
-                    .fadeIn(duration: 400.ms) // Sath mein fade in bhi hoga
-                    .shimmer(
-                      delay: 400.ms,
-
-                      duration: 1500.ms,
-                    ); // <--- Bonus: Ek chamak (shine) aayegi player par
-              },
             ),
           ),
         ],
