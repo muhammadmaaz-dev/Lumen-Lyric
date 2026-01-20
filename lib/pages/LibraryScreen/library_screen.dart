@@ -1,9 +1,5 @@
 import 'package:flutter/material.dart';
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import 'package:musicapp/provider/theme_provider.dart';
-
 import 'package:musicapp/controller/audio_controller.dart';
 
 import 'package:musicapp/models/local_song_model.dart';
@@ -16,14 +12,14 @@ import 'package:musicapp/widgets/filter_button.dart';
 
 import 'package:musicapp/widgets/song_tile.dart';
 
-class LibraryScreen extends ConsumerStatefulWidget {
+class LibraryScreen extends StatefulWidget {
   const LibraryScreen({super.key});
 
   @override
-  ConsumerState<LibraryScreen> createState() => _LibraryScreenState();
+  State<LibraryScreen> createState() => _LibraryScreenState();
 }
 
-class _LibraryScreenState extends ConsumerState<LibraryScreen> {
+class _LibraryScreenState extends State<LibraryScreen> {
   // State Variable
 
   String _selectedFilter = 'Local Media';
@@ -56,9 +52,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final themeMode = ref.watch(themeProvider);
+    debugPrint('🔄 LibraryScreen rebuilt');
 
-    final isDarkTheme = themeMode == ThemeMode.dark;
+    final isDarkTheme = Theme.of(context).brightness == Brightness.dark;
 
     final backgroundColor = isDarkTheme
         ? const Color(0xff000000)

@@ -44,7 +44,7 @@ class SongTile extends StatelessWidget {
                   color: isDarkTheme
                       ? const Color(0xff2a2a2a)
                       : const Color(0xfff0f0f0),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(28),
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12),

@@ -1,20 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:musicapp/core/configs/theme/app_colors.dart';
+import 'app_colors.dart';
 
 class AppTheme {
-  // Light Theme
-  static final lighttheme = ThemeData(
-    primaryColor: Color.fromARGB(255, 0, 0, 0),
-    fontFamily: 'Metropolis',
-    scaffoldBackgroundColor: AppColors.lighttheme,
+  static final ThemeData lighttheme = ThemeData(
     brightness: Brightness.light,
+    scaffoldBackgroundColor: AppColors.lighttheme,
+    fontFamily: 'Metropolis',
+    useMaterial3: true,
   );
 
-  // Dark Theme
-  static final darktheme = ThemeData(
-    primaryColor: Color.fromARGB(255, 255, 255, 255),
-    fontFamily: 'Metropolis',
-    scaffoldBackgroundColor: AppColors.darktheme,
+  static final ThemeData darktheme = ThemeData(
     brightness: Brightness.dark,
+    scaffoldBackgroundColor: AppColors.darktheme,
+    fontFamily: 'Metropolis',
+    useMaterial3: true,
   );
 }

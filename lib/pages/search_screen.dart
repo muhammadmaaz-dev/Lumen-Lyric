@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:musicapp/provider/theme_provider.dart';
 
 // Data Model - Ready for backend integration
 class SearchResultModel {
@@ -27,14 +25,14 @@ class SearchResultModel {
   }
 }
 
-class SearchScreen extends ConsumerStatefulWidget {
+class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
 
   @override
-  ConsumerState<SearchScreen> createState() => _SearchScreenState();
+  State<SearchScreen> createState() => _SearchScreenState();
 }
 
-class _SearchScreenState extends ConsumerState<SearchScreen> {
+class _SearchScreenState extends State<SearchScreen> {
   final TextEditingController _searchController = TextEditingController();
   List<SearchResultModel> _searchResults = [];
   bool _isSearching = false;
@@ -113,8 +111,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final themeMode = ref.watch(themeProvider);
-    final isDarkTheme = themeMode == ThemeMode.dark;
+    debugPrint('🔄 SearchScreen rebuilt');
+
+    final isDarkTheme = Theme.of(context).brightness == Brightness.dark;
 
     final backgroundColor = isDarkTheme
         ? const Color(0xff000000)

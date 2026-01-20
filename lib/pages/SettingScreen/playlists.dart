@@ -1,48 +1,234 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:miniplayer/miniplayer.dart';
 import 'package:musicapp/controller/audio_controller.dart';
+import 'package:musicapp/models/playlist_model.dart';
+import 'package:musicapp/pages/SettingScreen/playlist_detail_screen.dart';
 import 'package:musicapp/pages/full_player.dart';
-import 'package:musicapp/pages/home_screen.dart';
-import 'package:musicapp/pages/LibraryScreen/library_screen.dart';
-import 'package:musicapp/pages/music_screen.dart';
-import 'package:musicapp/pages/SettingScreen/setting_screen.dart';
-import 'package:on_audio_query/on_audio_query.dart';
+import 'package:musicapp/provider/playlist_provider.dart';
+import 'package:musicapp/widgets/playlist_dialog.dart';
+import 'package:on_audio_query/on_audio_query.dart' hide PlaylistModel;
 
-class MainNavigation extends StatefulWidget {
-  const MainNavigation({super.key});
+class PlaylistsScreen extends ConsumerStatefulWidget {
+  const PlaylistsScreen({super.key});
 
   @override
-  State<MainNavigation> createState() => _MainNavigationState();
+  ConsumerState<PlaylistsScreen> createState() => _PlaylistsScreenState();
 }
 
-class _MainNavigationState extends State<MainNavigation> {
+class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
   static const double _playerMinHeight = 70;
-  int _selectedIndex = 0;
-  double _playerPercentage = 0;
   final controller = AudioController.instance;
-  final MiniplayerController _playerController = MiniplayerController();
+  final MiniplayerController _miniplayerController = MiniplayerController();
 
-  final List<Widget> _screens = const [
-    HomeScreen(),
-    LibraryScreen(),
-    MusicScreen(),
-    SettingScreen(),
-  ];
+  Future<void> _createPlaylist() async {
+    final name = await PlaylistDialog.show(context: context);
+    if (name != null && name.isNotEmpty) {
+      await ref.read(playlistProvider.notifier).createPlaylist(name);
+    }
+  }
+
+  void _openPlaylistDetail(PlaylistModel playlist) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PlaylistDetailScreen(playlistId: playlist.id),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('🔄 MainNavigation rebuilt');
-
-    // Use Theme.of(context) instead of watching provider
+    final playlists = ref.watch(playlistProvider);
     final isDarkTheme = Theme.of(context).brightness == Brightness.dark;
 
-    final bottomNavColor = isDarkTheme
-        ? const Color.fromARGB(255, 0, 0, 0)
-        : const Color.fromARGB(255, 255, 255, 255);
-    final selectedColor = isDarkTheme ? Colors.white : Colors.black;
-    final barColor = isDarkTheme
-        ? const Color.fromARGB(255, 155, 155, 155)
-        : const Color.fromARGB(255, 117, 117, 117);
+    final backgroundColor = isDarkTheme
+        ? const Color(0xff000000)
+        : const Color(0xfff3f4f6);
+    final textColor = isDarkTheme ? Colors.white : Colors.black;
+    final cardColor = isDarkTheme
+        ? const Color(0xff1a1a1a)
+        : const Color(0xfff0f0f0);
+
+    return Scaffold(
+      backgroundColor: backgroundColor,
+      appBar: AppBar(
+        backgroundColor: backgroundColor,
+        elevation: 0,
+        centerTitle: true,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: textColor),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          'Playlists',
+          style: TextStyle(
+            color: textColor,
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
+        ),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.add, color: textColor),
+            onPressed: _createPlaylist,
+          ),
+        ],
+      ),
+      body: Stack(
+        children: [
+          // Main Content
+          playlists.isEmpty
+              ? _buildEmptyState(textColor)
+              : _buildPlaylistGrid(playlists, cardColor, textColor),
+
+          // Mini Player with Miniplayer package
+          ValueListenableBuilder<int>(
+            valueListenable: controller.currentIndex,
+            builder: (context, currentIndex, child) {
+              if (currentIndex == -1) {
+                return const SizedBox.shrink();
+              }
+
+              final song = controller.currentsong;
+              if (song == null) return const SizedBox.shrink();
+
+              return Miniplayer(
+                controller: _miniplayerController,
+                minHeight: _playerMinHeight,
+                maxHeight: MediaQuery.of(context).size.height,
+                elevation: 8,
+                curve: Curves.easeOutQuart,
+                onDismiss: () {
+                  controller.audioPlayer.stop();
+                  controller.currentIndex.value = -1;
+                  controller.isPlaying.value = false;
+                  controller.clearQueue();
+                },
+                builder: (height, percentage) {
+                  // Show full player when expanded (percentage > 0.2)
+                  if (percentage > 0.2) {
+                    return FullPlayer(
+                      miniplayerController: _miniplayerController,
+                    );
+                  }
+
+                  // Collapsed mini player content
+                  return _buildMiniPlayerContent(
+                    song: song,
+                    isDarkTheme: isDarkTheme,
+                  );
+                },
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(Color textColor) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.queue_music_rounded,
+            size: 80,
+            color: textColor.withOpacity(0.3),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'No Playlists Yet',
+            style: TextStyle(
+              color: textColor,
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Tap + to create your first playlist',
+            style: TextStyle(color: textColor.withOpacity(0.6), fontSize: 14),
+          ),
+          const SizedBox(height: 80), // Space for miniplayer
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPlaylistGrid(
+    List<PlaylistModel> playlists,
+    Color cardColor,
+    Color textColor,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: GridView.builder(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 16,
+          mainAxisSpacing: 16,
+          childAspectRatio: 0.85,
+        ),
+        itemCount: playlists.length,
+        padding: const EdgeInsets.only(bottom: 80), // Space for miniplayer
+        itemBuilder: (context, index) {
+          final playlist = playlists[index];
+          return _buildPlaylistCard(playlist, cardColor, textColor);
+        },
+      ),
+    );
+  }
+
+  Widget _buildPlaylistCard(
+    PlaylistModel playlist,
+    Color cardColor,
+    Color textColor,
+  ) {
+    return GestureDetector(
+      onTap: () => _openPlaylistDetail(playlist),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Card with icon
+          Expanded(
+            child: Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: cardColor,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Center(
+                child: Icon(
+                  Icons.queue_music_rounded,
+                  size: 48,
+                  color: textColor.withOpacity(0.7),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          // Playlist name
+          Text(
+            playlist.name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: textColor,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMiniPlayerContent({
+    required dynamic song,
+    required bool isDarkTheme,
+  }) {
     final miniPlayerBgColor = isDarkTheme
         ? Colors.grey.shade900
         : Colors.grey.shade100;
@@ -52,137 +238,10 @@ class _MainNavigationState extends State<MainNavigation> {
         : Colors.black54;
     final miniPlayerIconColor = isDarkTheme ? Colors.white : Colors.black;
 
-    return Scaffold(
-      body: Stack(
-        children: [
-          // Main screens - using ValueListenableBuilder for proper reactivity
-          ValueListenableBuilder<int>(
-            valueListenable: controller.currentIndex,
-            builder: (context, currentIndex, child) {
-              return Padding(
-                padding: EdgeInsets.only(
-                  bottom: currentIndex != -1 ? _playerMinHeight : 0,
-                ),
-                child: IndexedStack(index: _selectedIndex, children: _screens),
-              );
-            },
-          ),
-
-          // Miniplayer - Only show when a song is selected
-          ValueListenableBuilder<int>(
-            valueListenable: controller.currentIndex,
-            builder: (context, currentIndex, child) {
-              // Don't show miniplayer if no song is selected
-              if (currentIndex == -1) {
-                return const SizedBox.shrink();
-              }
-
-              return Miniplayer(
-                controller: _playerController,
-                minHeight: _playerMinHeight,
-                maxHeight: MediaQuery.of(context).size.height,
-                elevation: 8,
-                curve: Curves.easeOutQuart,
-                onDismiss: () {
-                  // Stop playback and hide miniplayer when dragged down
-                  controller.audioPlayer.stop();
-                  controller.currentIndex.value = -1;
-                  controller.isPlaying.value = false;
-                },
-                builder: (height, percentage) {
-                  // Update percentage state for hiding bottom nav
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    if (_playerPercentage != percentage) {
-                      setState(() => _playerPercentage = percentage);
-                    }
-                  });
-
-                  final song = controller.currentsong;
-                  if (song == null) return const SizedBox.shrink();
-
-                  // Show full player when expanded (percentage > 0.2)
-                  if (percentage > 0.2) {
-                    return FullPlayer(miniplayerController: _playerController);
-                  }
-
-                  // Mini player UI when collapsed
-                  return _buildMiniPlayerContent(
-                    song: song,
-                    isDarkTheme: isDarkTheme,
-                    miniPlayerBgColor: miniPlayerBgColor,
-                    miniPlayerTextColor: miniPlayerTextColor,
-                    miniPlayerSubTextColor: miniPlayerSubTextColor,
-                    miniPlayerIconColor: miniPlayerIconColor,
-                  );
-                },
-              );
-            },
-          ),
-        ],
-      ),
-      // Hide bottom nav bar when full player is shown
-      bottomNavigationBar: _playerPercentage > 0.2
-          ? null
-          : Container(
-              height: 65,
-              decoration: BoxDecoration(
-                border: Border(top: BorderSide(color: barColor)),
-              ),
-              child: Theme(
-                data: Theme.of(context).copyWith(
-                  splashFactory: NoSplash.splashFactory,
-                  highlightColor: Colors.transparent,
-                ),
-                child: BottomNavigationBar(
-                  type: BottomNavigationBarType.fixed,
-                  selectedItemColor: selectedColor,
-                  backgroundColor: bottomNavColor,
-                  currentIndex: _selectedIndex,
-                  showSelectedLabels: false,
-                  showUnselectedLabels: false,
-                  onTap: (i) => setState(() {
-                    _selectedIndex = i;
-                  }),
-                  items: const [
-                    BottomNavigationBarItem(
-                      icon: Icon(Icons.home_outlined),
-                      activeIcon: Icon(Icons.home_filled),
-                      label: "Home",
-                    ),
-                    BottomNavigationBarItem(
-                      icon: Icon(Icons.library_music_outlined),
-                      activeIcon: Icon(Icons.library_music),
-                      label: "Library",
-                    ),
-                    BottomNavigationBarItem(
-                      icon: Icon(Icons.music_note_outlined),
-                      activeIcon: Icon(Icons.music_note),
-                      label: "Music",
-                    ),
-                    BottomNavigationBarItem(
-                      icon: Icon(Icons.person_2_outlined),
-                      activeIcon: Icon(Icons.person_2_rounded),
-                      label: "Profile",
-                    ),
-                  ],
-                ),
-              ),
-            ),
-    );
-  }
-
-  Widget _buildMiniPlayerContent({
-    required dynamic song,
-    required bool isDarkTheme,
-    required Color miniPlayerBgColor,
-    required Color miniPlayerTextColor,
-    required Color miniPlayerSubTextColor,
-    required Color miniPlayerIconColor,
-  }) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () {
-        _playerController.animateToHeight(state: PanelState.MAX);
+        _miniplayerController.animateToHeight(state: PanelState.MAX);
       },
       child: Container(
         height: _playerMinHeight,
@@ -195,10 +254,6 @@ class _MainNavigationState extends State<MainNavigation> {
               offset: const Offset(0, -2),
             ),
           ],
-          // borderRadius: const BorderRadius.only(
-          //   topLeft: Radius.circular(18),
-          //   topRight: Radius.circular(18),
-          // ),
         ),
         child: Column(
           children: [
@@ -207,7 +262,7 @@ class _MainNavigationState extends State<MainNavigation> {
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Row(
                   children: [
-                    // Song Thumbnail
+                    // Thumbnail
                     Container(
                       width: 50,
                       height: 50,
@@ -232,8 +287,7 @@ class _MainNavigationState extends State<MainNavigation> {
                       ),
                     ),
                     const SizedBox(width: 12),
-
-                    // Song Title + Artist
+                    // Title & Artist
                     Expanded(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -250,7 +304,7 @@ class _MainNavigationState extends State<MainNavigation> {
                             ),
                           ),
                           Text(
-                            song.artist ?? "Unknown",
+                            song.artist,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
@@ -261,7 +315,6 @@ class _MainNavigationState extends State<MainNavigation> {
                         ],
                       ),
                     ),
-
                     // Previous Button
                     IconButton(
                       icon: Icon(
@@ -270,11 +323,10 @@ class _MainNavigationState extends State<MainNavigation> {
                       ),
                       onPressed: controller.previousSong,
                     ),
-
-                    // Play/Pause Button - Using ValueListenableBuilder for reactivity
+                    // Play/Pause Button
                     ValueListenableBuilder<bool>(
                       valueListenable: controller.isPlaying,
-                      builder: (context, isPlaying, child) {
+                      builder: (context, isPlaying, _) {
                         return IconButton(
                           icon: Icon(
                             isPlaying ? Icons.pause : Icons.play_arrow,
@@ -284,7 +336,6 @@ class _MainNavigationState extends State<MainNavigation> {
                         );
                       },
                     ),
-
                     // Next Button
                     IconButton(
                       icon: Icon(Icons.skip_next, color: miniPlayerIconColor),
@@ -294,7 +345,6 @@ class _MainNavigationState extends State<MainNavigation> {
                 ),
               ),
             ),
-
             // Progress Bar
             StreamBuilder<Duration>(
               stream: controller.audioPlayer.positionStream,

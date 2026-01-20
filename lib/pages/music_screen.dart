@@ -1,20 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:musicapp/provider/theme_provider.dart';
 import 'package:musicapp/controller/audio_controller.dart';
 import 'package:musicapp/models/local_song_model.dart';
 import 'package:musicapp/widgets/custom_text_field.dart';
 import 'package:musicapp/widgets/section_header.dart';
 import 'package:musicapp/widgets/song_tile.dart';
 
-class MusicScreen extends ConsumerStatefulWidget {
+class MusicScreen extends StatefulWidget {
   const MusicScreen({super.key});
 
   @override
-  ConsumerState<MusicScreen> createState() => _MusicScreenState();
+  State<MusicScreen> createState() => _MusicScreenState();
 }
 
-class _MusicScreenState extends ConsumerState<MusicScreen> {
+class _MusicScreenState extends State<MusicScreen> {
   @override
   void initState() {
     super.initState();
@@ -25,8 +23,9 @@ class _MusicScreenState extends ConsumerState<MusicScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final themeMode = ref.watch(themeProvider);
-    final isDarkTheme = themeMode == ThemeMode.dark;
+    debugPrint('🔄 MusicScreen rebuilt');
+
+    final isDarkTheme = Theme.of(context).brightness == Brightness.dark;
 
     final backgroundColor = isDarkTheme
         ? const Color(0xff000000)

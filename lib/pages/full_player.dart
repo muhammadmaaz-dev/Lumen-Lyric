@@ -2,21 +2,20 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:miniplayer/miniplayer.dart';
-import 'package:musicapp/provider/theme_provider.dart';
 import 'package:musicapp/controller/audio_controller.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:musicapp/provider/audio_provider.dart';
 
-class FullPlayer extends ConsumerStatefulWidget {
+class FullPlayer extends StatefulWidget {
   final MiniplayerController? miniplayerController;
 
   const FullPlayer({super.key, this.miniplayerController});
 
   @override
-  ConsumerState<FullPlayer> createState() => _FullPlayerState();
+  State<FullPlayer> createState() => _FullPlayerState();
 }
 
-class _FullPlayerState extends ConsumerState<FullPlayer> {
+class _FullPlayerState extends State<FullPlayer> {
   final DraggableScrollableController _sheetController =
       DraggableScrollableController();
 
@@ -62,18 +61,15 @@ class _FullPlayerState extends ConsumerState<FullPlayer> {
 
   @override
   Widget build(BuildContext context) {
+    debugPrint('🔄 FullPlayer rebuilt');
+
     final controller =
         AudioController.instance; // Actions perform karne ke liye
-
-    // --- RIVERPOD WATCHERS (State yahan se aayegi) ---
-    final themeMode = ref.watch(themeProvider);
-    final isPlayingAsync = ref.watch(isPlayingProvider);
-    final lyricsAsync = ref.watch(lyricsProvider);
 
     // Song update ke liye current song fetch kar rahe hain
     final song = controller.currentsong;
 
-    final isDarkTheme = themeMode == ThemeMode.dark;
+    final isDarkTheme = Theme.of(context).brightness == Brightness.dark;
 
     // Colors Setup
     final backgroundColor = isDarkTheme
@@ -219,7 +215,7 @@ class _FullPlayerState extends ConsumerState<FullPlayer> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              song.artist ?? "Unknown",
+                              song.artist.isEmpty ? "Unknown" : song.artist,
                               style: TextStyle(
                                 fontSize: 13,
                                 color: subTextColor,
@@ -337,24 +333,31 @@ class _FullPlayerState extends ConsumerState<FullPlayer> {
                             ),
                             const SizedBox(width: 25),
 
-                            // Play/Pause Button
-                            Container(
-                              width: 70,
-                              height: 70,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: playpause,
-                              ),
-                              child: IconButton(
-                                icon: Icon(
-                                  (isPlayingAsync.value ?? false)
-                                      ? Icons.pause_rounded
-                                      : Icons.play_arrow_rounded,
-                                  color: playpauseicon,
-                                ),
-                                iconSize: 36,
-                                onPressed: controller.tooglePlayPause,
-                              ),
+                            // Play/Pause Button - Isolated Consumer
+                            Consumer(
+                              builder: (context, ref, child) {
+                                final isPlayingAsync = ref.watch(
+                                  isPlayingProvider,
+                                );
+                                return Container(
+                                  width: 70,
+                                  height: 70,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: playpause,
+                                  ),
+                                  child: IconButton(
+                                    icon: Icon(
+                                      (isPlayingAsync.value ?? false)
+                                          ? Icons.pause_rounded
+                                          : Icons.play_arrow_rounded,
+                                      color: playpauseicon,
+                                    ),
+                                    iconSize: 36,
+                                    onPressed: controller.tooglePlayPause,
+                                  ),
+                                );
+                              },
                             ),
 
                             const SizedBox(width: 30),
@@ -454,16 +457,21 @@ class _FullPlayerState extends ConsumerState<FullPlayer> {
                           ),
                           Padding(
                             padding: const EdgeInsets.all(12.0),
-                            child: Text(
-                              lyricsAsync.value ?? "No Lyrics Found",
-                              style: TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                                fontFamily: "Metropolis",
-                                height: 1.5,
-                                color: textColor,
-                              ),
-                              textAlign: TextAlign.center,
+                            child: Consumer(
+                              builder: (context, ref, child) {
+                                final lyricsAsync = ref.watch(lyricsProvider);
+                                return Text(
+                                  lyricsAsync.value ?? "No Lyrics Found",
+                                  style: TextStyle(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                    fontFamily: "Metropolis",
+                                    height: 1.5,
+                                    color: textColor,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                );
+                              },
                             ),
                           ),
                           const SizedBox(height: 50),

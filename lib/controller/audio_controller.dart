@@ -20,16 +20,30 @@ class AudioController {
   final ValueNotifier<List<LocalSongModel>> songs =
       ValueNotifier<List<LocalSongModel>>([]);
 
+  // Playlist-specific playback queue
+  final ValueNotifier<List<LocalSongModel>> playbackQueue =
+      ValueNotifier<List<LocalSongModel>>([]);
+  final ValueNotifier<int> queueIndex = ValueNotifier<int>(-1);
+  bool _isPlayingFromQueue = false;
+
   final ValueNotifier<int> currentIndex = ValueNotifier<int>(-1);
   final ValueNotifier<bool> isPlaying = ValueNotifier<bool>(false);
   final ValueNotifier<String> currentLyrics = ValueNotifier<String>(
     "No Lyrics",
   );
 
-  LocalSongModel? get currentsong =>
-      currentIndex.value != -1 && currentIndex.value < songs.value.length
-      ? songs.value[currentIndex.value]
-      : null;
+  LocalSongModel? get currentsong {
+    // If playing from queue (playlist), use queue
+    if (_isPlayingFromQueue &&
+        queueIndex.value != -1 &&
+        queueIndex.value < playbackQueue.value.length) {
+      return playbackQueue.value[queueIndex.value];
+    }
+    // Otherwise use main library
+    return currentIndex.value != -1 && currentIndex.value < songs.value.length
+        ? songs.value[currentIndex.value]
+        : null;
+  }
 
   // **********************************************************************
   // SETUP PLAYER STREAM LISTENERS
@@ -40,11 +54,23 @@ class AudioController {
 
       // Auto play next song when current finishes
       if (playerState.processingState == ProcessingState.completed) {
-        if (currentIndex.value < songs.value.length - 1) {
-          nextSong();
+        if (_isPlayingFromQueue) {
+          // Playing from playlist queue
+          if (queueIndex.value < playbackQueue.value.length - 1) {
+            _playFromQueue(queueIndex.value + 1);
+          } else {
+            // End of playlist
+            isPlaying.value = false;
+            audioPlayer.stop();
+          }
         } else {
-          isPlaying.value = false;
-          audioPlayer.stop();
+          // Playing from main library
+          if (currentIndex.value < songs.value.length - 1) {
+            nextSong();
+          } else {
+            isPlaying.value = false;
+            audioPlayer.stop();
+          }
         }
       }
     });
@@ -144,14 +170,71 @@ class AudioController {
   // LibraryScreen State class ke andar
 
   // **********************************************************************
-  // PLAY SONG
+  // PLAY SONG FROM MAIN LIBRARY
   // **********************************************************************
   Future<void> playSong(int index) async {
     if (index < 0 || index >= songs.value.length) return;
 
+    // Clear queue mode - playing from main library
+    _isPlayingFromQueue = false;
+    playbackQueue.value = [];
+    queueIndex.value = -1;
+
     try {
       currentIndex.value = index;
       final song = songs.value[index];
+
+      _fetchLyrics(song.uri);
+
+      final uri = _buildUri(song.uri);
+      await audioPlayer.setAudioSource(AudioSource.uri(uri), preload: true);
+      await audioPlayer.play();
+      isPlaying.value = true;
+    } catch (e) {
+      if (e.toString().contains("PlayerInterruptedException") ||
+          e.toString().contains("aborted")) {
+        print("Loading interrupted by new request (Normal behavior)");
+      } else {
+        print("Error While Playing Song : $e");
+      }
+    }
+  }
+
+  // **********************************************************************
+  // PLAY SONG FROM PLAYLIST QUEUE
+  // **********************************************************************
+  Future<void> playFromPlaylist(
+    List<LocalSongModel> playlistSongs,
+    int index,
+  ) async {
+    if (index < 0 || index >= playlistSongs.length) return;
+
+    // Set queue mode
+    _isPlayingFromQueue = true;
+    playbackQueue.value = playlistSongs;
+    queueIndex.value = index;
+
+    // Also set currentIndex to trigger UI updates
+    currentIndex.value = index;
+
+    await _playCurrentQueueSong();
+  }
+
+  Future<void> _playFromQueue(int index) async {
+    if (index < 0 || index >= playbackQueue.value.length) return;
+
+    queueIndex.value = index;
+    currentIndex.value = index; // For UI updates
+
+    await _playCurrentQueueSong();
+  }
+
+  Future<void> _playCurrentQueueSong() async {
+    if (queueIndex.value < 0 || queueIndex.value >= playbackQueue.value.length)
+      return;
+
+    try {
+      final song = playbackQueue.value[queueIndex.value];
 
       _fetchLyrics(song.uri);
 
@@ -199,23 +282,57 @@ class AudioController {
   }
 
   Future<void> nextSong() async {
-    if (currentIndex.value < songs.value.length - 1) {
-      await playSong(currentIndex.value + 1);
+    if (_isPlayingFromQueue) {
+      // Playing from playlist queue
+      if (queueIndex.value < playbackQueue.value.length - 1) {
+        await _playFromQueue(queueIndex.value + 1);
+      } else {
+        // End of playlist
+        await audioPlayer.stop();
+        currentIndex.value = -1;
+        queueIndex.value = -1;
+        isPlaying.value = false;
+      }
     } else {
-      await audioPlayer.stop();
-      currentIndex.value = -1;
-      isPlaying.value = false;
+      // Playing from main library
+      if (currentIndex.value < songs.value.length - 1) {
+        await playSong(currentIndex.value + 1);
+      } else {
+        await audioPlayer.stop();
+        currentIndex.value = -1;
+        isPlaying.value = false;
+      }
     }
   }
 
   Future<void> previousSong() async {
-    if (currentIndex.value <= 0) {
-      await audioPlayer.stop();
-      currentIndex.value = -1;
-      isPlaying.value = false;
-      return;
+    if (_isPlayingFromQueue) {
+      // Playing from playlist queue
+      if (queueIndex.value <= 0) {
+        await audioPlayer.stop();
+        currentIndex.value = -1;
+        queueIndex.value = -1;
+        isPlaying.value = false;
+        return;
+      }
+      await _playFromQueue(queueIndex.value - 1);
+    } else {
+      // Playing from main library
+      if (currentIndex.value <= 0) {
+        await audioPlayer.stop();
+        currentIndex.value = -1;
+        isPlaying.value = false;
+        return;
+      }
+      await playSong(currentIndex.value - 1);
     }
-    await playSong(currentIndex.value - 1);
+  }
+
+  // Clear playlist queue and stop
+  void clearQueue() {
+    _isPlayingFromQueue = false;
+    playbackQueue.value = [];
+    queueIndex.value = -1;
   }
 
   // **********************************************************************

@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:musicapp/provider/theme_provider.dart';
 import 'package:musicapp/models/artist_model.dart';
 import 'package:musicapp/models/song_model.dart';
 import 'package:musicapp/pages/search_screen.dart';
@@ -8,7 +6,7 @@ import 'package:musicapp/widgets/home/featured_artist_card.dart';
 import 'package:musicapp/widgets/home/song_card.dart';
 import 'package:musicapp/widgets/section_header.dart';
 
-class HomeScreen extends ConsumerWidget {
+class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   // Mock data - Replace with backend data later
@@ -76,9 +74,10 @@ class HomeScreen extends ConsumerWidget {
   ];
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final themeMode = ref.watch(themeProvider);
-    final isDarkTheme = themeMode == ThemeMode.dark;
+  Widget build(BuildContext context) {
+    debugPrint('🔄 HomeScreen rebuilt');
+
+    final isDarkTheme = Theme.of(context).brightness == Brightness.dark;
 
     final backgroundColor = isDarkTheme
         ? const Color(0xff000000)
