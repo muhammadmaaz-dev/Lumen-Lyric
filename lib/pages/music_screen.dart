@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:musicapp/controller/audio_controller.dart';
 import 'package:musicapp/models/local_song_model.dart';
 import 'package:musicapp/widgets/custom_text_field.dart';
@@ -42,23 +43,23 @@ class _MusicScreenState extends State<MusicScreen> {
           SliverToBoxAdapter(
             child: SafeArea(
               child: Padding(
-                padding: const EdgeInsets.all(20.0),
+                padding: EdgeInsets.all(18.r),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 10),
+                    SizedBox(height: 9.h),
                     // 1. Main Title
                     Center(
                       child: Text(
                         'Music Downloader',
                         style: TextStyle(
-                          fontSize: 28,
+                          fontSize: 25.sp,
                           fontWeight: FontWeight.w900,
                           color: textColor,
                         ),
                       ),
                     ),
-                    const SizedBox(height: 30),
+                    SizedBox(height: 26.h),
 
                     // 2. Input Field (Paste Link)
                     CustomTextField(
@@ -67,31 +68,31 @@ class _MusicScreenState extends State<MusicScreen> {
                       onSuffixTap: () {},
                       isDarkTheme: isDarkTheme,
                     ),
-                    const SizedBox(height: 20),
+                    SizedBox(height: 18.h),
 
                     // 3. Converting Info Box
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 15,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 18.w,
+                        vertical: 13.h,
                       ),
                       decoration: BoxDecoration(
                         color: cardColor, // Slightly different grey
-                        borderRadius: BorderRadius.circular(15),
+                        borderRadius: BorderRadius.circular(13.r),
                       ),
                       child: Row(
                         children: [
                           Icon(
                             Icons.music_note_outlined,
-                            size: 28,
+                            size: 25.sp,
                             color: textColor,
                           ),
-                          const SizedBox(width: 15),
+                          SizedBox(width: 13.w),
                           Expanded(
                             child: Text(
                               'Converting may take few seconds depending on video Length',
                               style: TextStyle(
-                                fontSize: 13,
+                                fontSize: 11.sp,
                                 color: textColor,
                                 height: 1.3,
                               ),
@@ -100,7 +101,7 @@ class _MusicScreenState extends State<MusicScreen> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 30),
+                    SizedBox(height: 26.h),
 
                     // 4. Section Header
                     SectionHeader(
@@ -109,7 +110,7 @@ class _MusicScreenState extends State<MusicScreen> {
                       onActionTap: () {},
                       textColor: textColor,
                     ),
-                    const SizedBox(height: 15),
+                    SizedBox(height: 13.h),
 
                     // 5. List of Songs
                     ValueListenableBuilder<List<LocalSongModel>>(
@@ -124,6 +125,7 @@ class _MusicScreenState extends State<MusicScreen> {
                             return SongTile(
                               title: song.title,
                               artist: song.artist,
+                              duration: song.duration,
                               songId: song.id,
                               onTap: () {
                                 AudioController.instance.playSong(index);

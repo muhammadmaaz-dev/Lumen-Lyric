@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class FilterButton extends StatelessWidget {
   final String text;
@@ -31,17 +32,17 @@ class FilterButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 9.h),
         decoration: BoxDecoration(
           color: isActive ? activeBtnColor : inactiveBtnColor,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(10.r),
         ),
         child: Text(
           text,
           style: TextStyle(
             color: isActive ? activeBtnText : inactiveBtnText,
             fontWeight: FontWeight.w500,
-            fontSize: 12,
+            fontSize: 11.sp,
           ),
         ),
       ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:musicapp/models/artist_model.dart';
 
 class FeaturedArtistCard extends StatelessWidget {
@@ -26,17 +27,17 @@ class FeaturedArtistCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: EdgeInsets.symmetric(horizontal: 11.w, vertical: 9.h),
         decoration: BoxDecoration(
           color: cardColor,
-          borderRadius: BorderRadius.circular(40),
+          borderRadius: BorderRadius.circular(35.r),
           boxShadow: isDarkTheme
               ? null
               : [
                   BoxShadow(
                     color: Colors.grey.withOpacity(0.1),
-                    blurRadius: 10,
-                    offset: const Offset(0, 2),
+                    blurRadius: 9.r,
+                    offset: Offset(0, 2.h),
                   ),
                 ],
         ),
@@ -44,8 +45,8 @@ class FeaturedArtistCard extends StatelessWidget {
           children: [
             // Artist Image
             Container(
-              width: 55,
-              height: 55,
+              width: 48.w,
+              height: 48.h,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: Colors.amber.withOpacity(0.3),
@@ -60,7 +61,7 @@ class FeaturedArtistCard extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: 11.w),
 
             // Artist Info
             Column(
@@ -70,30 +71,33 @@ class FeaturedArtistCard extends StatelessWidget {
                 Text(
                   artist.name,
                   style: TextStyle(
-                    fontSize: 15,
+                    fontSize: 13.sp,
                     fontWeight: FontWeight.w600,
                     color: textColor,
                   ),
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: 4.h),
                 Row(
                   children: [
                     Icon(
                       Icons.music_note,
-                      size: 14,
+                      size: 12.sp,
                       color: const Color(0xff10B981),
                     ),
-                    const SizedBox(width: 4),
+                    SizedBox(width: 4.w),
                     Text(
                       artist.songTitle,
-                      style: TextStyle(fontSize: 13, color: secondaryTextColor),
+                      style: TextStyle(
+                        fontSize: 11.sp,
+                        color: secondaryTextColor,
+                      ),
                     ),
                   ],
                 ),
               ],
             ),
 
-            const SizedBox(width: 12),
+            SizedBox(width: 11.w),
 
             // Play Button (only on first card in design)
             if (showPlayButton)

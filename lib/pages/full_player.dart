@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:miniplayer/miniplayer.dart';
 import 'package:musicapp/controller/audio_controller.dart';
 import 'package:on_audio_query/on_audio_query.dart';
@@ -99,14 +100,14 @@ class _FullPlayerState extends State<FullPlayer> {
           style: TextStyle(
             color: textColor,
             fontWeight: FontWeight.bold,
-            fontSize: 25,
+            fontSize: 22.sp,
           ),
         ),
         leading: IconButton(
           icon: Icon(
             Icons.keyboard_arrow_down_rounded,
             color: iconColor,
-            size: 35,
+            size: 31.sp,
           ),
           onPressed: _minimizePlayer,
         ),
@@ -119,7 +120,7 @@ class _FullPlayerState extends State<FullPlayer> {
                 ? const SizedBox()
                 : Column(
                     children: [
-                      const SizedBox(height: 20),
+                      SizedBox(height: 18.h),
                       // ********** ALBUM ART **********
                       Expanded(
                         flex: 5,
@@ -129,10 +130,10 @@ class _FullPlayerState extends State<FullPlayer> {
                             clipBehavior: Clip.none,
                             children: [
                               Container(
-                                width: 300,
-                                height: 300,
+                                width: 264.w,
+                                height: 264.h,
                                 decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(30),
+                                  borderRadius: BorderRadius.circular(26.r),
                                   color: placeholderColor,
                                   boxShadow: [
                                     BoxShadow(
@@ -143,16 +144,18 @@ class _FullPlayerState extends State<FullPlayer> {
                                   ],
                                 ),
                                 child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(30),
+                                  borderRadius: BorderRadius.circular(26.r),
                                   child: QueryArtworkWidget(
                                     id: song.id,
                                     type: ArtworkType.AUDIO,
-                                    artworkHeight: 300,
-                                    artworkWidth: 300,
+                                    artworkHeight: 264.h,
+                                    artworkWidth: 264.w,
                                     artworkFit: BoxFit.cover,
                                     nullArtworkWidget: Container(
                                       decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(30),
+                                        borderRadius: BorderRadius.circular(
+                                          26.r,
+                                        ),
                                         gradient: const LinearGradient(
                                           colors: [
                                             Color(0xFF8E97FD),
@@ -162,9 +165,9 @@ class _FullPlayerState extends State<FullPlayer> {
                                           end: Alignment.bottomRight,
                                         ),
                                       ),
-                                      child: const Icon(
+                                      child: Icon(
                                         Icons.music_note,
-                                        size: 80,
+                                        size: 70.sp,
                                         color: Colors.white,
                                       ),
                                     ),
@@ -172,9 +175,9 @@ class _FullPlayerState extends State<FullPlayer> {
                                 ),
                               ),
                               Positioned(
-                                bottom: -25,
+                                bottom: -22.h,
                                 child: Container(
-                                  padding: const EdgeInsets.all(12),
+                                  padding: EdgeInsets.all(10.r),
                                   decoration: BoxDecoration(
                                     color: heartBgColor,
                                     shape: BoxShape.circle,
@@ -186,10 +189,10 @@ class _FullPlayerState extends State<FullPlayer> {
                                       ),
                                     ],
                                   ),
-                                  child: const Icon(
+                                  child: Icon(
                                     Icons.favorite,
                                     color: Colors.red,
-                                    size: 28,
+                                    size: 25.sp,
                                   ),
                                 ),
                               ),
@@ -197,7 +200,7 @@ class _FullPlayerState extends State<FullPlayer> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 30),
+                      SizedBox(height: 26.h),
 
                       // ********** TITLE + ARTIST **********
                       Expanded(
@@ -207,17 +210,17 @@ class _FullPlayerState extends State<FullPlayer> {
                             Text(
                               song.title,
                               style: TextStyle(
-                                fontSize: 24,
+                                fontSize: 21.sp,
                                 fontWeight: FontWeight.bold,
                                 color: textColor,
                               ),
                               textAlign: TextAlign.center,
                             ),
-                            const SizedBox(height: 4),
+                            SizedBox(height: 4.h),
                             Text(
                               song.artist.isEmpty ? "Unknown" : song.artist,
                               style: TextStyle(
-                                fontSize: 13,
+                                fontSize: 11.sp,
                                 color: subTextColor,
                               ),
                               textAlign: TextAlign.center,
@@ -226,11 +229,11 @@ class _FullPlayerState extends State<FullPlayer> {
                         ),
                       ),
 
-                      const SizedBox(height: 25),
+                      SizedBox(height: 22.h),
 
                       // ********** PROGRESS BAR **********
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        padding: EdgeInsets.symmetric(horizontal: 21.w),
                         child: Consumer(
                           builder: (context, ref, child) {
                             final progressAsync = ref.watch(progressProvider);
@@ -240,16 +243,15 @@ class _FullPlayerState extends State<FullPlayer> {
                                 return Column(
                                   children: [
                                     SizedBox(
-                                      height: 20,
+                                      height: 18.h,
                                       child: SliderTheme(
                                         data: SliderTheme.of(context).copyWith(
                                           activeTrackColor: trackColors,
                                           thumbColor: thumbColor,
-                                          trackHeight: 9,
-                                          thumbShape:
-                                              const RoundSliderThumbShape(
-                                                enabledThumbRadius: 10,
-                                              ),
+                                          trackHeight: 8.h,
+                                          thumbShape: RoundSliderThumbShape(
+                                            enabledThumbRadius: 9.r,
+                                          ),
                                           overlayShape:
                                               SliderComponentShape.noOverlay,
                                         ),
@@ -288,7 +290,7 @@ class _FullPlayerState extends State<FullPlayer> {
                                         ),
                                       ),
                                     ),
-                                    const SizedBox(height: 10),
+                                    SizedBox(height: 9.h),
 
                                     // Timer Text
                                     Row(
@@ -327,50 +329,53 @@ class _FullPlayerState extends State<FullPlayer> {
                           children: [
                             IconButton(
                               icon: const Icon(Icons.skip_previous_rounded),
-                              iconSize: 36,
+                              iconSize: 32.sp,
                               color: iconColor,
                               onPressed: controller.previousSong,
                             ),
-                            const SizedBox(width: 25),
+                            SizedBox(width: 22.w),
 
                             // Play/Pause Button - Isolated Consumer
-                            Consumer(
-                              builder: (context, ref, child) {
-                                final isPlayingAsync = ref.watch(
-                                  isPlayingProvider,
-                                );
+                            ValueListenableBuilder<bool>(
+                              valueListenable:
+                                  AudioController.instance.isPlaying,
+                              builder: (context, isPlaying, child) {
                                 return Container(
-                                  width: 70,
-                                  height: 70,
+                                  width: 62.w,
+                                  height: 62.h,
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
-                                    color: playpause,
+                                    color: playpause, // آپ کا color variable
                                   ),
                                   child: IconButton(
                                     icon: Icon(
-                                      (isPlayingAsync.value ?? false)
+                                      isPlaying
                                           ? Icons.pause_rounded
                                           : Icons.play_arrow_rounded,
-                                      color: playpauseicon,
+                                      color:
+                                          playpauseicon, //پ کicon color variable
                                     ),
-                                    iconSize: 36,
-                                    onPressed: controller.tooglePlayPause,
+                                    iconSize: 32.sp,
+                                    onPressed: () {
+                                      AudioController.instance
+                                          .tooglePlayPause();
+                                    },
                                   ),
                                 );
                               },
                             ),
 
-                            const SizedBox(width: 30),
+                            SizedBox(width: 26.w),
                             IconButton(
                               icon: const Icon(Icons.skip_next_rounded),
-                              iconSize: 36,
+                              iconSize: 32.sp,
                               color: iconColor,
                               onPressed: controller.nextSong,
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 80),
+                      SizedBox(height: 70.h),
                     ],
                   ),
           ),
@@ -383,16 +388,14 @@ class _FullPlayerState extends State<FullPlayer> {
             maxChildSize: 0.8,
             builder: (BuildContext context, ScrollController scrollController) {
               return ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(30),
-                ),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(26.r)),
                 child: BackdropFilter(
                   filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
                   child: Container(
                     decoration: BoxDecoration(
                       color: (containerColor).withOpacity(0.6),
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(30),
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(26.r),
                       ),
                       border: Border(
                         top: BorderSide(
@@ -408,9 +411,9 @@ class _FullPlayerState extends State<FullPlayer> {
                       child: Column(
                         children: [
                           Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 24,
-                              vertical: 16,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 21.w,
+                              vertical: 14.h,
                             ),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -420,13 +423,13 @@ class _FullPlayerState extends State<FullPlayer> {
                                     Icon(
                                       Icons.music_note_outlined,
                                       color: subTextColor,
-                                      size: 30,
+                                      size: 26.sp,
                                     ),
-                                    const SizedBox(width: 10),
+                                    SizedBox(width: 9.w),
                                     Text(
                                       "Lyrics",
                                       style: TextStyle(
-                                        fontSize: 20,
+                                        fontSize: 18.sp,
                                         fontWeight: FontWeight.w600,
                                         color: textColor,
                                       ),
@@ -435,7 +438,7 @@ class _FullPlayerState extends State<FullPlayer> {
                                 ),
                                 IconButton(
                                   icon: Container(
-                                    padding: const EdgeInsets.all(4),
+                                    padding: EdgeInsets.all(4.r),
                                     decoration: BoxDecoration(
                                       color: isDarkTheme
                                           ? Colors.white.withOpacity(0.1)
@@ -456,7 +459,7 @@ class _FullPlayerState extends State<FullPlayer> {
                             ),
                           ),
                           Padding(
-                            padding: const EdgeInsets.all(12.0),
+                            padding: const EdgeInsets.all(12),
                             child: Consumer(
                               builder: (context, ref, child) {
                                 final lyricsAsync = ref.watch(lyricsProvider);

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:musicapp/models/artist_model.dart';
 import 'package:musicapp/models/song_model.dart';
 import 'package:musicapp/pages/search_screen.dart';
@@ -94,36 +95,36 @@ class HomeScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 16),
+              SizedBox(height: 14.h),
 
               // Top Bar - Profile & Search
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                padding: EdgeInsets.symmetric(horizontal: 18.w),
                 child: _buildTopBar(context, isDarkTheme, cardColor),
               ),
 
-              const SizedBox(height: 24),
+              SizedBox(height: 21.h),
 
               // Hero Section
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                padding: EdgeInsets.symmetric(horizontal: 18.w),
                 child: _buildHeroSection(context, textColor),
               ),
 
-              const SizedBox(height: 24),
+              SizedBox(height: 21.h),
 
               // Featured Artists Horizontal List
               SizedBox(
-                height: 80,
+                height: 70.h,
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  padding: EdgeInsets.symmetric(horizontal: 18.w),
                   itemCount: featuredArtists.length,
                   itemBuilder: (context, index) {
                     final artist = featuredArtists[index];
                     return Padding(
                       padding: EdgeInsets.only(
-                        right: index < featuredArtists.length - 1 ? 12 : 0,
+                        right: index < featuredArtists.length - 1 ? 11.w : 0,
                       ),
                       child: FeaturedArtistCard(
                         artist: artist,
@@ -138,30 +139,30 @@ class HomeScreen extends StatelessWidget {
                 ),
               ),
 
-              const SizedBox(height: 30),
+              SizedBox(height: 26.h),
 
               // Discover Section
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                padding: EdgeInsets.symmetric(horizontal: 18.w),
                 child: SectionHeader(title: 'Discover', textColor: textColor),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 14.h),
               _buildSongsList(discoverSongs),
 
-              const SizedBox(height: 30),
+              SizedBox(height: 26.h),
 
               // New Release Section
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                padding: EdgeInsets.symmetric(horizontal: 18.w),
                 child: SectionHeader(
                   title: 'New Release',
                   textColor: textColor,
                 ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 14.h),
               _buildSongsList(newReleases),
 
-              const SizedBox(height: 20),
+              SizedBox(height: 18.h),
             ],
           ),
         ),
@@ -175,8 +176,8 @@ class HomeScreen extends StatelessWidget {
       children: [
         // Profile Avatar
         Container(
-          width: 50,
-          height: 50,
+          width: 44.w,
+          height: 44.h,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: const Color(0xffF5E6D3),
@@ -187,7 +188,7 @@ class HomeScreen extends StatelessWidget {
               'https://picsum.photos/100?random=99',
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) {
-                return const Icon(Icons.person, size: 30);
+                return Icon(Icons.person, size: 26.sp);
               },
             ),
           ),
@@ -202,8 +203,8 @@ class HomeScreen extends StatelessWidget {
             );
           },
           child: Container(
-            width: 50,
-            height: 50,
+            width: 44.w,
+            height: 44.h,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: isDarkTheme
@@ -213,7 +214,7 @@ class HomeScreen extends StatelessWidget {
             child: Icon(
               Icons.search,
               color: isDarkTheme ? Colors.white : const Color(0xff8B5CF6),
-              size: 24,
+              size: 21.sp,
             ),
           ),
         ),
@@ -228,7 +229,7 @@ class HomeScreen extends StatelessWidget {
           child: Text(
             'Find the best\nmusic for you',
             style: TextStyle(
-              fontSize: 28,
+              fontSize: 25.sp,
               fontWeight: FontWeight.bold,
               color: textColor,
               height: 1.2,
@@ -236,22 +237,24 @@ class HomeScreen extends StatelessWidget {
           ),
         ),
         // Hand pointing emoji/image
-        const Text('👉', style: TextStyle(fontSize: 50)),
+        Text('👉', style: TextStyle(fontSize: 44.sp)),
       ],
     );
   }
 
   Widget _buildSongsList(List<SongModel> songs) {
     return SizedBox(
-      height: 200,
+      height: 176.h,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 20),
+        padding: EdgeInsets.symmetric(horizontal: 18.w),
         itemCount: songs.length,
         itemBuilder: (context, index) {
           final song = songs[index];
           return Padding(
-            padding: EdgeInsets.only(right: index < songs.length - 1 ? 16 : 0),
+            padding: EdgeInsets.only(
+              right: index < songs.length - 1 ? 14.w : 0,
+            ),
             child: SongCard(
               song: song,
               onTap: () {

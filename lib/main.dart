@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:musicapp/pages/main_navigation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:musicapp/core/configs/theme/app_theme.dart';
@@ -66,7 +67,7 @@ class _MyAppState extends ConsumerState<MyApp> {
           home: child,
         );
       },
-      child: const Login(),
+      child: const MainNavigation(),
     );
   }
 }

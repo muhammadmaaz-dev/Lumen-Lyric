@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class SettingsTile extends StatelessWidget {
   final IconData icon;
@@ -25,24 +26,24 @@ class SettingsTile extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(12.r),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
           child: Row(
             children: [
-              Icon(icon, size: 26, color: textColor),
-              const SizedBox(width: 16),
+              Icon(icon, size: 23.sp, color: textColor),
+              SizedBox(width: 14.w),
               Expanded(
                 child: Text(
                   title,
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 14.sp,
                     fontWeight: FontWeight.w500,
                     color: textColor,
                   ),
                 ),
               ),
-              Icon(Icons.chevron_right, size: 24, color: textColor),
+              Icon(Icons.chevron_right, size: 21.sp, color: textColor),
             ],
           ),
         ),

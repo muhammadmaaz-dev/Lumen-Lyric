@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import 'package:musicapp/controller/audio_controller.dart';
 
@@ -22,23 +23,23 @@ class LibraryScreen extends StatefulWidget {
 class _LibraryScreenState extends State<LibraryScreen> {
   // State Variable
 
-  String _selectedFilter = 'Local Media';
+  String _searchQuery = '';
 
   // Filter Logic
 
   List<LocalSongModel> _getFilteredSongs(List<LocalSongModel> allSongs) {
-    // 1. Agar User ne 'Liked' tab dabaya hai
-    if (_selectedFilter == 'Liked') {
-      // Sirf wo songs return karo jinka isLiked == true hai
-      return allSongs.where((s) => s.isLiked == true).toList();
-    }
-    // 2. Agar 'Downloaded' tab dabaya hai (Optional logic)
-    else if (_selectedFilter == 'Downloaded') {
-      return allSongs.where((s) => s.isDownloaded == true).toList();
+    List<LocalSongModel> filteredSongs = allSongs;
+
+    // Apply search filter
+    if (_searchQuery.isNotEmpty) {
+      final query = _searchQuery.toLowerCase();
+      filteredSongs = filteredSongs.where((song) {
+        return song.title.toLowerCase().contains(query) ||
+            song.artist.toLowerCase().contains(query);
+      }).toList();
     }
 
-    // 3. Default: 'Local Media' (Sab dikhao)
-    return allSongs;
+    return filteredSongs;
   }
 
   @override
@@ -74,59 +75,34 @@ class _LibraryScreenState extends State<LibraryScreen> {
               SliverToBoxAdapter(
                 child: SafeArea(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    padding: EdgeInsets.symmetric(horizontal: 14.w),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const SizedBox(height: 16),
+                        SizedBox(height: 14.h),
 
                         // Search Bar
                         CustomTextField(
-                          hintText: 'Search',
+                          hintText: 'Search songs...',
                           prefixIcon: Icons.search,
                           onPrefixTap: () {},
                           isDarkTheme: isDarkTheme,
+                          onChanged: (value) {
+                            setState(() {
+                              _searchQuery = value;
+                            });
+                          },
                         ),
 
-                        const SizedBox(height: 24),
+                        SizedBox(height: 21.h),
 
                         // Filter Buttons Row
                         Row(
                           children: [
                             FilterButton(
-                              text: 'Downloaded',
-                              isActive: _selectedFilter == 'Downloaded',
-                              onTap: () {
-                                setState(() {
-                                  _selectedFilter = "Downloaded";
-                                });
-                              },
-                              isDarkTheme: isDarkTheme,
-                            ),
-
-                            const SizedBox(width: 12),
-
-                            FilterButton(
-                              text: 'Liked',
-                              isActive: _selectedFilter == 'Liked',
-                              onTap: () {
-                                setState(() {
-                                  _selectedFilter = "Liked";
-                                });
-                              },
-                              isDarkTheme: isDarkTheme,
-                            ),
-
-                            const SizedBox(width: 12),
-
-                            FilterButton(
                               text: 'Local Media',
-                              isActive: _selectedFilter == 'Local Media',
-                              onTap: () {
-                                setState(() {
-                                  _selectedFilter = "Local Media";
-                                });
-                              },
+                              isActive: true,
+                              onTap: () {},
                               isDarkTheme: isDarkTheme,
                             ),
 
@@ -143,7 +119,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                                   style: TextStyle(
                                     color: textColor,
                                     fontWeight: FontWeight.w500,
-                                    fontSize: 12,
+                                    fontSize: 15,
                                   ),
                                 );
                               },
@@ -170,9 +146,26 @@ class _LibraryScreenState extends State<LibraryScreen> {
                       child: Container(
                         height: 200,
                         alignment: Alignment.center,
-                        child: Text(
-                          "No $_selectedFilter Songs Found",
-                          style: TextStyle(color: textColor),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              _searchQuery.isNotEmpty
+                                  ? Icons.search_off
+                                  : Icons.music_off,
+                              size: 48,
+                              color: isDarkTheme
+                                  ? Colors.grey[600]
+                                  : Colors.grey[400],
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              _searchQuery.isNotEmpty
+                                  ? 'No results for "$_searchQuery"'
+                                  : "No $allSongs Songs Found",
+                              style: TextStyle(color: textColor),
+                            ),
+                          ],
                         ),
                       ),
                     );
@@ -180,7 +173,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
                   // Songs list
                   return SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
                     sliver: SliverList(
                       delegate: SliverChildBuilderDelegate((context, index) {
                         final song = displaySongs[index];
@@ -188,8 +181,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
                         return SongTile(
                           title: song.title,
                           artist: song.artist,
+                          duration: song.duration,
                           songId: song.id,
-
                           onTap: () {
                             final originalIndex = allSongs.indexOf(song);
                             AudioController.instance.playSong(originalIndex);
@@ -216,7 +209,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
               ),
 
               // Extra space at bottom for MiniPlayer
-              const SliverToBoxAdapter(child: SizedBox(height: 80)),
+              SliverToBoxAdapter(child: SizedBox(height: 80)),
             ],
           ),
         ],

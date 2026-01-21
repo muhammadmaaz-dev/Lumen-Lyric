@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:on_audio_query/on_audio_query.dart';
+import 'package:musicapp/models/local_song_model.dart';
 
 class SongTile extends StatelessWidget {
   final String title;
   final String artist;
+  final int duration;
   final int? songId; // For QueryArtworkWidget
   final String? imageUrl; // For NetworkImage fallback or alternative
   final VoidCallback? onTap;
@@ -14,6 +17,7 @@ class SongTile extends StatelessWidget {
     super.key,
     required this.title,
     required this.artist,
+    required this.duration,
     this.songId,
     this.imageUrl,
     this.onTap,
@@ -27,31 +31,31 @@ class SongTile extends StatelessWidget {
     final secondaryTextColor = isDarkTheme ? Colors.grey[400] : Colors.grey;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
+      padding: EdgeInsets.only(bottom: 14.h),
       child: GestureDetector(
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
         child: SizedBox(
-          height: 55,
+          height: 48.h,
           width: double.infinity,
           child: Row(
             children: [
               // Album Art Placeholder
               Container(
-                width: 55,
-                height: 55,
+                width: 48.h,
+                height: 48.h,
                 decoration: BoxDecoration(
                   color: isDarkTheme
                       ? const Color(0xff2a2a2a)
                       : const Color(0xfff0f0f0),
-                  borderRadius: BorderRadius.circular(28),
+                  borderRadius: BorderRadius.circular(24.r),
                 ),
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(10.r),
                   child: _buildArtwork(secondaryTextColor),
                 ),
               ),
-              const SizedBox(width: 16),
+              SizedBox(width: 14.w),
 
               // Title and Subtitle
               Expanded(
@@ -64,18 +68,18 @@ class SongTile extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: textColor,
-                        fontSize: 16,
+                        fontSize: 14.sp,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    SizedBox(height: 4.h),
                     Text(
-                      artist,
+                      '${artist} • ${_formatDuration(duration)}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: secondaryTextColor,
-                        fontSize: 13,
+                        fontSize: 11.sp,
                         fontWeight: FontWeight.w400,
                       ),
                     ),
@@ -121,4 +125,11 @@ class SongTile extends StatelessWidget {
       return Icon(Icons.music_note, color: placeholderColor, size: 30);
     }
   }
+}
+
+String _formatDuration(int milliseconds) {
+  final duration = Duration(milliseconds: milliseconds);
+  final minutes = duration.inMinutes;
+  final seconds = duration.inSeconds % 60;
+  return '$minutes:${seconds.toString().padLeft(2, '0')}';
 }

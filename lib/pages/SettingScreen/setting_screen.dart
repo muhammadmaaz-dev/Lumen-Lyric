@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:musicapp/pages/SettingScreen/liked_songs_screen.dart';
 import 'package:musicapp/pages/SettingScreen/playlists.dart';
 import 'package:musicapp/provider/theme_provider.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:musicapp/utils/slide_route.dart';
 import 'package:musicapp/widgets/setting_tile.dart';
 
 class SettingScreen extends StatelessWidget {
@@ -38,16 +41,16 @@ class SettingScreen extends StatelessWidget {
                 elevation: 0,
                 pinned: true,
                 floating: true,
-                expandedHeight: 80,
+                expandedHeight: 70.h,
                 flexibleSpace: Container(
                   color: backgroundColor,
                   child: FlexibleSpaceBar(
-                    titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
+                    titlePadding: EdgeInsets.only(left: 18.w, bottom: 14.h),
                     title: Text(
                       "Settings",
                       style: TextStyle(
                         color: textColor,
-                        fontSize: 22,
+                        fontSize: 19.sp,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -57,43 +60,43 @@ class SettingScreen extends StatelessWidget {
 
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.all(15.0),
+                  padding: EdgeInsets.all(13.r),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SizedBox(height: 10),
+                      SizedBox(height: 9.h),
 
                       Center(
                         child: Column(
                           children: [
                             Container(
-                              width: 120,
-                              height: 120,
+                              width: 106.w,
+                              height: 106.h,
                               decoration: BoxDecoration(
                                 color: avatarBgColor,
                                 shape: BoxShape.circle,
                               ),
-                              child: const Center(
+                              child: Center(
                                 child: Text(
                                   '😊',
-                                  style: TextStyle(fontSize: 60),
+                                  style: TextStyle(fontSize: 53.sp),
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 16),
+                            SizedBox(height: 14.h),
                             Text(
                               'Muhammad Maaz',
                               style: TextStyle(
-                                fontSize: 24,
+                                fontSize: 21.sp,
                                 fontWeight: FontWeight.bold,
                                 color: textColor,
                               ),
                             ),
-                            const SizedBox(height: 4),
+                            SizedBox(height: 4.h),
                             Text(
                               'muhammad.maaz@gmail.com',
                               style: TextStyle(
-                                fontSize: 14,
+                                fontSize: 12.sp,
                                 color: secondaryTextColor,
                               ),
                             ),
@@ -101,28 +104,28 @@ class SettingScreen extends StatelessWidget {
                         ),
                       ),
 
-                      const SizedBox(height: 30),
+                      SizedBox(height: 26.h),
 
                       Text(
                         'Appearance',
                         style: TextStyle(
-                          fontSize: 16,
+                          fontSize: 14.sp,
                           fontWeight: FontWeight.w600,
                           color: textColor,
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      SizedBox(height: 11.h),
                       Container(
                         decoration: BoxDecoration(
                           color: cardColor,
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(14.r),
                         ),
                         child: ListTile(
                           leading: Icon(Icons.dark_mode, color: textColor),
                           title: Text(
                             'Dark Theme',
                             style: TextStyle(
-                              fontSize: 16,
+                              fontSize: 14.sp,
                               fontWeight: FontWeight.w500,
                               color: textColor,
                             ),
@@ -132,28 +135,35 @@ class SettingScreen extends StatelessWidget {
                         ),
                       ),
 
-                      const SizedBox(height: 22),
+                      SizedBox(height: 19.h),
 
                       Text(
                         'Library & Activity',
                         style: TextStyle(
-                          fontSize: 16,
+                          fontSize: 14.sp,
                           fontWeight: FontWeight.w600,
                           color: textColor,
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      SizedBox(height: 11.h),
                       Container(
                         decoration: BoxDecoration(
                           color: cardColor,
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(14.r),
                         ),
                         child: Column(
                           children: [
                             SettingsTile(
                               icon: Icons.favorite_border,
                               title: 'Liked Songs',
-                              onTap: () {},
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  SlideRightToLeftRoute(
+                                    page: const LikedSongsScreen(),
+                                  ),
+                                );
+                              },
                               isDarkTheme: isDarkTheme,
                               textColor: textColor,
                             ),
@@ -169,10 +179,9 @@ class SettingScreen extends StatelessWidget {
                               onTap: () {
                                 Navigator.push(
                                   context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        const PlaylistsScreen(),
-                                  ),
+                                  SlideRightToLeftRoute(
+                                    page: const PlaylistsScreen(),
+                                  ), // Apni screen ka naam yahan likhein
                                 );
                               },
                               isDarkTheme: isDarkTheme,
@@ -258,21 +267,8 @@ class SettingScreen extends StatelessWidget {
                         child: Column(
                           children: [
                             SettingsTile(
-                              icon: Icons.help_outline,
-                              title: 'FAQs',
-                              onTap: () {},
-                              isDarkTheme: isDarkTheme,
-                              textColor: textColor,
-                            ),
-                            Divider(
-                              height: 1,
-                              color: dividerColor,
-                              indent: 10,
-                              endIndent: 10,
-                            ),
-                            SettingsTile(
-                              icon: Icons.headset_mic_outlined,
-                              title: 'Contact Support',
+                              icon: Icons.sign_language_sharp,
+                              title: 'Suggest Feature',
                               onTap: () {},
                               isDarkTheme: isDarkTheme,
                               textColor: textColor,

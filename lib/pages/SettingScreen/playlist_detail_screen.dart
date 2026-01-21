@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:miniplayer/miniplayer.dart';
 import 'package:musicapp/controller/audio_controller.dart';
 import 'package:musicapp/models/local_song_model.dart';
 import 'package:musicapp/models/playlist_model.dart';
 import 'package:musicapp/pages/full_player.dart';
+// Ensure this path matches where you saved the previous file
 import 'package:musicapp/pages/SettingScreen/song_picker_screen.dart';
 import 'package:musicapp/provider/playlist_provider.dart';
 import 'package:musicapp/widgets/playlist_dialog.dart';
@@ -21,7 +23,7 @@ class PlaylistDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
-  static const double _playerMinHeight = 70;
+  double get _playerMinHeight => 62.h;
   final controller = AudioController.instance;
   final MiniplayerController _miniplayerController = MiniplayerController();
   final TextEditingController _searchController = TextEditingController();
@@ -61,12 +63,13 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
     }
   }
 
+  // UPDATED: Now calls the static show method for the Bottom Sheet
   Future<void> _addSongs() async {
-    final selectedSongIds = await Navigator.push<List<int>>(
+    // This calls the static method we created in the previous step
+    // which handles the showCupertinoModalBottomSheet logic
+    final selectedSongIds = await SongPickerScreen.show(
       context,
-      MaterialPageRoute(
-        builder: (context) => SongPickerScreen(playlistId: widget.playlistId),
-      ),
+      widget.playlistId,
     );
 
     if (selectedSongIds != null && selectedSongIds.isNotEmpty) {
@@ -159,87 +162,58 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
 
     return Scaffold(
       backgroundColor: backgroundColor,
-      // appBar: AppBar(
-      //   backgroundColor: backgroundColor,
-      //   elevation: 0,
-      //   centerTitle: true,
-      //   leading: IconButton(
-      //     icon: Icon(Icons.arrow_back, color: textColor),
-      //     onPressed: () => Navigator.pop(context),
-      //   ),
-      //   title: Text(
-      //     'Playlist',
-      //     style: TextStyle(
-      //       color: textColor,
-      //       fontWeight: FontWeight.bold,
-      //       fontSize: 20,
-      //     ),
-      //   ),
-      //   actions: [
-      //     IconButton(
-      //       icon: Icon(Icons.search, color: textColor),
-      //       onPressed: () {
-      //         showSearch(
-      //           context: context,
-      //           delegate: _PlaylistSongSearchDelegate(
-      //             playlistSongs: _getPlaylistSongs(playlist),
-      //             isDarkTheme: isDarkTheme,
-      //             onSongTap: (song) => _playSong(song, playlistSongs),
-      //             onRemoveSong: _removeSong,
-      //           ),
-      //         );
-      //       },
-      //     ),
-      //   ],
-      // ),
       body: Stack(
         children: [
           CustomScrollView(
             slivers: [
               // Header Section
               SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Column(
-                    children: [
-                      SizedBox(height: 20),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          IconButton(
-                            icon: Icon(Icons.arrow_back, color: textColor),
-                            onPressed: () => Navigator.pop(context),
+                child: Column(
+                  children: [
+                    SizedBox(height: 44.h),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        IconButton(
+                          icon: Icon(
+                            Icons.arrow_back,
+                            color: textColor,
+                            size: 26.sp,
                           ),
-                          Text(
-                            'Playlist',
-                            style: TextStyle(
-                              color: textColor,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 20,
-                            ),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                        Text(
+                          'Playlist',
+                          style: TextStyle(
+                            color: textColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 22.sp,
                           ),
+                        ),
 
-                          IconButton(
-                            icon: Icon(Icons.search, color: textColor),
-                            onPressed: () {
-                              showSearch(
-                                context: context,
-                                delegate: _PlaylistSongSearchDelegate(
-                                  playlistSongs: _getPlaylistSongs(playlist),
-                                  isDarkTheme: isDarkTheme,
-                                  onSongTap: (song) =>
-                                      _playSong(song, playlistSongs),
-                                  onRemoveSong: _removeSong,
-                                ),
-                              );
-                            },
-                          ),
-                        ],
-                      ),
+                        IconButton(
+                          icon: Icon(Icons.search, color: textColor),
+                          onPressed: () {
+                            showSearch(
+                              context: context,
+                              delegate: _PlaylistSongSearchDelegate(
+                                playlistSongs: _getPlaylistSongs(playlist),
+                                isDarkTheme: isDarkTheme,
+                                onSongTap: (song) =>
+                                    _playSong(song, playlistSongs),
+                                onRemoveSong: _removeSong,
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
 
-                      SizedBox(height: 30),
+                    const SizedBox(height: 20),
 
-                      Row(
+                    Padding(
+                      padding: const EdgeInsets.all(18),
+                      child: Row(
                         children: [
                           // Playlist thumbnail
                           Container(
@@ -309,8 +283,8 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                           ),
                         ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
 
@@ -348,7 +322,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                 )
               else
                 SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   sliver: SliverList(
                     delegate: SliverChildBuilderDelegate((context, index) {
                       final song = playlistSongs[index];
@@ -364,7 +338,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                 ),
 
               // Bottom padding for miniplayer
-              const SliverToBoxAdapter(child: SizedBox(height: 100)),
+              SliverToBoxAdapter(child: SizedBox(height: 100)),
             ],
           ),
 
@@ -457,7 +431,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                       height: 50,
                       decoration: BoxDecoration(
                         color: Colors.black26,
-                        borderRadius: BorderRadius.circular(18),
+                        borderRadius: BorderRadius.circular(28),
                       ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(8),
@@ -601,7 +575,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
     final secondaryTextColor = isDarkTheme ? Colors.grey[400] : Colors.grey;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
+      padding: const EdgeInsets.only(bottom: 12),
       child: GestureDetector(
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
@@ -617,10 +591,10 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                   color: isDarkTheme
                       ? const Color(0xff2a2a2a)
                       : const Color(0xfff0f0f0),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(28),
                 ),
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(28),
                   child: QueryArtworkWidget(
                     id: song.id,
                     type: ArtworkType.AUDIO,
@@ -782,10 +756,10 @@ class _PlaylistSongSearchDelegate extends SearchDelegate<LocalSongModel?> {
                 color: isDarkTheme
                     ? const Color(0xff2a2a2a)
                     : const Color(0xfff0f0f0),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(28),
               ),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(28),
                 child: QueryArtworkWidget(
                   id: song.id,
                   type: ArtworkType.AUDIO,

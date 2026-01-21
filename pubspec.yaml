@@ -26,6 +26,8 @@ dependencies:
   interactive_slider: ^0.5.1
   flutter_animate: ^4.5.2
   miniplayer: ^1.0.1
+  cupertino_modal_sheet: ^1.1.0
+  modal_bottom_sheet: ^3.0.0
   
 
 dev_dependencies:

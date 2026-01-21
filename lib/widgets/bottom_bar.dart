@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:musicapp/controller/audio_controller.dart'; // Controller Import
 import 'package:musicapp/models/local_song_model.dart'; // Model Import
 
@@ -41,22 +42,22 @@ class SongOptionsWidget extends ConsumerWidget {
         final isLiked = song.isLiked;
 
         return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          decoration: const BoxDecoration(
-            color: Color(0xFF1E1E1E),
-            borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+          padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 9.h),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E1E1E),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(22.r)),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               // 1. Drag Handle
               Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 20),
+                width: 35.w,
+                height: 4.h,
+                margin: EdgeInsets.only(bottom: 18.h),
                 decoration: BoxDecoration(
                   color: Colors.grey[600],
-                  borderRadius: BorderRadius.circular(2),
+                  borderRadius: BorderRadius.circular(2.r),
                 ),
               ),
 
@@ -64,35 +65,39 @@ class SongOptionsWidget extends ConsumerWidget {
               Row(
                 children: [
                   ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: BorderRadius.circular(4.r),
                     child: Container(
-                      width: 50,
-                      height: 50,
+                      width: 44.w,
+                      height: 44.h,
                       color: Colors.grey[800],
-                      child: const Icon(Icons.music_note, color: Colors.white),
+                      child: Icon(
+                        Icons.music_note,
+                        color: Colors.white,
+                        size: 21.sp,
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 15),
+                  SizedBox(width: 13.w),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           title,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: Colors.white,
-                            fontSize: 18,
+                            fontSize: 16.sp,
                             fontWeight: FontWeight.bold,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 4),
+                        SizedBox(height: 4.h),
                         Text(
                           artist == "<unknown>" ? "Unknown Artist" : artist,
                           style: TextStyle(
                             color: Colors.grey[400],
-                            fontSize: 13,
+                            fontSize: 11.sp,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -115,21 +120,21 @@ class SongOptionsWidget extends ConsumerWidget {
                 ],
               ),
 
-              const SizedBox(height: 20),
+              SizedBox(height: 18.h),
               const Divider(color: Colors.white12, thickness: 1),
-              const SizedBox(height: 20),
+              SizedBox(height: 18.h),
 
               // 3. Action Buttons
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   _buildActionBox(Icons.edit, "Edit"),
-                  const SizedBox(width: 10),
+                  SizedBox(width: 9.w),
                   _buildActionBox(Icons.playlist_add, "Add to playlist"),
                 ],
               ),
 
-              const SizedBox(height: 20),
+              SizedBox(height: 18.h),
               const Divider(color: Colors.white12, thickness: 1),
 
               // 4. List Options

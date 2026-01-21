@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:miniplayer/miniplayer.dart';
 import 'package:musicapp/controller/audio_controller.dart';
 import 'package:musicapp/pages/full_player.dart';
@@ -16,7 +17,7 @@ class MainNavigation extends StatefulWidget {
 }
 
 class _MainNavigationState extends State<MainNavigation> {
-  static const double _playerMinHeight = 70;
+  double get _playerMinHeight => 62.h;
   int _selectedIndex = 0;
   double _playerPercentage = 0;
   final controller = AudioController.instance;
@@ -124,7 +125,7 @@ class _MainNavigationState extends State<MainNavigation> {
       bottomNavigationBar: _playerPercentage > 0.2
           ? null
           : Container(
-              height: 65,
+              height: 60.h,
               decoration: BoxDecoration(
                 border: Border(top: BorderSide(color: barColor)),
               ),
@@ -191,8 +192,8 @@ class _MainNavigationState extends State<MainNavigation> {
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.2),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
+              blurRadius: 9.r,
+              offset: Offset(0, -2.h),
             ),
           ],
           // borderRadius: const BorderRadius.only(
@@ -204,34 +205,34 @@ class _MainNavigationState extends State<MainNavigation> {
           children: [
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
+                padding: EdgeInsets.symmetric(horizontal: 11.w),
                 child: Row(
                   children: [
                     // Song Thumbnail
                     Container(
-                      width: 50,
-                      height: 50,
+                      width: 44.w,
+                      height: 44.h,
                       decoration: BoxDecoration(
                         color: Colors.black26,
-                        borderRadius: BorderRadius.circular(18),
+                        borderRadius: BorderRadius.circular(16.r),
                       ),
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(7.r),
                         child: QueryArtworkWidget(
                           id: song.id,
                           type: ArtworkType.AUDIO,
-                          artworkHeight: 50,
-                          artworkWidth: 50,
+                          artworkHeight: 44.h,
+                          artworkWidth: 44.w,
                           artworkFit: BoxFit.cover,
                           nullArtworkWidget: Icon(
                             Icons.music_note,
                             color: miniPlayerTextColor,
-                            size: 30,
+                            size: 26.sp,
                           ),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    SizedBox(width: 11.w),
 
                     // Song Title + Artist
                     Expanded(
@@ -245,7 +246,7 @@ class _MainNavigationState extends State<MainNavigation> {
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               color: miniPlayerTextColor,
-                              fontSize: 16,
+                              fontSize: 14.sp,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -255,7 +256,7 @@ class _MainNavigationState extends State<MainNavigation> {
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               color: miniPlayerSubTextColor,
-                              fontSize: 13,
+                              fontSize: 11.sp,
                             ),
                           ),
                         ],

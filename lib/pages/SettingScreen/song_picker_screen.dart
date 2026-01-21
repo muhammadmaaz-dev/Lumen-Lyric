@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:modal_bottom_sheet/modal_bottom_sheet.dart'; // This requires the package added above
 import 'package:musicapp/controller/audio_controller.dart';
 import 'package:musicapp/models/local_song_model.dart';
 import 'package:musicapp/provider/playlist_provider.dart';
@@ -9,6 +11,15 @@ class SongPickerScreen extends ConsumerStatefulWidget {
   final String playlistId;
 
   const SongPickerScreen({super.key, required this.playlistId});
+
+  // Helper method to show this screen comfortably
+  static Future<List<int>?> show(BuildContext context, String playlistId) {
+    return showCupertinoModalBottomSheet<List<int>>(
+      context: context,
+      backgroundColor: Colors.transparent, // Let the Scaffold handle color
+      builder: (context) => SongPickerScreen(playlistId: playlistId),
+    );
+  }
 
   @override
   ConsumerState<SongPickerScreen> createState() => _SongPickerScreenState();
@@ -83,177 +94,188 @@ class _SongPickerScreenState extends ConsumerState<SongPickerScreen> {
 
     final filteredSongs = _getFilteredSongs();
 
-    return Scaffold(
-      backgroundColor: backgroundColor,
-      appBar: AppBar(
+    return Material(
+      color: backgroundColor,
+      child: Scaffold(
         backgroundColor: backgroundColor,
-        elevation: 0,
-        centerTitle: true,
-        leading: IconButton(
-          icon: Icon(Icons.close, color: textColor),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          'Add Songs',
-          style: TextStyle(
-            color: textColor,
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
+        // Using a Scaffold AppBar ensures it stays pinned at the top while scrolling
+        appBar: AppBar(
+          backgroundColor: backgroundColor,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          surfaceTintColor: Colors.transparent,
+          centerTitle: true,
+          leading: IconButton(
+            icon: Icon(Icons.close, color: textColor),
+            onPressed: () => Navigator.pop(context),
           ),
-        ),
-        actions: [
-          if (_selectedSongIds.isNotEmpty)
-            TextButton(
-              onPressed: _confirmSelection,
-              child: Text(
-                'Add (${_selectedSongIds.length})',
-                style: TextStyle(
-                  color: isDarkTheme ? Colors.white : Colors.black,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Search Bar
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: TextField(
-              controller: _searchController,
-              style: TextStyle(color: textColor),
-              decoration: InputDecoration(
-                hintText: 'Search songs...',
-                hintStyle: TextStyle(color: hintColor),
-                prefixIcon: Icon(Icons.search, color: hintColor),
-                filled: true,
-                fillColor: cardColor,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
-                ),
-              ),
-              onChanged: (value) {
-                setState(() {
-                  _searchQuery = value;
-                });
-              },
+          title: Text(
+            'Add Songs',
+            style: TextStyle(
+              color: textColor,
+              fontWeight: FontWeight.bold,
+              fontSize: 18.sp,
             ),
           ),
-
-          // Selected count indicator
-          if (_selectedSongIds.isNotEmpty)
+          actions: [
+            if (_selectedSongIds.isNotEmpty)
+              TextButton(
+                onPressed: _confirmSelection,
+                child: Text(
+                  'Add (${_selectedSongIds.length})',
+                  style: TextStyle(
+                    color: isDarkTheme ? Colors.white : Colors.black,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+          ],
+        ),
+        body: Column(
+          children: [
+            // Search Bar
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isDarkTheme ? Colors.white : Colors.black,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      '${_selectedSongIds.length} selected',
-                      style: TextStyle(
-                        color: isDarkTheme ? Colors.black : Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+              padding: EdgeInsets.all(14.r),
+              child: TextField(
+                controller: _searchController,
+                style: TextStyle(color: textColor),
+                decoration: InputDecoration(
+                  hintText: 'Search songs...',
+                  hintStyle: TextStyle(color: hintColor),
+                  prefixIcon: Icon(Icons.search, color: hintColor),
+                  filled: true,
+                  fillColor: cardColor,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10.r),
+                    borderSide: BorderSide.none,
                   ),
-                  const SizedBox(width: 8),
-                  TextButton(
-                    onPressed: () {
-                      setState(() {
-                        _selectedSongIds.clear();
-                      });
-                    },
-                    child: Text(
-                      'Clear all',
-                      style: TextStyle(
-                        color: textColor.withOpacity(0.6),
-                        fontSize: 12,
-                      ),
-                    ),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 14.w,
+                    vertical: 12.h,
                   ),
-                ],
+                ),
+                onChanged: (value) {
+                  setState(() {
+                    _searchQuery = value;
+                  });
+                },
               ),
             ),
 
-          const SizedBox(height: 8),
-
-          // Songs List
-          Expanded(
-            child: filteredSongs.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.music_off_rounded,
-                          size: 48,
-                          color: secondaryTextColor,
+            // Selected count indicator
+            if (_selectedSongIds.isNotEmpty)
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 14.w),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 11.w,
+                        vertical: 5.h,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isDarkTheme ? Colors.white : Colors.black,
+                        borderRadius: BorderRadius.circular(18.r),
+                      ),
+                      child: Text(
+                        '${_selectedSongIds.length} selected',
+                        style: TextStyle(
+                          color: isDarkTheme ? Colors.black : Colors.white,
+                          fontSize: 11.sp,
+                          fontWeight: FontWeight.w600,
                         ),
-                        const SizedBox(height: 12),
-                        Text(
-                          _searchQuery.isEmpty
-                              ? 'All songs are already in the playlist'
-                              : 'No songs found',
-                          style: TextStyle(
-                            color: secondaryTextColor,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                  )
-                : ListView.builder(
-                    itemCount: filteredSongs.length,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemBuilder: (context, index) {
-                      final song = filteredSongs[index];
-                      final isSelected = _selectedSongIds.contains(song.id);
-
-                      return _buildSongTile(
-                        song: song,
-                        isSelected: isSelected,
-                        isDarkTheme: isDarkTheme,
-                        textColor: textColor,
-                        secondaryTextColor: secondaryTextColor,
-                        onTap: () => _toggleSelection(song.id),
-                      );
-                    },
-                  ),
-          ),
-        ],
-      ),
-      // Floating Action Button for adding selected songs
-      floatingActionButton: _selectedSongIds.isNotEmpty
-          ? FloatingActionButton.extended(
-              onPressed: _confirmSelection,
-              backgroundColor: isDarkTheme ? Colors.white : Colors.black,
-              icon: Icon(
-                Icons.add,
-                color: isDarkTheme ? Colors.black : Colors.white,
-              ),
-              label: Text(
-                'Add ${_selectedSongIds.length} songs',
-                style: TextStyle(
-                  color: isDarkTheme ? Colors.black : Colors.white,
-                  fontWeight: FontWeight.bold,
+                    SizedBox(width: 7.w),
+                    TextButton(
+                      onPressed: () {
+                        setState(() {
+                          _selectedSongIds.clear();
+                        });
+                      },
+                      child: Text(
+                        'Clear all',
+                        style: TextStyle(
+                          color: textColor.withOpacity(0.6),
+                          fontSize: 11.sp,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            )
-          : null,
+
+            const SizedBox(height: 8),
+
+            // Songs List
+            Expanded(
+              child: filteredSongs.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.music_off_rounded,
+                            size: 48,
+                            color: secondaryTextColor,
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            _searchQuery.isEmpty
+                                ? 'All songs are already in the playlist'
+                                : 'No songs found',
+                            style: TextStyle(
+                              color: secondaryTextColor,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      // IMPORTANT: Links scrolling to the Bottom Sheet drag gestures
+                      controller: ModalScrollController.of(context),
+                      // Add padding at bottom to avoid FAB covering last item
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+                      itemCount: filteredSongs.length,
+                      itemBuilder: (context, index) {
+                        final song = filteredSongs[index];
+                        final isSelected = _selectedSongIds.contains(song.id);
+
+                        return _buildSongTile(
+                          song: song,
+                          isSelected: isSelected,
+                          isDarkTheme: isDarkTheme,
+                          textColor: textColor,
+                          secondaryTextColor: secondaryTextColor,
+                          onTap: () => _toggleSelection(song.id),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+        // FAB wrapped in SafeArea for bottom sheet usage
+        floatingActionButton: _selectedSongIds.isNotEmpty
+            ? SafeArea(
+                child: FloatingActionButton.extended(
+                  onPressed: _confirmSelection,
+                  backgroundColor: isDarkTheme ? Colors.white : Colors.black,
+                  icon: Icon(
+                    Icons.add,
+                    color: isDarkTheme ? Colors.black : Colors.white,
+                  ),
+                  label: Text(
+                    'Add ${_selectedSongIds.length} songs',
+                    style: TextStyle(
+                      color: isDarkTheme ? Colors.black : Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              )
+            : null,
+      ),
     );
   }
 
@@ -266,7 +288,7 @@ class _SongPickerScreenState extends ConsumerState<SongPickerScreen> {
     required VoidCallback onTap,
   }) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
+      padding: const EdgeInsets.only(bottom: 8),
       child: GestureDetector(
         onTap: onTap,
         behavior: HitTestBehavior.opaque,

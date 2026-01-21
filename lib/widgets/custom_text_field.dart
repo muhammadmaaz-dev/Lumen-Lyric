@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class CustomTextField extends StatelessWidget {
   final String hintText;
@@ -8,6 +9,7 @@ class CustomTextField extends StatelessWidget {
   final VoidCallback? onPrefixTap;
   final bool isDarkTheme;
   final TextEditingController? controller;
+  final ValueChanged<String>? onChanged;
 
   const CustomTextField({
     super.key,
@@ -18,6 +20,7 @@ class CustomTextField extends StatelessWidget {
     this.onPrefixTap,
     required this.isDarkTheme,
     this.controller,
+    this.onChanged,
   });
 
   @override
@@ -29,37 +32,38 @@ class CustomTextField extends StatelessWidget {
     final secondaryTextColor = isDarkTheme ? Colors.grey[400] : Colors.grey;
 
     return Container(
-      height: 50,
+      height: 44.h,
       decoration: BoxDecoration(
         color: cardColor,
-        borderRadius: BorderRadius.circular(30),
+        borderRadius: BorderRadius.circular(26.r),
       ),
       child: TextField(
         controller: controller,
+        onChanged: onChanged,
         style: TextStyle(color: textColor),
         decoration: InputDecoration(
           fillColor: cardColor,
           hintText: hintText,
-          hintStyle: TextStyle(color: secondaryTextColor, fontSize: 14),
+          hintStyle: TextStyle(color: secondaryTextColor, fontSize: 12.sp),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 25,
-            vertical: 18,
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: 22.w,
+            vertical: 16.h,
           ),
           prefixIcon: prefixIcon != null
               ? Padding(
-                  padding: const EdgeInsets.only(right: 10),
+                  padding: EdgeInsets.only(right: 9.w),
                   child: IconButton(
                     onPressed: onPrefixTap,
                     icon: Icon(prefixIcon),
-                    iconSize: 24,
+                    iconSize: 21.sp,
                     color: textColor,
                   ),
                 )
               : null,
           suffixIcon: suffixIcon != null
               ? Padding(
-                  padding: const EdgeInsets.only(right: 10),
+                  padding: EdgeInsets.only(right: 9.w),
                   child: IconButton(
                     onPressed: onSuffixTap,
                     icon: Icon(suffixIcon),

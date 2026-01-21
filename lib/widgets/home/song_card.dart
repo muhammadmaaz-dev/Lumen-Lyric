@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:musicapp/models/song_model.dart';
 
 class SongCard extends StatelessWidget {
@@ -12,33 +13,33 @@ class SongCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 160,
-        decoration: BoxDecoration(borderRadius: BorderRadius.circular(20)),
+        width: 140.w,
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(18.r)),
         child: Stack(
           children: [
             // Song Image
             ClipRRect(
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(18.r),
               child: Image.network(
                 song.imageUrl,
-                width: 160,
-                height: 200,
+                width: 140.w,
+                height: 176.h,
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
                   return Container(
-                    width: 160,
-                    height: 200,
+                    width: 140.w,
+                    height: 176.h,
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: BorderRadius.circular(18.r),
                       gradient: LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                         colors: [Colors.teal.shade300, Colors.purple.shade300],
                       ),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.music_note,
-                      size: 50,
+                      size: 44.sp,
                       color: Colors.white,
                     ),
                   );
@@ -52,11 +53,11 @@ class SongCard extends StatelessWidget {
               left: 0,
               right: 0,
               child: Container(
-                height: 80,
+                height: 70.h,
                 decoration: BoxDecoration(
-                  borderRadius: const BorderRadius.only(
-                    bottomLeft: Radius.circular(20),
-                    bottomRight: Radius.circular(20),
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(18.r),
+                    bottomRight: Radius.circular(18.r),
                   ),
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
@@ -69,27 +70,27 @@ class SongCard extends StatelessWidget {
 
             // Song Info
             Positioned(
-              bottom: 16,
-              left: 12,
-              right: 12,
+              bottom: 14.h,
+              left: 11.w,
+              right: 11.w,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     song.title,
-                    style: const TextStyle(
-                      fontSize: 15,
+                    style: TextStyle(
+                      fontSize: 13.sp,
                       fontWeight: FontWeight.w600,
                       color: Colors.white,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 2),
+                  SizedBox(height: 2.h),
                   Text(
                     song.genre,
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: 11.sp,
                       color: Colors.white.withOpacity(0.8),
                     ),
                   ),

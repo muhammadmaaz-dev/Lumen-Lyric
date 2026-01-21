@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 // Data Model - Ready for backend integration
 class SearchResultModel {
@@ -131,13 +132,13 @@ class _SearchScreenState extends State<SearchScreen> {
           children: [
             // Search Bar Header
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
               decoration: BoxDecoration(
                 color: backgroundColor,
                 border: Border(
                   bottom: BorderSide(
                     color: borderColor ?? Colors.grey,
-                    width: 0.5,
+                    width: 0.5.h,
                   ),
                 ),
               ),
@@ -146,21 +147,25 @@ class _SearchScreenState extends State<SearchScreen> {
                   // Back Button
                   GestureDetector(
                     onTap: () => Navigator.pop(context),
-                    child: Icon(Icons.arrow_back, color: textColor, size: 24),
+                    child: Icon(
+                      Icons.arrow_back,
+                      color: textColor,
+                      size: 21.sp,
+                    ),
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 11.w),
 
                   // Search Input
                   Expanded(
                     child: TextField(
                       controller: _searchController,
                       autofocus: true,
-                      style: TextStyle(color: textColor, fontSize: 16),
+                      style: TextStyle(color: textColor, fontSize: 14.sp),
                       decoration: InputDecoration(
                         hintText: 'Search Music...',
                         hintStyle: TextStyle(
                           color: secondaryTextColor,
-                          fontSize: 16,
+                          fontSize: 14.sp,
                         ),
                         border: InputBorder.none,
                         isDense: true,
@@ -177,7 +182,7 @@ class _SearchScreenState extends State<SearchScreen> {
                       child: Icon(
                         Icons.close,
                         color: secondaryTextColor,
-                        size: 20,
+                        size: 18.sp,
                       ),
                     ),
                 ],
@@ -194,12 +199,12 @@ class _SearchScreenState extends State<SearchScreen> {
                         'No results found',
                         style: TextStyle(
                           color: secondaryTextColor,
-                          fontSize: 16,
+                          fontSize: 14.sp,
                         ),
                       ),
                     )
                   : ListView.builder(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      padding: EdgeInsets.symmetric(vertical: 7.h),
                       itemCount: _searchResults.length,
                       itemBuilder: (context, index) {
                         final result = _searchResults[index];
@@ -228,12 +233,12 @@ class _SearchScreenState extends State<SearchScreen> {
         print('Tapped on: ${result.title}');
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
         child: Row(
           children: [
             // History/Clock Icon
-            Icon(Icons.history, color: secondaryTextColor, size: 22),
-            const SizedBox(width: 16),
+            Icon(Icons.history, color: secondaryTextColor, size: 19.sp),
+            SizedBox(width: 14.w),
 
             // Song Title
             Expanded(
@@ -241,7 +246,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 result.title,
                 style: TextStyle(
                   color: textColor,
-                  fontSize: 16,
+                  fontSize: 14.sp,
                   fontWeight: FontWeight.w400,
                 ),
               ),
@@ -250,9 +255,9 @@ class _SearchScreenState extends State<SearchScreen> {
             // Remove Button
             GestureDetector(
               onTap: () => _removeSearchItem(result.id),
-              child: Icon(Icons.close, color: secondaryTextColor, size: 20),
+              child: Icon(Icons.close, color: secondaryTextColor, size: 18.sp),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: 11.w),
 
             // Arrow/Navigate Icon
             GestureDetector(
@@ -263,7 +268,7 @@ class _SearchScreenState extends State<SearchScreen> {
               child: Icon(
                 Icons.north_east,
                 color: secondaryTextColor,
-                size: 20,
+                size: 18.sp,
               ),
             ),
           ],

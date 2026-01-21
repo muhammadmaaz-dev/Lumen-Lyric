@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class SectionHeader extends StatelessWidget {
   final String title;
@@ -22,7 +23,8 @@ class SectionHeader extends StatelessWidget {
         Text(
           title,
           style: TextStyle(
-            fontSize: 18, // Adjusted to match MusicScreen, HomeScreen uses 22
+            fontSize:
+                16.sp, // Adjusted to match MusicScreen, HomeScreen uses 22
             fontWeight: FontWeight.bold,
             color: textColor,
           ),
@@ -32,7 +34,7 @@ class SectionHeader extends StatelessWidget {
             onPressed: onActionTap,
             child: Text(
               actionText!,
-              style: TextStyle(fontSize: 16, color: textColor),
+              style: TextStyle(fontSize: 14.sp, color: textColor),
             ),
           ),
       ],
