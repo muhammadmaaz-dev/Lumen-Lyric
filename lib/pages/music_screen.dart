@@ -43,7 +43,7 @@ class _MusicScreenState extends State<MusicScreen> {
           SliverToBoxAdapter(
             child: SafeArea(
               child: Padding(
-                padding: EdgeInsets.all(18.r),
+                padding: EdgeInsets.all(14.r),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [

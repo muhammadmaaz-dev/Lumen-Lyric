@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:musicapp/pages/main_navigation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:musicapp/core/configs/theme/app_theme.dart';
-import 'package:musicapp/pages/login_screen.dart';
+import 'package:musicapp/pages/onboarding/onboarding_wrapper.dart';
 import 'package:musicapp/provider/theme_provider.dart';
 
 void main() async {
@@ -67,7 +66,7 @@ class _MyAppState extends ConsumerState<MyApp> {
           home: child,
         );
       },
-      child: const MainNavigation(),
+      child: const OnboardingWrapper(),
     );
   }
 }

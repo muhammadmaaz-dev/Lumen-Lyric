@@ -43,6 +43,8 @@ flutter:
     - assets/images/loginbg.png
     - assets/icon/google.png
     - assets/images/demoimage.png
+    - assets/logo/lines.png
+    - assets/logo/logo.png
 
   fonts:
     - family: Metropolis
