@@ -23,8 +23,8 @@ class WelcomeScreen extends StatelessWidget {
               Text(
                 'Lumen Lyric',
                 style: TextStyle(
-                  fontSize: 36.sp,
-                  fontWeight: FontWeight.bold,
+                  fontSize: 38.sp,
+                  fontWeight: FontWeight.w900,
                   color: Colors.white,
                   letterSpacing: 1.2,
                 ),
@@ -32,7 +32,7 @@ class WelcomeScreen extends StatelessWidget {
               SizedBox(height: 16.h),
               // Tagline
               Text(
-                'Your Music. Your Space.',
+                'Your Music. Your Space',
                 style: TextStyle(
                   fontSize: 18.sp,
                   fontWeight: FontWeight.w500,
@@ -42,7 +42,7 @@ class WelcomeScreen extends StatelessWidget {
               SizedBox(height: 8.h),
               // Subtitle
               Text(
-                'Listen without noise. Just sound.',
+                'Listen without noise. Just sound',
                 style: TextStyle(fontSize: 14.sp, color: Colors.grey[500]),
               ),
               const Spacer(flex: 3),
@@ -59,8 +59,8 @@ class WelcomeScreen extends StatelessWidget {
   Widget _buildLogo() {
     return Image.asset(
       'assets/logo/logo.png',
-      width: 140.w,
-      height: 140.w,
+      width: 150.w,
+      height: 150.w,
       fit: BoxFit.contain,
     );
   }

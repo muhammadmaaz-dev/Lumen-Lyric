@@ -5,7 +5,7 @@ import 'package:musicapp/controller/audio_controller.dart';
 
 import 'package:musicapp/models/local_song_model.dart';
 
-import 'package:musicapp/widgets/bottom_bar.dart' show SongOptionsWidget;
+import 'package:musicapp/widgets/bottom_sheet_lib.dart' show SongOptionsWidget;
 
 import 'package:musicapp/widgets/custom_text_field.dart';
 
@@ -135,78 +135,87 @@ class _LibraryScreenState extends State<LibraryScreen> {
               ),
 
               // Songs List - Now properly placed as a direct sliver child
-              ValueListenableBuilder(
-                valueListenable: AudioController.instance.songs,
-                builder: (context, allSongs, _) {
-                  final displaySongs = _getFilteredSongs(allSongs);
+              // ... existing imports
 
-                  // Empty state
-                  if (displaySongs.isEmpty) {
-                    return SliverToBoxAdapter(
-                      child: Container(
-                        height: 200,
-                        alignment: Alignment.center,
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              _searchQuery.isNotEmpty
-                                  ? Icons.search_off
-                                  : Icons.music_off,
-                              size: 48,
-                              color: isDarkTheme
-                                  ? Colors.grey[600]
-                                  : Colors.grey[400],
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
+              // Songs List
+              // ✅ 1. Listen to Current Index changes (so highlights update)
+              ValueListenableBuilder<int>(
+                valueListenable: AudioController.instance.currentIndex,
+                builder: (context, currentIndex, _) {
+                  return ValueListenableBuilder<List<LocalSongModel>>(
+                    valueListenable: AudioController.instance.songs,
+                    builder: (context, allSongs, _) {
+                      final displaySongs = _getFilteredSongs(allSongs);
+
+                      // Empty state
+                      if (displaySongs.isEmpty) {
+                        return SliverToBoxAdapter(
+                          child: Container(
+                            height: 200,
+                            alignment: Alignment.center,
+                            child: Text(
                               _searchQuery.isNotEmpty
                                   ? 'No results for "$_searchQuery"'
-                                  : "No $allSongs Songs Found",
+                                  : "No Songs Found",
                               style: TextStyle(color: textColor),
                             ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }
-
-                  // Songs list
-                  return SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate((context, index) {
-                        final song = displaySongs[index];
-
-                        return SongTile(
-                          title: song.title,
-                          artist: song.artist,
-                          duration: song.duration,
-                          songId: song.id,
-                          onTap: () {
-                            final originalIndex = allSongs.indexOf(song);
-                            AudioController.instance.playSong(originalIndex);
-                          },
-                          onMenuTap: () {
-                            showModalBottomSheet(
-                              context: context,
-                              isScrollControlled: true,
-                              backgroundColor: Colors.transparent,
-                              builder: (context) => SongOptionsWidget(
-                                songId: song.id,
-                                title: song.title,
-                                artist: song.artist,
-                                filePath: song.uri,
-                              ),
-                            );
-                          },
-                          isDarkTheme: isDarkTheme,
+                          ),
                         );
-                      }, childCount: displaySongs.length),
-                    ),
+                      }
+
+                      // Songs list
+                      return SliverPadding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        sliver: SliverList(
+                          delegate: SliverChildBuilderDelegate((
+                            context,
+                            index,
+                          ) {
+                            final song = displaySongs[index];
+
+                            // ✅ 2. Check if this song is the one playing
+                            final isPlaying =
+                                song.id ==
+                                AudioController.instance.currentsong?.id;
+
+                            return SongTile(
+                              key: ValueKey(song.id),
+                              title: song.title,
+                              artist: song.artist,
+                              duration: song.duration,
+                              songId: song.id,
+                              isDarkTheme: isDarkTheme,
+                              // ✅ 3. Pass the playing status
+                              isPlaying: isPlaying,
+                              onTap: () {
+                                final originalIndex = allSongs.indexOf(song);
+                                AudioController.instance.playSong(
+                                  originalIndex,
+                                );
+                              },
+                              onMenuTap: () {
+                                showModalBottomSheet(
+                                  context: context,
+                                  isScrollControlled: true,
+                                  backgroundColor: Colors.transparent,
+                                  builder: (context) => SongOptionsWidget(
+                                    songId: song.id,
+                                    title: song.title,
+                                    artist: song.artist,
+                                    filePath: song.uri,
+                                  ),
+                                );
+                              },
+                            );
+                          }, childCount: displaySongs.length),
+                        ),
+                      );
+                    },
                   );
                 },
               ),
+
+              // ... Rest of your code (SizedBox etc)
 
               // Extra space at bottom for MiniPlayer
               SliverToBoxAdapter(child: SizedBox(height: 80)),

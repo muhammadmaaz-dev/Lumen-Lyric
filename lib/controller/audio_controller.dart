@@ -33,9 +33,6 @@ class AudioController {
     "No Lyrics",
   );
 
-  // ----------------------------------------------------------------------
-  // NEW: Flag to prevent double permission requests
-  // ----------------------------------------------------------------------
   bool _isFetching = false;
 
   LocalSongModel? get currentsong {
@@ -74,28 +71,21 @@ class AudioController {
   }
 
   // **********************************************************************
-  // LOAD SONGS (FIXED WITH GUARD)
+  // LOAD SONGS (Updated: Filters out Blacklisted IDs)
   // **********************************************************************
   Future<void> loadSongs() async {
-    // 1. GUARD: If already fetching OR songs are already loaded, return immediately.
-    // This prevents the "Request already running" crash.
     if (_isFetching || songs.value.isNotEmpty) return;
-
-    // 2. LOCK: Set flag to true so other calls get rejected
     _isFetching = true;
 
     try {
       // --- PERMISSION LOGIC ---
       bool permissionGranted = false;
-
-      // Check permissions explicitly first to avoid unnecessary requests
       var statusAudio = await Permission.audio.status;
       var statusStorage = await Permission.storage.status;
 
       if (statusAudio.isGranted || statusStorage.isGranted) {
         permissionGranted = true;
       } else {
-        // Only request if NOT already granted
         Map<Permission, PermissionStatus> statuses = await [
           Permission.storage,
           Permission.audio,
@@ -110,7 +100,6 @@ class AudioController {
       if (!permissionGranted) {
         debugPrint("Permission not granted");
         return;
-        // Note: We return here, but 'finally' block below will still run to unlock _isFetching
       }
 
       // --- QUERY LOGIC ---
@@ -121,27 +110,34 @@ class AudioController {
         ignoreCase: true,
       );
 
-      songs.value = fetchSongs.map((s) {
-        bool isFromMyApp = s.data.contains("MyMusicApp");
-        String songUri = s.uri ?? s.data;
+      // ✅ 1. Load Blacklist (Deleted Songs) from Prefs
+      final prefs = await SharedPreferences.getInstance();
+      final blockedIds = prefs.getStringList('blocked_song_ids') ?? [];
 
-        return LocalSongModel(
-          id: s.id,
-          artist: s.artist ?? "Unknown Artist",
-          title: s.title,
-          uri: songUri,
-          albumArt: s.album ?? "",
-          duration: s.duration ?? 0,
-          isDownloaded: isFromMyApp,
-          isLiked: false,
-        );
-      }).toList();
+      // ✅ 2. Filter List: Exclude any song inside blockedIds
+      songs.value = fetchSongs
+          .where((s) => !blockedIds.contains(s.id.toString()))
+          .map((s) {
+            bool isFromMyApp = s.data.contains("MyMusicApp");
+            String songUri = s.uri ?? s.data;
+
+            return LocalSongModel(
+              id: s.id,
+              artist: s.artist ?? "Unknown Artist",
+              title: s.title,
+              uri: songUri,
+              albumArt: s.album ?? "",
+              duration: s.duration ?? 0,
+              isDownloaded: isFromMyApp,
+              isLiked: false,
+            );
+          })
+          .toList();
 
       await _restoreLikes();
     } catch (e) {
       debugPrint("Error loading songs: $e");
     } finally {
-      // 3. UNLOCK: Always reset flag to false, even if error occurs
       _isFetching = false;
     }
   }
@@ -155,8 +151,6 @@ class AudioController {
     }
     return Uri.parse(uri);
   }
-
-  // ... (Rest of your methods: toggleLike, playSong, etc. remain the same)
 
   Future<void> toggleLike(int songId) async {
     final currentList = songs.value;
@@ -335,6 +329,9 @@ class AudioController {
     }
   }
 
+  // **********************************************************************
+  // DELETE SONG (Updated: Adds to Blacklist)
+  // **********************************************************************
   Future<void> deleteSong(int songId, String filePath) async {
     bool deleted = false;
     try {
@@ -349,17 +346,32 @@ class AudioController {
       }
     } catch (e) {
       print("Error deleting song: $e");
-      if (e.toString().contains("PathNotFoundException") ||
-          e.toString().contains("No such file")) {
-        deleted = true;
-      }
+      // Even if file deletion fails (common on Android 11+ for non-owned files),
+      // we mark it as deleted so we can hide it from the UI.
+      deleted = true;
     }
+
     if (deleted) {
+      // ✅ 1. Add ID to Blacklist in SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      List<String> blockedIds = prefs.getStringList('blocked_song_ids') ?? [];
+
+      if (!blockedIds.contains(songId.toString())) {
+        blockedIds.add(songId.toString());
+        await prefs.setStringList('blocked_song_ids', blockedIds);
+      }
+
+      // ✅ 2. Remove from Memory List (UI Update)
       songs.value = songs.value.where((song) => song.id != songId).toList();
+
+      // ✅ 3. Stop player if that specific song was playing
       if (currentsong?.id == songId) {
         audioPlayer.stop();
         currentIndex.value = -1;
+        isPlaying.value = false;
+        clearQueue();
       }
+
       _saveLikesToPrefs();
     }
   }

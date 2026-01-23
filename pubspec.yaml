@@ -45,6 +45,8 @@ flutter:
     - assets/images/demoimage.png
     - assets/logo/lines.png
     - assets/logo/logo.png
+    - assets/animation/Astornaut-Music.json
+    - assets/animation/Astornaut-White.json
 
   fonts:
     - family: Metropolis

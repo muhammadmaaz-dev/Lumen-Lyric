@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -10,12 +11,28 @@ import 'package:musicapp/provider/theme_provider.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Load SharedPreferences ONCE
+  // ✅ 2. Lock Orientation to Portrait
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
+
+  // Load SharedPreferences
   final prefs = await SharedPreferences.getInstance();
+
+  // Get the saved theme immediately (Sync)
+  final savedThemeString = prefs.getString('theme_mode');
+  final initialTheme = ThemeMode.values.firstWhere(
+    (e) => e.toString() == savedThemeString,
+    orElse: () => ThemeMode.light,
+  );
 
   runApp(
     ProviderScope(
-      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        themeModeProvider.overrideWith((ref) => initialTheme),
+      ],
       child: const MyApp(),
     ),
   );
@@ -29,23 +46,8 @@ class MyApp extends ConsumerStatefulWidget {
 }
 
 class _MyAppState extends ConsumerState<MyApp> {
-  @override
-  void initState() {
-    super.initState();
-
-    // ✅ Delay provider update until AFTER first build
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final prefs = ref.read(sharedPreferencesProvider);
-      final themeString = prefs.getString('theme_mode');
-
-      final theme = ThemeMode.values.firstWhere(
-        (e) => e.toString() == themeString,
-        orElse: () => ThemeMode.light,
-      );
-
-      ref.read(themeModeProvider.notifier).state = theme;
-    });
-  }
+  // ❌ REMOVED: No need for initState or addPostFrameCallback anymore.
+  // The theme is now loaded before the app starts.
 
   @override
   Widget build(BuildContext context) {
@@ -62,6 +64,7 @@ class _MyAppState extends ConsumerState<MyApp> {
           theme: AppTheme.lighttheme,
           darkTheme: AppTheme.darktheme,
           themeMode: themeMode,
+          // Keep this zero if you want instant switching
           themeAnimationDuration: Duration.zero,
           home: child,
         );

@@ -8,12 +8,17 @@ import 'package:flutter/cupertino.dart';
 import 'package:musicapp/utils/slide_route.dart';
 import 'package:musicapp/widgets/setting_tile.dart';
 
-class SettingScreen extends StatelessWidget {
+// 1. Changed to ConsumerWidget to access providers
+class SettingScreen extends ConsumerWidget {
   const SettingScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    // Use Theme.of(context) instead of watching provider
+  Widget build(BuildContext context, WidgetRef ref) {
+    // 2. Fetch the SharedPreferences instance
+    final prefs = ref.watch(sharedPreferencesProvider);
+    // 3. Get the name saved during onboarding (Key: 'user_name')
+    final userName = prefs.getString('user_name') ?? 'Guest';
+
     final isDarkTheme = Theme.of(context).brightness == Brightness.dark;
 
     final backgroundColor = isDarkTheme
@@ -84,8 +89,9 @@ class SettingScreen extends StatelessWidget {
                               ),
                             ),
                             SizedBox(height: 14.h),
+                            // 4. Use the variable 'userName' here
                             Text(
-                              'Muhammad Maaz',
+                              userName,
                               style: TextStyle(
                                 fontSize: 21.sp,
                                 fontWeight: FontWeight.bold,
@@ -93,13 +99,6 @@ class SettingScreen extends StatelessWidget {
                               ),
                             ),
                             SizedBox(height: 4.h),
-                            Text(
-                              'muhammad.maaz@gmail.com',
-                              style: TextStyle(
-                                fontSize: 12.sp,
-                                color: secondaryTextColor,
-                              ),
-                            ),
                           ],
                         ),
                       ),
@@ -181,7 +180,7 @@ class SettingScreen extends StatelessWidget {
                                   context,
                                   SlideRightToLeftRoute(
                                     page: const PlaylistsScreen(),
-                                  ), // Apni screen ka naam yahan likhein
+                                  ),
                                 );
                               },
                               isDarkTheme: isDarkTheme,
@@ -332,7 +331,7 @@ class SettingScreen extends StatelessWidget {
   }
 }
 
-// ISOLATED CONSUMER - Only this widget rebuilds on theme toggle
+// _DarkModeToggle remains unchanged
 class _DarkModeToggle extends ConsumerStatefulWidget {
   final bool isDarkTheme;
 
@@ -361,19 +360,14 @@ class _DarkModeToggleState extends ConsumerState<_DarkModeToggle> {
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('🔄 DarkModeToggle rebuilt');
-
     return Switch(
       value: _localValue,
-      onChanged: (value) {
-        // 1️⃣ Update UI instantly (smooth animation)
+      onChanged: (value) async {
         setState(() => _localValue = value);
-
-        // 2️⃣ Update global theme AFTER
+        await Future.delayed(const Duration(milliseconds: 150));
+        if (!mounted) return;
         final notifier = ref.read(themeModeProvider.notifier);
         notifier.state = value ? ThemeMode.dark : ThemeMode.light;
-
-        // 3️⃣ Persist (async, non-blocking)
         saveThemeToPrefs(ref, notifier.state);
       },
     );

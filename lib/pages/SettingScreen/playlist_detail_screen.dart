@@ -162,6 +162,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
 
     return Scaffold(
       backgroundColor: backgroundColor,
+
       body: Stack(
         children: [
           CustomScrollView(
@@ -326,12 +327,25 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                   sliver: SliverList(
                     delegate: SliverChildBuilderDelegate((context, index) {
                       final song = playlistSongs[index];
-                      return _buildSongTile(
-                        song: song,
-                        isDarkTheme: isDarkTheme,
-                        textColor: textColor,
-                        onTap: () => _playSong(song, playlistSongs),
-                        onRemove: () => _removeSong(song.id),
+
+                      // ✅ 1. Wrap in ValueListenableBuilder to listen for song changes
+                      return ValueListenableBuilder<int>(
+                        valueListenable: controller.currentIndex,
+                        builder: (context, currentIndex, _) {
+                          // ✅ 2. Calculate if this specific song is playing
+                          final isPlaying =
+                              song.id == controller.currentsong?.id;
+
+                          return _buildSongTile(
+                            // ✅ 3. Pass the true status
+                            isPlaying: isPlaying,
+                            song: song,
+                            isDarkTheme: isDarkTheme,
+                            textColor: textColor,
+                            onTap: () => _playSong(song, playlistSongs),
+                            onRemove: () => _removeSong(song.id),
+                          );
+                        },
                       );
                     }, childCount: playlistSongs.length),
                   ),
@@ -571,8 +585,12 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
     required Color textColor,
     required VoidCallback onTap,
     required VoidCallback onRemove,
+    required bool isPlaying,
   }) {
     final secondaryTextColor = isDarkTheme ? Colors.grey[400] : Colors.grey;
+    final titleColor = isPlaying
+        ? const Color(0xFF8E97FD) // Highlight Color
+        : (isDarkTheme ? Colors.white : Colors.black);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -600,7 +618,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                     type: ArtworkType.AUDIO,
                     nullArtworkWidget: Icon(
                       Icons.music_note,
-                      color: secondaryTextColor,
+                      color: titleColor,
                       size: 24,
                     ),
                   ),
@@ -619,7 +637,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: textColor,
+                        color: titleColor,
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
                       ),
@@ -629,7 +647,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                       '${song.artist} • ${_formatDuration(song.duration)}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: secondaryTextColor, fontSize: 12),
+                      style: TextStyle(color: titleColor, fontSize: 12),
                     ),
                   ],
                 ),

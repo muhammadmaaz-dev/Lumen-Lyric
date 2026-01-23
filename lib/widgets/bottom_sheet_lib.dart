@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:musicapp/controller/audio_controller.dart'; // Controller Import
-import 'package:musicapp/models/local_song_model.dart'; // Model Import
+import 'package:musicapp/controller/audio_controller.dart';
+import 'package:musicapp/models/local_song_model.dart';
+import 'package:musicapp/widgets/playlist_dialog.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // ✅ Required for saving
 
 class SongOptionsWidget extends ConsumerWidget {
   final int songId;
@@ -18,14 +20,92 @@ class SongOptionsWidget extends ConsumerWidget {
     required this.filePath,
   });
 
+  // ✅ Function to show Rename Dialog
+  void _showRenameDialog(BuildContext context) {
+    final TextEditingController textController = TextEditingController(
+      text: title,
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF1E1E1E),
+          title: const Text(
+            "Rename Song",
+            style: TextStyle(color: Colors.white),
+          ),
+          content: TextField(
+            controller: textController,
+            style: const TextStyle(color: Colors.white),
+            decoration: const InputDecoration(
+              hintText: "Enter new title",
+              hintStyle: TextStyle(color: Colors.grey),
+              enabledBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: Colors.grey),
+              ),
+              focusedBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: Colors.blue),
+              ),
+            ),
+            autofocus: true,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancel"),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final newName = textController.text.trim();
+                if (newName.isNotEmpty) {
+                  // 1. Save to SharedPreferences (Permanent)
+                  final prefs = await SharedPreferences.getInstance();
+                  await prefs.setString('custom_title_$songId', newName);
+
+                  // 2. Update AudioController List (Instant UI Update)
+                  final currentList = AudioController.instance.songs.value;
+                  final index = currentList.indexWhere((s) => s.id == songId);
+
+                  if (index != -1) {
+                    final oldSong = currentList[index];
+                    // Create new song object with updated title
+                    final updatedSong = LocalSongModel(
+                      id: oldSong.id,
+                      title: newName, // <--- New Title
+                      artist: oldSong.artist,
+                      uri: oldSong.uri,
+                      albumArt: oldSong.albumArt,
+                      duration: oldSong.duration,
+                      isLiked: oldSong.isLiked,
+                    );
+
+                    // Update list and notify listeners
+                    final newList = List<LocalSongModel>.from(currentList);
+                    newList[index] = updatedSong;
+                    AudioController.instance.songs.value = newList;
+                  }
+
+                  // 3. Close Dialog and BottomSheet
+                  if (context.mounted) {
+                    Navigator.pop(context); // Close Dialog
+                    Navigator.pop(context); // Close BottomSheet
+                  }
+                }
+              },
+              child: const Text("Save"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Hum AudioController ko sunenge taake status update ho sake
     return ValueListenableBuilder<List<LocalSongModel>>(
       valueListenable: AudioController.instance.songs,
       builder: (context, songs, child) {
-        // Current Song ko list mein dhundo
-        // (Taake hamein latest isLiked status mile)
         final song = songs.firstWhere(
           (element) => element.id == songId,
           orElse: () => LocalSongModel(
@@ -35,7 +115,7 @@ class SongOptionsWidget extends ConsumerWidget {
             uri: filePath,
             albumArt: '',
             duration: 0,
-            isLiked: false, // Default
+            isLiked: false,
           ),
         );
 
@@ -83,7 +163,7 @@ class SongOptionsWidget extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          title,
+                          song.title, // Use live title from controller
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 16.sp,
@@ -105,11 +185,8 @@ class SongOptionsWidget extends ConsumerWidget {
                       ],
                     ),
                   ),
-
-                  // --- LIKE BUTTON (Connected to Controller) ---
                   IconButton(
                     onPressed: () {
-                      // Controller ko bolo Like toggle kare
                       AudioController.instance.toggleLike(songId);
                     },
                     icon: Icon(
@@ -128,22 +205,27 @@ class SongOptionsWidget extends ConsumerWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  _buildActionBox(Icons.edit, "Edit"),
+                  // ✅ Pass the onEdit function here
+                  _buildActionBox(
+                    Icons.edit,
+                    "Edit",
+                    onTap: () => _showRenameDialog(context),
+                  ),
                   SizedBox(width: 9.w),
-                  _buildActionBox(Icons.playlist_add, "Add to playlist"),
+                  _buildActionBox(
+                    Icons.playlist_add,
+                    "Add to playlist",
+                    onTap: () {
+                      Navigator.pop(context);
+                      PlaylistSelectorDialog.show(context, songId);
+                    }, // Add logic later
+                  ),
                 ],
               ),
 
               SizedBox(height: 18.h),
               const Divider(color: Colors.white12, thickness: 1),
 
-              // 4. List Options
-              _buildListTile(
-                Icons.library_add_check_outlined,
-                "Add to library",
-              ),
-
-              // --- DELETE OPTION (Connected to Controller) ---
               _buildListTile(
                 Icons.offline_pin_outlined,
                 "Remove download",
@@ -169,16 +251,11 @@ class SongOptionsWidget extends ConsumerWidget {
                         ),
                         TextButton(
                           onPressed: () {
-                            // 1. Controller se delete function call
                             AudioController.instance.deleteSong(
                               songId,
                               filePath,
                             );
-
-                            // 2. Dialog Band
                             Navigator.pop(context);
-
-                            // 3. Bottom Sheet Band
                             Navigator.pop(context);
                           },
                           child: const Text(
@@ -200,26 +277,32 @@ class SongOptionsWidget extends ConsumerWidget {
     );
   }
 
-  // --- Helpers ---
-
-  Widget _buildActionBox(IconData icon, String label) {
+  // ✅ Updated Helper: Added onTap
+  Widget _buildActionBox(
+    IconData icon,
+    String label, {
+    required VoidCallback onTap,
+  }) {
     return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(
-          color: const Color(0xFF303030),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: Colors.white, size: 26),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              style: const TextStyle(color: Colors.white, fontSize: 12),
-              textAlign: TextAlign.center,
-            ),
-          ],
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          decoration: BoxDecoration(
+            color: const Color(0xFF303030),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            children: [
+              Icon(icon, color: Colors.white, size: 26),
+              const SizedBox(height: 8),
+              Text(
+                label,
+                style: const TextStyle(color: Colors.white, fontSize: 12),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:musicapp/pages/main_navigation.dart';
+import 'package:musicapp/pages/onboarding/name_input_screen.dart';
+import 'package:musicapp/utils/slide_route.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class OnboardingPages extends StatefulWidget {
@@ -63,7 +65,7 @@ class _OnboardingPagesState extends State<OnboardingPages> {
     if (mounted) {
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (context) => const MainNavigation()),
+        SlideRightToLeftRoute(page: const MainNavigation()),
         (route) => false,
       );
     }
@@ -148,7 +150,7 @@ class _OnboardingPagesState extends State<OnboardingPages> {
   Widget _buildSoundWaveIllustration() {
     return Image.asset(
       'assets/logo/lines.png',
-      height: 120.h,
+      height: 200.h,
       width: double.infinity,
       fit: BoxFit.contain,
     );

@@ -4,7 +4,7 @@ import 'package:miniplayer/miniplayer.dart';
 import 'package:musicapp/controller/audio_controller.dart';
 import 'package:musicapp/models/local_song_model.dart';
 import 'package:musicapp/pages/full_player.dart';
-import 'package:musicapp/widgets/bottom_bar.dart' show SongOptionsWidget;
+import 'package:musicapp/widgets/bottom_sheet_lib.dart' show SongOptionsWidget;
 import 'package:musicapp/widgets/custom_text_field.dart';
 import 'package:musicapp/widgets/song_tile.dart';
 import 'package:on_audio_query/on_audio_query.dart';
@@ -66,6 +66,7 @@ class _LikedSongsScreenState extends State<LikedSongsScreen> {
 
     return Scaffold(
       backgroundColor: backgroundColor,
+
       body: Stack(
         children: [
           Column(
@@ -146,45 +147,67 @@ class _LikedSongsScreenState extends State<LikedSongsScreen> {
                           ),
                         ),
 
-                        // Songs List
-                        SliverPadding(
-                          padding: EdgeInsets.symmetric(horizontal: 15.w),
-                          sliver: SliverList(
-                            delegate: SliverChildBuilderDelegate((
-                              context,
-                              index,
-                            ) {
-                              final song = likedSongs[index];
+                        ValueListenableBuilder<int>(
+                          valueListenable:
+                              AudioController.instance.currentIndex,
+                          builder: (context, currentIndex, _) {
+                            return ValueListenableBuilder<List<LocalSongModel>>(
+                              valueListenable: AudioController.instance.songs,
+                              builder: (context, allSongs, _) {
+                                return // Songs List
+                                SliverPadding(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 15.w,
+                                  ),
+                                  sliver: SliverList(
+                                    delegate: SliverChildBuilderDelegate((
+                                      context,
+                                      index,
+                                    ) {
+                                      final song = likedSongs[index];
+                                      final isPlaying =
+                                          song.id ==
+                                          AudioController
+                                              .instance
+                                              .currentsong
+                                              ?.id;
 
-                              return SongTile(
-                                title: song.title,
-                                artist: song.artist,
-                                duration: song.duration,
-                                songId: song.id,
-                                onTap: () {
-                                  // Play from liked songs queue only
-                                  controller.playFromPlaylist(
-                                    likedSongs,
-                                    index,
-                                  );
-                                },
-                                onMenuTap: () {
-                                  showModalBottomSheet(
-                                    context: context,
-                                    isScrollControlled: true,
-                                    backgroundColor: Colors.transparent,
-                                    builder: (context) => SongOptionsWidget(
-                                      songId: song.id,
-                                      title: song.title,
-                                      artist: song.artist,
-                                      filePath: song.uri,
-                                    ),
-                                  );
-                                },
-                                isDarkTheme: isDarkTheme,
-                              );
-                            }, childCount: likedSongs.length),
-                          ),
+                                      return SongTile(
+                                        key: ValueKey(song.id),
+                                        title: song.title,
+                                        artist: song.artist,
+                                        duration: song.duration,
+                                        songId: song.id,
+                                        isPlaying: isPlaying,
+                                        onTap: () {
+                                          // Play from liked songs queue only
+                                          controller.playFromPlaylist(
+                                            likedSongs,
+                                            index,
+                                          );
+                                        },
+                                        onMenuTap: () {
+                                          showModalBottomSheet(
+                                            context: context,
+                                            isScrollControlled: true,
+                                            backgroundColor: Colors.transparent,
+                                            builder: (context) =>
+                                                SongOptionsWidget(
+                                                  songId: song.id,
+                                                  title: song.title,
+                                                  artist: song.artist,
+                                                  filePath: song.uri,
+                                                ),
+                                          );
+                                        },
+                                        isDarkTheme: isDarkTheme,
+                                      );
+                                    }, childCount: likedSongs.length),
+                                  ),
+                                );
+                              },
+                            );
+                          },
                         ),
 
                         // Extra space at bottom for MiniPlayer
@@ -215,6 +238,11 @@ class _LikedSongsScreenState extends State<LikedSongsScreen> {
                   controller.audioPlayer.stop();
                   controller.currentIndex.value = -1;
                   controller.isPlaying.value = false;
+                  // ✅ 1. Clear queue FIRST (Resets flags like _isPlayingFromQueue)
+                  controller.clearQueue();
+
+                  // ✅ 2. Then update index (Triggers UI rebuild with correct state)
+                  controller.currentIndex.value = -1;
                 },
                 builder: (height, percentage) {
                   final song = controller.currentsong;

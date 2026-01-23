@@ -2,29 +2,39 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:lottie/lottie.dart';
 import 'package:miniplayer/miniplayer.dart';
 import 'package:musicapp/controller/audio_controller.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:musicapp/provider/audio_provider.dart';
+import 'package:musicapp/provider/theme_provider.dart'; // ✅ Import this for Prefs
+import 'package:shared_preferences/shared_preferences.dart';
 
-class FullPlayer extends StatefulWidget {
+// 1. Change to ConsumerStatefulWidget
+class FullPlayer extends ConsumerStatefulWidget {
   final MiniplayerController? miniplayerController;
 
   const FullPlayer({super.key, this.miniplayerController});
 
   @override
-  State<FullPlayer> createState() => _FullPlayerState();
+  ConsumerState<FullPlayer> createState() => _FullPlayerState();
 }
 
-class _FullPlayerState extends State<FullPlayer> {
+class _FullPlayerState extends ConsumerState<FullPlayer> {
   final DraggableScrollableController _sheetController =
       DraggableScrollableController();
 
   bool isExpanded = false;
+  late bool _showLottie; // ✅ Removed default value, marked as late
 
   @override
   void initState() {
     super.initState();
+    // 2. Load saved state INSTANTLY (Synchronous)
+    // This prevents the "False -> True" flip that causes the animation loop
+    final prefs = ref.read(sharedPreferencesProvider);
+    _showLottie = prefs.getBool('show_lottie_convert') ?? false;
+
     _sheetController.addListener(() {
       if (_sheetController.size > 0.2 && !isExpanded) {
         setState(() => isExpanded = true);
@@ -58,17 +68,12 @@ class _FullPlayerState extends State<FullPlayer> {
 
   @override
   Widget build(BuildContext context) {
-    // Controller se direct song lene ki bajaye, hum ensure karenge ke
-    // hum sirf zaroori widgets ko rebuild karein.
     final controller = AudioController.instance;
 
-    // ValueListenableBuilder use karein taaki jab song change ho tabhi update ho
     return ValueListenableBuilder<int>(
       valueListenable: controller.currentIndex,
       builder: (context, index, _) {
         final song = controller.currentsong;
-
-        // Agar song null hai to empty box dikhayein
         if (song == null) return const SizedBox();
 
         final isDarkTheme = Theme.of(context).brightness == Brightness.dark;
@@ -92,24 +97,45 @@ class _FullPlayerState extends State<FullPlayer> {
         return Scaffold(
           backgroundColor: backgroundColor,
           appBar: AppBar(
+            automaticallyImplyLeading: false,
             backgroundColor: backgroundColor,
             elevation: 0,
             centerTitle: true,
-            title: Text(
-              'Now Playing',
-              style: TextStyle(
-                color: textColor,
-                fontWeight: FontWeight.bold,
-                fontSize: 22.sp,
-              ),
-            ),
-            leading: IconButton(
-              icon: Icon(
-                Icons.keyboard_arrow_down_rounded,
-                color: iconColor,
-                size: 31.sp,
-              ),
-              onPressed: _minimizePlayer,
+            title: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                IconButton(
+                  icon: Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: iconColor,
+                    size: 31.sp,
+                  ),
+                  onPressed: _minimizePlayer,
+                ),
+                Text(
+                  'Now Playing',
+                  style: TextStyle(
+                    color: textColor,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 22.sp,
+                  ),
+                ),
+                IconButton(
+                  onPressed: () async {
+                    final newValue = !_showLottie;
+                    setState(() {
+                      _showLottie = newValue;
+                    });
+                    final prefs = ref.read(sharedPreferencesProvider);
+                    await prefs.setBool('show_lottie_convert', newValue);
+                  },
+                  icon: Icon(
+                    Icons.change_circle_outlined,
+                    color: textColor,
+                    size: 24.sp,
+                  ),
+                ),
+              ],
             ),
           ),
           body: Stack(
@@ -119,16 +145,55 @@ class _FullPlayerState extends State<FullPlayer> {
                   children: [
                     SizedBox(height: 18.h),
 
-                    // ********** ALBUM ART (ISOLATED) **********
-                    // Humne 'AlbumArtWidget' alag banaya hai aur 'key' pass ki hai.
-                    // Jab tak song.id same rahega, ye rebuild nahi hoga -> NO FLICKER.
+                    // ********** ARTWORK / LOTTIE TOGGLE **********
                     Expanded(
                       flex: 5,
-                      child: AlbumArtWidget(
-                        key: ValueKey(song.id), // YE LINE SABSE ZAROORI HAI
-                        songId: song.id,
-                        isDarkTheme: isDarkTheme,
-                        heartBgColor: heartBgColor,
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 500),
+                        switchInCurve: Curves.easeInOutBack,
+                        switchOutCurve: Curves.easeOut,
+                        transitionBuilder:
+                            (Widget child, Animation<double> animation) {
+                              return ScaleTransition(
+                                scale: animation,
+                                child: FadeTransition(
+                                  opacity: animation,
+                                  child: child,
+                                ),
+                              );
+                            },
+                        child: _showLottie
+                            ? Container(
+                                key: const ValueKey('lottie_view'),
+                                child: Center(
+                                  child: Container(
+                                    width: 300.w,
+                                    height: 300.h,
+                                    padding: EdgeInsets.zero,
+                                    child: ValueListenableBuilder<bool>(
+                                      valueListenable: controller.isPlaying,
+                                      builder: (context, isPlaying, _) {
+                                        return Lottie.asset(
+                                          isDarkTheme
+                                              ? 'assets/animation/Astornaut-White.json'
+                                              : 'assets/animation/Astornaut-Music.json',
+                                          fit: BoxFit.contain,
+                                          animate: isPlaying,
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ),
+                              )
+                            : Container(
+                                key: const ValueKey('artwork_view'),
+                                child: AlbumArtWidget(
+                                  key: ValueKey(song.id),
+                                  songId: song.id,
+                                  isDarkTheme: isDarkTheme,
+                                  heartBgColor: heartBgColor,
+                                ),
+                              ),
                       ),
                     ),
 
@@ -147,14 +212,14 @@ class _FullPlayerState extends State<FullPlayer> {
                               color: textColor,
                             ),
                             textAlign: TextAlign.center,
-                            maxLines: 1,
+                            maxLines: 3,
                             overflow: TextOverflow.ellipsis,
                           ),
                           SizedBox(height: 4.h),
                           Text(
                             song.artist.isEmpty ? "Unknown" : song.artist,
                             style: TextStyle(
-                              fontSize: 11.sp,
+                              fontSize: 15.sp,
                               color: subTextColor,
                             ),
                             textAlign: TextAlign.center,
@@ -188,8 +253,6 @@ class _FullPlayerState extends State<FullPlayer> {
                             onPressed: controller.previousSong,
                           ),
                           SizedBox(width: 22.w),
-
-                          // Play/Pause Button
                           ValueListenableBuilder<bool>(
                             valueListenable: controller.isPlaying,
                             builder: (context, isPlaying, child) {
@@ -215,7 +278,6 @@ class _FullPlayerState extends State<FullPlayer> {
                               );
                             },
                           ),
-
                           SizedBox(width: 26.w),
                           IconButton(
                             icon: const Icon(Icons.skip_next_rounded),
@@ -356,16 +418,14 @@ class _FullPlayerState extends State<FullPlayer> {
   }
 }
 
-// ---------------------------------------------------------------------------
-// 1. ISOLATED ALBUM ART WIDGET (FIX FOR FLICKER)
-// ---------------------------------------------------------------------------
+// ... Keep AlbumArtWidget and PlayerProgressBar as they were
 class AlbumArtWidget extends StatefulWidget {
   final int songId;
   final bool isDarkTheme;
   final Color heartBgColor;
 
   const AlbumArtWidget({
-    Key? key, // Key zaroori hai
+    Key? key,
     required this.songId,
     required this.isDarkTheme,
     required this.heartBgColor,
@@ -391,7 +451,7 @@ class _AlbumArtWidgetState extends State<AlbumArtWidget> {
             width: 264.w,
             height: 264.h,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(26.r),
+              borderRadius: BorderRadius.circular(45.r),
               color: placeholderColor,
               boxShadow: [
                 BoxShadow(
@@ -409,11 +469,10 @@ class _AlbumArtWidgetState extends State<AlbumArtWidget> {
                 artworkHeight: 264.h,
                 artworkWidth: 264.w,
                 artworkFit: BoxFit.cover,
-                // Keep artwork in cache if possible
                 keepOldArtwork: true,
                 nullArtworkWidget: Container(
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(26.r),
+                    borderRadius: BorderRadius.circular(45.r),
                     gradient: const LinearGradient(
                       colors: [Color(0xFF8E97FD), Color(0xFFC2E9FB)],
                       begin: Alignment.topLeft,
@@ -430,7 +489,6 @@ class _AlbumArtWidgetState extends State<AlbumArtWidget> {
             ),
           ),
 
-          // Like Button - Integrated here to stay with image layout
           Positioned(
             bottom: -22.h,
             child: GestureDetector(
@@ -451,7 +509,6 @@ class _AlbumArtWidgetState extends State<AlbumArtWidget> {
                   ],
                 ),
                 child: ValueListenableBuilder<List<dynamic>>(
-                  // Listen to songs list to update heart icon without rebuilding image
                   valueListenable: AudioController.instance.songs,
                   builder: (context, songs, _) {
                     final isLiked = AudioController.instance.songs.value
@@ -477,9 +534,6 @@ class _AlbumArtWidgetState extends State<AlbumArtWidget> {
   }
 }
 
-// ---------------------------------------------------------------------------
-// 2. ISOLATED PROGRESS BAR (FROM PREVIOUS FIX)
-// ---------------------------------------------------------------------------
 class PlayerProgressBar extends ConsumerStatefulWidget {
   const PlayerProgressBar({super.key});
 

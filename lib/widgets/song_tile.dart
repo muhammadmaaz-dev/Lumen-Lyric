@@ -12,6 +12,7 @@ class SongTile extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback? onMenuTap;
   final bool isDarkTheme;
+  final bool isPlaying;
 
   const SongTile({
     super.key,
@@ -23,12 +24,16 @@ class SongTile extends StatelessWidget {
     this.onTap,
     this.onMenuTap,
     required this.isDarkTheme,
+    this.isPlaying = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final textColor = isDarkTheme ? Colors.white : Colors.black;
     final secondaryTextColor = isDarkTheme ? Colors.grey[400] : Colors.grey;
+    final titleColor = isPlaying
+        ? const Color(0xFF8E97FD) // Highlight Color
+        : (isDarkTheme ? Colors.white : Colors.black);
 
     return Padding(
       padding: EdgeInsets.only(bottom: 14.h),
@@ -52,7 +57,9 @@ class SongTile extends StatelessWidget {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(10.r),
-                  child: _buildArtwork(secondaryTextColor),
+                  child: _buildArtwork(
+                    isPlaying ? const Color(0xFF8E97FD) : secondaryTextColor,
+                  ),
                 ),
               ),
               SizedBox(width: 14.w),
@@ -67,7 +74,7 @@ class SongTile extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: textColor,
+                        color: titleColor,
                         fontSize: 14.sp,
                         fontWeight: FontWeight.bold,
                       ),
@@ -78,7 +85,7 @@ class SongTile extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: secondaryTextColor,
+                        color: titleColor,
                         fontSize: 11.sp,
                         fontWeight: FontWeight.w400,
                       ),
@@ -90,10 +97,7 @@ class SongTile extends StatelessWidget {
               // Menu Icon
               IconButton(
                 onPressed: onMenuTap,
-                icon: Icon(
-                  Icons.more_vert,
-                  color: isDarkTheme ? Colors.white : Colors.black,
-                ),
+                icon: Icon(Icons.more_vert, color: titleColor),
               ),
             ],
           ),
@@ -105,6 +109,7 @@ class SongTile extends StatelessWidget {
   Widget _buildArtwork(Color? placeholderColor) {
     if (songId != null) {
       return QueryArtworkWidget(
+        keepOldArtwork: true,
         id: songId!,
         type: ArtworkType.AUDIO,
         nullArtworkWidget: Icon(

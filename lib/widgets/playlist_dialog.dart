@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:musicapp/models/playlist_model.dart';
+import 'package:musicapp/provider/playlist_provider.dart';
 
 /// A reusable dialog for creating and editing playlists.
 ///
@@ -328,6 +331,183 @@ class DeletePlaylistDialog extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ... existing code for PlaylistDialog and DeletePlaylistDialog ...
+
+/// ✅ NEW: Dialog to select an EXISTING playlist only
+class PlaylistSelectorDialog extends ConsumerWidget {
+  final int songId;
+
+  const PlaylistSelectorDialog({super.key, required this.songId});
+
+  static Future<void> show(BuildContext context, int songId) {
+    return showDialog(
+      context: context,
+      builder: (context) => PlaylistSelectorDialog(songId: songId),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final playlists = ref.watch(playlistProvider);
+    final isDarkTheme = Theme.of(context).brightness == Brightness.dark;
+
+    final backgroundColor = isDarkTheme
+        ? const Color(0xff1a1a1a)
+        : Colors.white;
+    final textColor = isDarkTheme ? Colors.white : Colors.black;
+    final itemColor = isDarkTheme ? Colors.grey[800] : Colors.grey[100];
+
+    return Dialog(
+      backgroundColor: backgroundColor,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
+      child: Padding(
+        padding: EdgeInsets.all(20.r),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Add to Playlist',
+              style: TextStyle(
+                fontSize: 20.sp,
+                fontWeight: FontWeight.bold,
+                color: textColor,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 20.h),
+
+            // Existing Playlists List
+            Flexible(
+              child: SizedBox(
+                height: 200.h, // Limit height
+                child: playlists.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.playlist_remove,
+                              size: 40.sp,
+                              color: Colors.grey,
+                            ),
+                            SizedBox(height: 8.h),
+                            Text(
+                              "No playlists found",
+                              style: TextStyle(
+                                color: Colors.grey,
+                                fontSize: 14.sp,
+                              ),
+                            ),
+                            Text(
+                              "Create one in Library first",
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontSize: 10.sp,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.separated(
+                        shrinkWrap: true,
+                        itemCount: playlists.length,
+                        separatorBuilder: (_, __) => SizedBox(height: 8.h),
+                        itemBuilder: (context, index) {
+                          final playlist = playlists[index];
+                          final alreadyInPlaylist = playlist.songIds.contains(
+                            songId,
+                          );
+
+                          return InkWell(
+                            onTap: () async {
+                              if (alreadyInPlaylist) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Already in playlist'),
+                                  ),
+                                );
+                                return;
+                              }
+
+                              // Add song to selected playlist
+                              await ref
+                                  .read(playlistProvider.notifier)
+                                  .addSongToPlaylist(playlist.id, songId);
+
+                              if (context.mounted) {
+                                Navigator.pop(context);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      'Added to "${playlist.name}"',
+                                    ),
+                                  ),
+                                );
+                              }
+                            },
+                            borderRadius: BorderRadius.circular(12.r),
+                            child: Container(
+                              padding: EdgeInsets.symmetric(
+                                vertical: 12.h,
+                                horizontal: 16.w,
+                              ),
+                              decoration: BoxDecoration(
+                                color: itemColor,
+                                borderRadius: BorderRadius.circular(12.r),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.queue_music_rounded,
+                                    color: textColor.withOpacity(0.7),
+                                    size: 22.sp,
+                                  ),
+                                  SizedBox(width: 12.w),
+                                  Expanded(
+                                    child: Text(
+                                      playlist.name,
+                                      style: TextStyle(
+                                        color: textColor,
+                                        fontSize: 16.sp,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  if (alreadyInPlaylist)
+                                    Icon(
+                                      Icons.check_circle,
+                                      color: Colors.green,
+                                      size: 18.sp,
+                                    ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ),
+
+            SizedBox(height: 16.h),
+
+            // Cancel Button
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                "Cancel",
+                style: TextStyle(color: Colors.grey, fontSize: 14.sp),
+              ),
             ),
           ],
         ),
