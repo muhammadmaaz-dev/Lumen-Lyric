@@ -10,6 +10,7 @@ import 'package:musicapp/pages/full_player.dart';
 import 'package:musicapp/pages/SettingScreen/song_picker_screen.dart';
 import 'package:musicapp/provider/playlist_provider.dart';
 import 'package:musicapp/widgets/playlist_dialog.dart';
+import 'package:musicapp/widgets/song_tile.dart';
 import 'package:on_audio_query/on_audio_query.dart' hide PlaylistModel;
 
 class PlaylistDetailScreen extends ConsumerStatefulWidget {
@@ -124,13 +125,6 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
       // Play from playlist queue - only playlist songs will play in sequence
       controller.playFromPlaylist(playlistSongs, index);
     }
-  }
-
-  String _formatDuration(int milliseconds) {
-    final duration = Duration(milliseconds: milliseconds);
-    final minutes = duration.inMinutes;
-    final seconds = duration.inSeconds % 60;
-    return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
 
   @override
@@ -332,18 +326,40 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                       return ValueListenableBuilder<int>(
                         valueListenable: controller.currentIndex,
                         builder: (context, currentIndex, _) {
-                          // ✅ 2. Calculate if this specific song is playing
                           final isPlaying =
                               song.id == controller.currentsong?.id;
 
-                          return _buildSongTile(
-                            // ✅ 3. Pass the true status
-                            isPlaying: isPlaying,
-                            song: song,
+                          return SongTile(
+                            title: song.title,
+                            artist: song.artist,
+                            duration: song.duration,
+                            songId: song.id,
                             isDarkTheme: isDarkTheme,
-                            textColor: textColor,
+                            isPlaying: isPlaying,
                             onTap: () => _playSong(song, playlistSongs),
-                            onRemove: () => _removeSong(song.id),
+                            onMenuTap: () {
+                              showMenu(
+                                context: context,
+                                position: RelativeRect.fromLTRB(100, 100, 0, 0),
+                                items: [
+                                  PopupMenuItem(
+                                    value: 'remove',
+                                    onTap: () => _removeSong(song.id),
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.remove_circle_outline,
+                                          size: 20,
+                                          color: Colors.red[400],
+                                        ),
+                                        const SizedBox(width: 12),
+                                        const Text('Remove from playlist'),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
                           );
                         },
                       );
@@ -574,115 +590,6 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
           icon,
           size: 20,
           color: isDarkTheme ? Colors.white : Colors.black,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSongTile({
-    required LocalSongModel song,
-    required bool isDarkTheme,
-    required Color textColor,
-    required VoidCallback onTap,
-    required VoidCallback onRemove,
-    required bool isPlaying,
-  }) {
-    final secondaryTextColor = isDarkTheme ? Colors.grey[400] : Colors.grey;
-    final titleColor = isPlaying
-        ? const Color(0xFF8E97FD) // Highlight Color
-        : (isDarkTheme ? Colors.white : Colors.black);
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: SizedBox(
-          height: 60,
-          child: Row(
-            children: [
-              // Album Art
-              Container(
-                width: 55,
-                height: 55,
-                decoration: BoxDecoration(
-                  color: isDarkTheme
-                      ? const Color(0xff2a2a2a)
-                      : const Color(0xfff0f0f0),
-                  borderRadius: BorderRadius.circular(28),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(28),
-                  child: QueryArtworkWidget(
-                    id: song.id,
-                    type: ArtworkType.AUDIO,
-                    nullArtworkWidget: Icon(
-                      Icons.music_note,
-                      color: titleColor,
-                      size: 24,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-
-              // Title and info
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      song.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: titleColor,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${song.artist} • ${_formatDuration(song.duration)}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: titleColor, fontSize: 12),
-                    ),
-                  ],
-                ),
-              ),
-
-              // More options
-              PopupMenuButton<String>(
-                icon: Icon(
-                  Icons.more_vert,
-                  color: isDarkTheme ? Colors.white54 : Colors.black54,
-                ),
-                onSelected: (value) {
-                  if (value == 'remove') {
-                    onRemove();
-                  }
-                },
-                itemBuilder: (context) => [
-                  PopupMenuItem(
-                    value: 'remove',
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.remove_circle_outline,
-                          size: 20,
-                          color: Colors.red[400],
-                        ),
-                        const SizedBox(width: 12),
-                        const Text('Remove from playlist'),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
         ),
       ),
     );

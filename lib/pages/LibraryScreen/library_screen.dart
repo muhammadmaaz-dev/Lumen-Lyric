@@ -66,163 +66,186 @@ class _LibraryScreenState extends State<LibraryScreen> {
     return Scaffold(
       backgroundColor: backgroundColor,
 
-      body: Stack(
-        children: [
-          // CustomScrollView with proper sliver structure
-          CustomScrollView(
-            slivers: [
-              // Header Section (Search + Filters)
-              SliverToBoxAdapter(
-                child: SafeArea(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 14.w),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SizedBox(height: 14.h),
+      body: CustomScrollView(
+        slivers: [
+          // Header Section (Search + Filters)
+          SliverToBoxAdapter(
+            child: SafeArea(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 14.w),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(height: 14.h),
 
-                        // Search Bar
-                        CustomTextField(
-                          hintText: 'Search songs...',
-                          prefixIcon: Icons.search,
-                          onPrefixTap: () {},
+                    // Search Bar
+                    CustomTextField(
+                      hintText: 'Search songs...',
+                      prefixIcon: Icons.search,
+                      onPrefixTap: () {},
+                      isDarkTheme: isDarkTheme,
+                      onChanged: (value) {
+                        setState(() {
+                          _searchQuery = value;
+                        });
+                      },
+                    ),
+
+                    SizedBox(height: 21.h),
+
+                    // Filter Buttons Row
+                    Row(
+                      children: [
+                        FilterButton(
+                          text: 'Local Media',
+                          isActive: true,
+                          onTap: () {},
                           isDarkTheme: isDarkTheme,
-                          onChanged: (value) {
-                            setState(() {
-                              _searchQuery = value;
-                            });
+                        ),
+
+                        const Spacer(),
+
+                        ValueListenableBuilder(
+                          valueListenable: AudioController.instance.songs,
+                          builder: (context, songs, child) {
+                            final filteredCount = _getFilteredSongs(
+                              songs,
+                            ).length;
+                            return Text(
+                              '$filteredCount Songs',
+                              style: TextStyle(
+                                color: textColor,
+                                fontWeight: FontWeight.w500,
+                                fontSize: 15,
+                              ),
+                            );
                           },
                         ),
-
-                        SizedBox(height: 21.h),
-
-                        // Filter Buttons Row
-                        Row(
-                          children: [
-                            FilterButton(
-                              text: 'Local Media',
-                              isActive: true,
-                              onTap: () {},
-                              isDarkTheme: isDarkTheme,
-                            ),
-
-                            const Spacer(),
-
-                            ValueListenableBuilder(
-                              valueListenable: AudioController.instance.songs,
-                              builder: (context, songs, child) {
-                                final filteredCount = _getFilteredSongs(
-                                  songs,
-                                ).length;
-                                return Text(
-                                  '$filteredCount Songs',
-                                  style: TextStyle(
-                                    color: textColor,
-                                    fontWeight: FontWeight.w500,
-                                    fontSize: 15,
-                                  ),
-                                );
-                              },
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 20),
                       ],
                     ),
-                  ),
+
+                    const SizedBox(height: 20),
+                  ],
                 ),
               ),
+            ),
+          ),
 
-              // Songs List - Now properly placed as a direct sliver child
-              // ... existing imports
+          // Songs List - Now properly placed as a direct sliver child
+          // ... existing imports
 
-              // Songs List
-              // ✅ 1. Listen to Current Index changes (so highlights update)
-              ValueListenableBuilder<int>(
-                valueListenable: AudioController.instance.currentIndex,
-                builder: (context, currentIndex, _) {
-                  return ValueListenableBuilder<List<LocalSongModel>>(
-                    valueListenable: AudioController.instance.songs,
-                    builder: (context, allSongs, _) {
-                      final displaySongs = _getFilteredSongs(allSongs);
+          // Songs List
+          // ✅ 1. Listen to Current Index changes (so highlights update)
+          ValueListenableBuilder<int>(
+            valueListenable: AudioController.instance.currentIndex,
+            builder: (context, currentIndex, _) {
+              return ValueListenableBuilder<List<LocalSongModel>>(
+                valueListenable: AudioController.instance.songs,
+                builder: (context, allSongs, _) {
+                  final displaySongs = _getFilteredSongs(allSongs);
 
-                      // Empty state
-                      if (displaySongs.isEmpty) {
-                        return SliverToBoxAdapter(
-                          child: Container(
-                            height: 200,
-                            alignment: Alignment.center,
-                            child: Text(
-                              _searchQuery.isNotEmpty
-                                  ? 'No results for "$_searchQuery"'
-                                  : "No Songs Found",
-                              style: TextStyle(color: textColor),
-                            ),
-                          ),
-                        );
-                      }
-
-                      // Songs list
-                      return SliverPadding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        sliver: SliverList(
-                          delegate: SliverChildBuilderDelegate((
-                            context,
-                            index,
-                          ) {
-                            final song = displaySongs[index];
-
-                            // ✅ 2. Check if this song is the one playing
-                            final isPlaying =
-                                song.id ==
-                                AudioController.instance.currentsong?.id;
-
-                            return SongTile(
-                              key: ValueKey(song.id),
-                              title: song.title,
-                              artist: song.artist,
-                              duration: song.duration,
-                              songId: song.id,
-                              isDarkTheme: isDarkTheme,
-                              // ✅ 3. Pass the playing status
-                              isPlaying: isPlaying,
-                              onTap: () {
-                                final originalIndex = allSongs.indexOf(song);
-                                AudioController.instance.playSong(
-                                  originalIndex,
-                                );
-                              },
-                              onMenuTap: () {
-                                showModalBottomSheet(
-                                  context: context,
-                                  isScrollControlled: true,
-                                  backgroundColor: Colors.transparent,
-                                  builder: (context) => SongOptionsWidget(
-                                    songId: song.id,
-                                    title: song.title,
-                                    artist: song.artist,
-                                    filePath: song.uri,
-                                  ),
-                                );
-                              },
-                            );
-                          }, childCount: displaySongs.length),
+                  // Empty state
+                  if (displaySongs.isEmpty) {
+                    return SliverToBoxAdapter(
+                      child: Container(
+                        height: 200,
+                        alignment: Alignment.center,
+                        child: Text(
+                          _searchQuery.isNotEmpty
+                              ? 'No results for "$_searchQuery"'
+                              : "No Songs Found",
+                          style: TextStyle(color: textColor),
                         ),
-                      );
-                    },
+                      ),
+                    );
+                  }
+
+                  // Songs list
+                  return SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        final song = displaySongs[index];
+
+                        // ✅ 2. Check if this song is the one playing
+                        final isPlaying =
+                            song.id == AudioController.instance.currentsong?.id;
+
+                        return SongTile(
+                          key: ValueKey(song.id),
+                          title: song.title,
+                          artist: song.artist,
+                          duration: song.duration,
+                          songId: song.id,
+                          isDarkTheme: isDarkTheme,
+                          // ✅ 3. Pass the playing status
+                          isPlaying: isPlaying,
+                          onTap: () {
+                            final originalIndex = allSongs.indexOf(song);
+                            AudioController.instance.playSong(originalIndex);
+                          },
+                          onMenuTap: () {
+                            showModalBottomSheet(
+                              context: context,
+                              isScrollControlled: true,
+                              backgroundColor: Colors.transparent,
+                              builder: (context) => SongOptionsWidget(
+                                songId: song.id,
+                                title: song.title,
+                                artist: song.artist,
+                                filePath: song.uri,
+                              ),
+                            );
+                          },
+                        );
+                      }, childCount: displaySongs.length),
+                    ),
                   );
                 },
-              ),
-
-              // ... Rest of your code (SizedBox etc)
-
-              // Extra space at bottom for MiniPlayer
-              SliverToBoxAdapter(child: SizedBox(height: 80)),
-            ],
+              );
+            },
           ),
+
+          // ... Rest of your code (SizedBox etc)
+
+          // Extra space at bottom for MiniPlayer
+          SliverToBoxAdapter(child: SizedBox(height: 80)),
         ],
       ),
     );
+  }
+}
+
+class StickySearchBarDelegate extends SliverPersistentHeaderDelegate {
+  final Widget child;
+  final double height;
+
+  StickySearchBarDelegate({required this.child, this.height = 70.0});
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return Container(
+      height: height,
+      color: Theme.of(
+        context,
+      ).scaffoldBackgroundColor, // Background color match karein
+      alignment: Alignment.center,
+      child: child,
+    );
+  }
+
+  @override
+  double get maxExtent => height;
+
+  @override
+  double get minExtent => height;
+
+  @override
+  bool shouldRebuild(covariant StickySearchBarDelegate oldDelegate) {
+    return oldDelegate.child != child; // Rebuild agar child change ho
   }
 }

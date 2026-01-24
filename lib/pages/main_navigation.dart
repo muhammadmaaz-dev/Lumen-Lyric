@@ -53,122 +53,139 @@ class _MainNavigationState extends State<MainNavigation> {
         : Colors.black54;
     final miniPlayerIconColor = isDarkTheme ? Colors.white : Colors.black;
 
-    return Scaffold(
-      body: Stack(
-        children: [
-          // Main screens - using ValueListenableBuilder for proper reactivity
-          ValueListenableBuilder<int>(
-            valueListenable: controller.currentIndex,
-            builder: (context, currentIndex, child) {
-              return Padding(
-                padding: EdgeInsets.only(
-                  bottom: currentIndex != -1 ? _playerMinHeight : 0,
-                ),
-                child: IndexedStack(index: _selectedIndex, children: _screens),
-              );
-            },
-          ),
+    return PopScope(
+      canPop: _selectedIndex == 0,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) {
+          return;
+        }
 
-          // Miniplayer - Only show when a song is selected
-          ValueListenableBuilder<int>(
-            valueListenable: controller.currentIndex,
-            builder: (context, currentIndex, child) {
-              // Don't show miniplayer if no song is selected
-              if (currentIndex == -1) {
-                return const SizedBox.shrink();
-              }
-
-              return Miniplayer(
-                controller: _playerController,
-                minHeight: _playerMinHeight,
-                maxHeight: MediaQuery.of(context).size.height,
-                elevation: 8,
-                curve: Curves.easeOutQuart,
-                onDismiss: () {
-                  // Stop playback and hide miniplayer when dragged down
-                  controller.audioPlayer.stop();
-                  controller.currentIndex.value = -1;
-                  controller.isPlaying.value = false;
-                },
-                builder: (height, percentage) {
-                  // Update percentage state for hiding bottom nav
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    if (_playerPercentage != percentage) {
-                      setState(() => _playerPercentage = percentage);
-                    }
-                  });
-
-                  final song = controller.currentsong;
-                  if (song == null) return const SizedBox.shrink();
-
-                  // Show full player when expanded (percentage > 0.2)
-                  if (percentage > 0.2) {
-                    return FullPlayer(miniplayerController: _playerController);
-                  }
-
-                  // Mini player UI when collapsed
-                  return _buildMiniPlayerContent(
-                    song: song,
-                    isDarkTheme: isDarkTheme,
-                    miniPlayerBgColor: miniPlayerBgColor,
-                    miniPlayerTextColor: miniPlayerTextColor,
-                    miniPlayerSubTextColor: miniPlayerSubTextColor,
-                    miniPlayerIconColor: miniPlayerIconColor,
-                  );
-                },
-              );
-            },
-          ),
-        ],
-      ),
-      // Hide bottom nav bar when full player is shown
-      bottomNavigationBar: _playerPercentage > 0.2
-          ? null
-          : Container(
-              height: 60.h,
-              decoration: BoxDecoration(
-                border: Border(top: BorderSide(color: barColor)),
-              ),
-              child: Theme(
-                data: Theme.of(context).copyWith(
-                  splashFactory: NoSplash.splashFactory,
-                  highlightColor: Colors.transparent,
-                ),
-                child: BottomNavigationBar(
-                  type: BottomNavigationBarType.fixed,
-                  selectedItemColor: selectedColor,
-                  backgroundColor: bottomNavColor,
-                  currentIndex: _selectedIndex,
-                  showSelectedLabels: false,
-                  showUnselectedLabels: false,
-                  onTap: (i) => setState(() {
-                    _selectedIndex = i;
-                  }),
-                  items: const [
-                    BottomNavigationBarItem(
-                      icon: Icon(Icons.home_outlined),
-                      activeIcon: Icon(Icons.home_filled),
-                      label: "Home",
-                    ),
-                    BottomNavigationBarItem(
-                      icon: Icon(Icons.library_music_outlined),
-                      activeIcon: Icon(Icons.library_music),
-                      label: "Library",
-                    ),
-                    BottomNavigationBarItem(
-                      icon: Icon(Icons.music_note_outlined),
-                      activeIcon: Icon(Icons.music_note),
-                      label: "Music",
-                    ),
-                    BottomNavigationBarItem(
-                      icon: Icon(Icons.person_2_outlined),
-                      activeIcon: Icon(Icons.person_2_rounded),
-                      label: "Profile",
-                    ),
-                  ],
-                ),
-              ),
+        setState(() {
+          _selectedIndex = 0;
+        });
+      },
+      child: Scaffold(
+        body: Stack(
+          children: [
+            // Main screens - using ValueListenableBuilder for proper reactivity
+            ValueListenableBuilder<int>(
+              valueListenable: controller.currentIndex,
+              builder: (context, currentIndex, child) {
+                return Padding(
+                  padding: EdgeInsets.only(
+                    bottom: currentIndex != -1 ? _playerMinHeight : 0,
+                  ),
+                  child: IndexedStack(
+                    index: _selectedIndex,
+                    children: _screens,
+                  ),
+                );
+              },
             ),
+
+            // Miniplayer - Only show when a song is selected
+            ValueListenableBuilder<int>(
+              valueListenable: controller.currentIndex,
+              builder: (context, currentIndex, child) {
+                // Don't show miniplayer if no song is selected
+                if (currentIndex == -1) {
+                  return const SizedBox.shrink();
+                }
+
+                return Miniplayer(
+                  controller: _playerController,
+                  minHeight: _playerMinHeight,
+                  maxHeight: MediaQuery.of(context).size.height,
+                  elevation: 8,
+                  curve: Curves.easeOutQuart,
+                  onDismiss: () {
+                    // Stop playback and hide miniplayer when dragged down
+                    controller.audioPlayer.stop();
+                    controller.currentIndex.value = -1;
+                    controller.isPlaying.value = false;
+                  },
+                  builder: (height, percentage) {
+                    // Update percentage state for hiding bottom nav
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (_playerPercentage != percentage) {
+                        setState(() => _playerPercentage = percentage);
+                      }
+                    });
+
+                    final song = controller.currentsong;
+                    if (song == null) return const SizedBox.shrink();
+
+                    // Show full player when expanded (percentage > 0.2)
+                    if (percentage > 0.2) {
+                      return FullPlayer(
+                        miniplayerController: _playerController,
+                      );
+                    }
+
+                    // Mini player UI when collapsed
+                    return _buildMiniPlayerContent(
+                      song: song,
+                      isDarkTheme: isDarkTheme,
+                      miniPlayerBgColor: miniPlayerBgColor,
+                      miniPlayerTextColor: miniPlayerTextColor,
+                      miniPlayerSubTextColor: miniPlayerSubTextColor,
+                      miniPlayerIconColor: miniPlayerIconColor,
+                    );
+                  },
+                );
+              },
+            ),
+          ],
+        ),
+        // Hide bottom nav bar when full player is shown
+        bottomNavigationBar: _playerPercentage > 0.2
+            ? null
+            : Container(
+                height: 60.h,
+                decoration: BoxDecoration(
+                  border: Border(top: BorderSide(color: barColor)),
+                ),
+                child: Theme(
+                  data: Theme.of(context).copyWith(
+                    splashFactory: NoSplash.splashFactory,
+                    highlightColor: Colors.transparent,
+                  ),
+                  child: BottomNavigationBar(
+                    type: BottomNavigationBarType.fixed,
+                    selectedItemColor: selectedColor,
+                    backgroundColor: bottomNavColor,
+                    currentIndex: _selectedIndex,
+                    showSelectedLabels: false,
+                    showUnselectedLabels: false,
+                    onTap: (i) => setState(() {
+                      _selectedIndex = i;
+                    }),
+                    items: const [
+                      BottomNavigationBarItem(
+                        icon: Icon(Icons.home_outlined),
+                        activeIcon: Icon(Icons.home_filled),
+                        label: "Home",
+                      ),
+                      BottomNavigationBarItem(
+                        icon: Icon(Icons.library_music_outlined),
+                        activeIcon: Icon(Icons.library_music),
+                        label: "Library",
+                      ),
+                      BottomNavigationBarItem(
+                        icon: Icon(Icons.music_note_outlined),
+                        activeIcon: Icon(Icons.music_note),
+                        label: "Music",
+                      ),
+                      BottomNavigationBarItem(
+                        icon: Icon(Icons.person_2_outlined),
+                        activeIcon: Icon(Icons.person_2_rounded),
+                        label: "Profile",
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+      ),
     );
   }
 

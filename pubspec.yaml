@@ -28,6 +28,7 @@ dependencies:
   miniplayer: ^1.0.1
   cupertino_modal_sheet: ^1.1.0
   modal_bottom_sheet: ^3.0.0
+  url_launcher: ^6.3.2
   
 
 dev_dependencies:

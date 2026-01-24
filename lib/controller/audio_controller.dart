@@ -115,16 +115,27 @@ class AudioController {
       final blockedIds = prefs.getStringList('blocked_song_ids') ?? [];
 
       // ✅ 2. Filter List: Exclude any song inside blockedIds
+      // Inside loadSongs() method...
+
+      // ✅ UPDATED MAPPING LOGIC
       songs.value = fetchSongs
           .where((s) => !blockedIds.contains(s.id.toString()))
           .map((s) {
             bool isFromMyApp = s.data.contains("MyMusicApp");
             String songUri = s.uri ?? s.data;
 
+            // 1. Check karein agar custom title saved hai
+            String displayTitle = s.title;
+            String customTitleKey = 'custom_title_${s.id}';
+
+            if (prefs.containsKey(customTitleKey)) {
+              displayTitle = prefs.getString(customTitleKey) ?? s.title;
+            }
+
             return LocalSongModel(
               id: s.id,
               artist: s.artist ?? "Unknown Artist",
-              title: s.title,
+              title: displayTitle, // <-- Use displayTitle instead of s.title
               uri: songUri,
               albumArt: s.album ?? "",
               duration: s.duration ?? 0,
@@ -135,6 +146,7 @@ class AudioController {
           .toList();
 
       await _restoreLikes();
+      // ...
     } catch (e) {
       debugPrint("Error loading songs: $e");
     } finally {
@@ -373,6 +385,24 @@ class AudioController {
       }
 
       _saveLikesToPrefs();
+    }
+  }
+
+  // Add inside AudioController class in lib/controller/audio_controller.dart
+
+  Future<void> renameSong(int songId, String newTitle) async {
+    // 1. SharedPreferences mein save karein
+    final prefs = await SharedPreferences.getInstance();
+    // Key format: 'custom_title_12345'
+    await prefs.setString('custom_title_$songId', newTitle);
+
+    // 2. Current List (RAM) update karein taaki app restart kiye bina change dikhe
+    final index = songs.value.indexWhere((s) => s.id == songId);
+    if (index != -1) {
+      final updatedList = List<LocalSongModel>.from(songs.value);
+      updatedList[index] = updatedList[index].copyWith(title: newTitle);
+      songs.value =
+          updatedList; // Yeh listener trigger karega aur UI update ho jayegi
     }
   }
 

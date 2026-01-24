@@ -56,41 +56,14 @@ class SongOptionsWidget extends ConsumerWidget {
               child: const Text("Cancel"),
             ),
             ElevatedButton(
-              onPressed: () async {
-                final newName = textController.text.trim();
-                if (newName.isNotEmpty) {
-                  // 1. Save to SharedPreferences (Permanent)
-                  final prefs = await SharedPreferences.getInstance();
-                  await prefs.setString('custom_title_$songId', newName);
-
-                  // 2. Update AudioController List (Instant UI Update)
-                  final currentList = AudioController.instance.songs.value;
-                  final index = currentList.indexWhere((s) => s.id == songId);
-
-                  if (index != -1) {
-                    final oldSong = currentList[index];
-                    // Create new song object with updated title
-                    final updatedSong = LocalSongModel(
-                      id: oldSong.id,
-                      title: newName, // <--- New Title
-                      artist: oldSong.artist,
-                      uri: oldSong.uri,
-                      albumArt: oldSong.albumArt,
-                      duration: oldSong.duration,
-                      isLiked: oldSong.isLiked,
-                    );
-
-                    // Update list and notify listeners
-                    final newList = List<LocalSongModel>.from(currentList);
-                    newList[index] = updatedSong;
-                    AudioController.instance.songs.value = newList;
-                  }
-
-                  // 3. Close Dialog and BottomSheet
-                  if (context.mounted) {
-                    Navigator.pop(context); // Close Dialog
-                    Navigator.pop(context); // Close BottomSheet
-                  }
+              onPressed: () {
+                if (textController.text.isNotEmpty) {
+                  // Controller ke through rename karein
+                  AudioController.instance.renameSong(
+                    songId,
+                    textController.text,
+                  );
+                  Navigator.pop(context);
                 }
               },
               child: const Text("Save"),

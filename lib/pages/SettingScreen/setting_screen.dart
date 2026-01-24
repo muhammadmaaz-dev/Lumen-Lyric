@@ -7,6 +7,7 @@ import 'package:musicapp/provider/theme_provider.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:musicapp/utils/slide_route.dart';
 import 'package:musicapp/widgets/setting_tile.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 // 1. Changed to ConsumerWidget to access providers
 class SettingScreen extends ConsumerWidget {
@@ -282,6 +283,33 @@ class SettingScreen extends ConsumerWidget {
                               icon: Icons.bug_report_outlined,
                               title: 'Report a Bug',
                               onTap: () {},
+                              isDarkTheme: isDarkTheme,
+                              isLast: true,
+                              textColor: textColor,
+                            ),
+                            Divider(
+                              height: 1,
+                              color: dividerColor,
+                              indent: 10,
+                              endIndent: 10,
+                            ),
+                            SettingsTile(
+                              icon: Icons.adb_outlined,
+                              title: 'About App',
+                              onTap: () async {
+                                // 1. URL define karein
+                                final Uri url = Uri.parse(
+                                  'https://github.com/muhammadmaaz-dev/Lumen-Lyric',
+                                );
+
+                                // 2. Browser mein open karein
+                                if (!await launchUrl(
+                                  url,
+                                  mode: LaunchMode.externalApplication,
+                                )) {
+                                  debugPrint('Could not launch $url');
+                                }
+                              },
                               isDarkTheme: isDarkTheme,
                               isLast: true,
                               textColor: textColor,

@@ -408,7 +408,7 @@ class PlaylistSelectorDialog extends ConsumerWidget {
                               ),
                             ),
                             Text(
-                              "Create one in Library first",
+                              "Create one from setting first",
                               style: TextStyle(
                                 color: Colors.grey[600],
                                 fontSize: 10.sp,
