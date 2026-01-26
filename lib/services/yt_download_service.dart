@@ -6,8 +6,6 @@ import 'package:path_provider/path_provider.dart';
 import 'package:musicapp/models/download_metadata_model.dart';
 
 class YtDownloadService {
-  // ✅ YOUR HUGGING FACE SPACE URL
-  // Change this line:
   static const String baseUrl = 'https://yt-mp3-api-mdkk.onrender.com';
 
   late final Dio _dio;
@@ -16,9 +14,7 @@ class YtDownloadService {
     _dio = Dio(
       BaseOptions(
         baseUrl: baseUrl,
-        connectTimeout: const Duration(
-          seconds: 60,
-        ), // ⬆️ Increased for cold starts
+        connectTimeout: const Duration(seconds: 60),
         receiveTimeout: const Duration(minutes: 10),
         sendTimeout: const Duration(seconds: 30),
         headers: {'Content-Type': 'application/json'},
@@ -132,22 +128,19 @@ class YtDownloadService {
     String? downloadId;
 
     try {
-      // Wake up server first
       final isOnline = await wakeUpServer();
       if (!isOnline) {
         throw Exception('Server is unavailable. Please try again.');
       }
 
-      // Stage 1: Request conversion on server
+      // Stage 1: Request conversion
       onStageChange?.call(DownloadStage.converting);
       debugPrint('🔄 Starting conversion...');
 
       final convertResponse = await _dio.post(
         '/download',
         data: {'url': youtubeUrl, 'include_metadata': includeMetadata},
-        options: Options(
-          receiveTimeout: const Duration(minutes: 10), // Conversion takes time
-        ),
+        options: Options(receiveTimeout: const Duration(minutes: 10)),
       );
 
       if (convertResponse.statusCode != 200) {
@@ -156,28 +149,41 @@ class YtDownloadService {
 
       final data = convertResponse.data;
       downloadId = data['download_id'];
-      final filename = data['filename'];
+
+      // ✅ Server ab "audio.mp3" bhejega, isay download URL ke liye use karein
+      final serverFilename = data['filename'];
+
       final metadata = DownloadMetadataModel.fromJson(data['metadata']);
 
-      debugPrint('✅ Conversion complete: $filename');
+      debugPrint('✅ Conversion complete on server');
 
-      // Stage 2: Download the MP3 file
+      // Stage 2: Download the MP3
       onStageChange?.call(DownloadStage.downloading);
       debugPrint('📥 Downloading MP3...');
 
-      // Get app's music directory
-      final dir = await getApplicationDocumentsDirectory();
-      final musicDir = Directory('${dir.path}/MyMusicApp');
+      // Path setup
+      Directory? musicDir;
+      if (Platform.isAndroid) {
+        musicDir = Directory('/storage/emulated/0/Music/LumenLyric');
+      } else {
+        final dir = await getApplicationDocumentsDirectory();
+        musicDir = Directory('${dir.path}/LumenLyric');
+      }
+
       if (!await musicDir.exists()) {
         await musicDir.create(recursive: true);
       }
 
-      // Sanitize filename
-      final sanitizedFilename = _sanitizeFilename(filename);
-      final savePath = '${musicDir.path}/$sanitizedFilename';
+      // ✅ FIX: Use metadata.title for local filename (User friendly name)
+      final songTitle = metadata.title ?? "Unknown Song";
+      final safeTitle = _sanitizeFilename(songTitle);
+      final localFilename = '$safeTitle.mp3';
 
+      final savePath = '${musicDir.path}/$localFilename';
+
+      // Download from server (using ID + audio.mp3) -> Save to Local (using Song Title.mp3)
       await _dio.download(
-        '/file/$downloadId/$filename',
+        '/file/$downloadId/$serverFilename',
         savePath,
         onReceiveProgress: (received, total) {
           if (total != -1) {
@@ -188,14 +194,13 @@ class YtDownloadService {
         },
       );
 
-      debugPrint('✅ Download complete: $savePath');
+      debugPrint('✅ Download saved to: $savePath');
 
-      // Stage 3: Cleanup server files
+      // Stage 3: Cleanup
       try {
         await _dio.delete('/cleanup/$downloadId');
-        debugPrint('🧹 Server cleanup done');
       } catch (e) {
-        debugPrint('⚠️ Cleanup warning: $e'); // Non-critical
+        debugPrint('⚠️ Cleanup warning: $e');
       }
 
       onStageChange?.call(DownloadStage.completed);
@@ -206,13 +211,11 @@ class YtDownloadService {
         metadata: metadata,
       );
     } on DioException catch (e) {
-      // Attempt cleanup on error
       if (downloadId != null) {
         try {
           await _dio.delete('/cleanup/$downloadId');
         } catch (_) {}
       }
-
       onStageChange?.call(DownloadStage.failed);
       throw _handleDioError(e);
     } catch (e) {

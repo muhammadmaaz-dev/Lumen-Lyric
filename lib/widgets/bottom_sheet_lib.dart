@@ -4,13 +4,14 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:musicapp/controller/audio_controller.dart';
 import 'package:musicapp/models/local_song_model.dart';
 import 'package:musicapp/widgets/playlist_dialog.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // ✅ Required for saving
+import 'package:on_audio_query/on_audio_query.dart'; // ✅ Import Added
 
 class SongOptionsWidget extends ConsumerWidget {
   final int songId;
   final String title;
   final String artist;
   final String filePath;
+  final String? imageUrl;
 
   const SongOptionsWidget({
     super.key,
@@ -18,9 +19,9 @@ class SongOptionsWidget extends ConsumerWidget {
     required this.title,
     required this.artist,
     required this.filePath,
+    this.imageUrl,
   });
 
-  // ✅ Function to show Rename Dialog
   void _showRenameDialog(BuildContext context) {
     final TextEditingController textController = TextEditingController(
       text: title,
@@ -58,7 +59,6 @@ class SongOptionsWidget extends ConsumerWidget {
             ElevatedButton(
               onPressed: () {
                 if (textController.text.isNotEmpty) {
-                  // Controller ke through rename karein
                   AudioController.instance.renameSong(
                     songId,
                     textController.text,
@@ -79,6 +79,7 @@ class SongOptionsWidget extends ConsumerWidget {
     return ValueListenableBuilder<List<LocalSongModel>>(
       valueListenable: AudioController.instance.songs,
       builder: (context, songs, child) {
+        // Find the song to get live updates (Like status, Artwork URL)
         final song = songs.firstWhere(
           (element) => element.id == songId,
           orElse: () => LocalSongModel(
@@ -89,6 +90,8 @@ class SongOptionsWidget extends ConsumerWidget {
             albumArt: '',
             duration: 0,
             isLiked: false,
+            // Fallback artwork URL from constructor if song not found in list
+            artworkUrl: imageUrl,
           ),
         );
 
@@ -117,17 +120,17 @@ class SongOptionsWidget extends ConsumerWidget {
               // 2. Song Header
               Row(
                 children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(4.r),
-                    child: Container(
-                      width: 44.w,
-                      height: 44.h,
+                  // ✅ Updated Artwork Logic
+                  Container(
+                    width: 44.w,
+                    height: 44.h,
+                    decoration: BoxDecoration(
                       color: Colors.grey[800],
-                      child: Icon(
-                        Icons.music_note,
-                        color: Colors.white,
-                        size: 21.sp,
-                      ),
+                      borderRadius: BorderRadius.circular(4.r),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(4.r),
+                      child: _buildArtwork(song),
                     ),
                   ),
                   SizedBox(width: 13.w),
@@ -136,7 +139,7 @@ class SongOptionsWidget extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          song.title, // Use live title from controller
+                          song.title,
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 16.sp,
@@ -178,7 +181,6 @@ class SongOptionsWidget extends ConsumerWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  // ✅ Pass the onEdit function here
                   _buildActionBox(
                     Icons.edit,
                     "Edit",
@@ -191,7 +193,7 @@ class SongOptionsWidget extends ConsumerWidget {
                     onTap: () {
                       Navigator.pop(context);
                       PlaylistSelectorDialog.show(context, songId);
-                    }, // Add logic later
+                    },
                   ),
                 ],
               ),
@@ -228,8 +230,8 @@ class SongOptionsWidget extends ConsumerWidget {
                               songId,
                               filePath,
                             );
-                            Navigator.pop(context);
-                            Navigator.pop(context);
+                            Navigator.pop(context); // Close Alert
+                            Navigator.pop(context); // Close BottomSheet
                           },
                           child: const Text(
                             "Delete",
@@ -242,7 +244,7 @@ class SongOptionsWidget extends ConsumerWidget {
                 },
               ),
 
-              const SizedBox(height: 10),
+              SizedBox(height: 10.h),
             ],
           ),
         );
@@ -250,7 +252,36 @@ class SongOptionsWidget extends ConsumerWidget {
     );
   }
 
-  // ✅ Updated Helper: Added onTap
+  // ✅✅✅ NEW ARTWORK LOGIC FOR OPTIONS MENU ✅✅✅
+  Widget _buildArtwork(LocalSongModel song) {
+    // 1. Check Live Song Object first (Best source)
+    if (song.artworkUrl != null && song.artworkUrl!.isNotEmpty) {
+      return Image.network(
+        song.artworkUrl!,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _buildLocalArtwork(),
+      );
+    }
+    // 2. Check Constructor Param (Backup)
+    if (imageUrl != null && imageUrl!.isNotEmpty) {
+      return Image.network(
+        imageUrl!,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _buildLocalArtwork(),
+      );
+    }
+    // 3. Fallback to Local ID
+    return _buildLocalArtwork();
+  }
+
+  Widget _buildLocalArtwork() {
+    return QueryArtworkWidget(
+      id: songId,
+      type: ArtworkType.AUDIO,
+      nullArtworkWidget: const Icon(Icons.music_note, color: Colors.white),
+    );
+  }
+
   Widget _buildActionBox(
     IconData icon,
     String label, {
@@ -267,11 +298,11 @@ class SongOptionsWidget extends ConsumerWidget {
           ),
           child: Column(
             children: [
-              Icon(icon, color: Colors.white, size: 26),
-              const SizedBox(height: 8),
+              Icon(icon, color: Colors.white, size: 26.sp),
+              SizedBox(height: 8.h),
               Text(
                 label,
-                style: const TextStyle(color: Colors.white, fontSize: 12),
+                style: TextStyle(color: Colors.white, fontSize: 12.sp),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -293,13 +324,13 @@ class SongOptionsWidget extends ConsumerWidget {
       leading: Icon(
         icon,
         color: iconColor == Colors.grey ? Colors.grey[400] : iconColor,
-        size: 26,
+        size: 26.sp,
       ),
       title: Text(
         title,
         style: TextStyle(
           color: textColor,
-          fontSize: 16,
+          fontSize: 16.sp,
           fontWeight: FontWeight.w500,
         ),
       ),

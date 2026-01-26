@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class ProfileHeader extends StatelessWidget {
   final String avatarPath; // asset or network
@@ -17,24 +18,27 @@ class ProfileHeader extends StatelessWidget {
     return Column(
       children: [
         CircleAvatar(
-          radius: 55,
+          radius: 55.r,
           backgroundColor: Colors.grey.shade300,
           child: CircleAvatar(
-            radius: 52,
+            radius: 52.r,
             backgroundColor: Colors.white,
             backgroundImage: AssetImage(avatarPath),
             // For network:
             // backgroundImage: NetworkImage(avatarPath),
           ),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: 12.h),
         Text(
           name,
-          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          style: TextStyle(fontSize: 22.sp, fontWeight: FontWeight.bold),
         ),
-        const SizedBox(height: 4),
-        Text(email, style: const TextStyle(fontSize: 14, color: Colors.grey)),
-        const SizedBox(height: 20),
+        SizedBox(height: 4.h),
+        Text(
+          email,
+          style: TextStyle(fontSize: 14.sp, color: Colors.grey),
+        ),
+        SizedBox(height: 20.h),
       ],
     );
   }

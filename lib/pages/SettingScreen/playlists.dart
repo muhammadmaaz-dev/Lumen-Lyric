@@ -173,20 +173,20 @@ class _PlaylistsScreenState extends ConsumerState<PlaylistsScreen> {
                     child: Center(
                       child: Icon(
                         Icons.queue_music_rounded,
-                        size: 48,
+                        size: 48.sp,
                         color: textColor.withOpacity(0.7),
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8.h),
                 Text(
                   playlist.name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: textColor,
-                    fontSize: 14,
+                    fontSize: 14.sp,
                     fontWeight: FontWeight.w500,
                   ),
                 ),

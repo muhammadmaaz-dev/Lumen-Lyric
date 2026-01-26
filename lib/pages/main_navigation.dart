@@ -235,17 +235,9 @@ class _MainNavigationState extends State<MainNavigation> {
                       ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(7.r),
-                        child: QueryArtworkWidget(
-                          id: song.id,
-                          type: ArtworkType.AUDIO,
-                          artworkHeight: 44.h,
-                          artworkWidth: 44.w,
-                          artworkFit: BoxFit.cover,
-                          nullArtworkWidget: Icon(
-                            Icons.music_note,
-                            color: miniPlayerTextColor,
-                            size: 26.sp,
-                          ),
+                        child: _buildMiniPlayerArtwork(
+                          song,
+                          miniPlayerTextColor,
                         ),
                       ),
                     ),
@@ -343,6 +335,45 @@ class _MainNavigationState extends State<MainNavigation> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildMiniPlayerArtwork(dynamic song, Color miniPlayerTextColor) {
+    // 1. Check if artworkUrl exists (for downloaded songs)
+    if (song.artworkUrl != null && song.artworkUrl!.isNotEmpty) {
+      return Image.network(
+        song.artworkUrl!,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          // Fallback to local artwork if network fails
+          return QueryArtworkWidget(
+            id: song.id,
+            type: ArtworkType.AUDIO,
+            artworkHeight: 44.h,
+            artworkWidth: 44.w,
+            artworkFit: BoxFit.cover,
+            nullArtworkWidget: Icon(
+              Icons.music_note,
+              color: miniPlayerTextColor,
+              size: 26.sp,
+            ),
+          );
+        },
+      );
+    }
+
+    // 2. Fallback to local artwork
+    return QueryArtworkWidget(
+      id: song.id,
+      type: ArtworkType.AUDIO,
+      artworkHeight: 44.h,
+      artworkWidth: 44.w,
+      artworkFit: BoxFit.cover,
+      nullArtworkWidget: Icon(
+        Icons.music_note,
+        color: miniPlayerTextColor,
+        size: 26.sp,
       ),
     );
   }

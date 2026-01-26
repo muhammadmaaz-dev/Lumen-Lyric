@@ -31,8 +31,8 @@ dependencies:
   url_launcher: ^6.3.2
   http: ^1.6.0
   dio: ^5.9.0
-    # For HTTP requests & file downloads
   
+  # For HTTP requests & file downloads
   # For getting app directories
   path_provider: ^2.1.2
   
@@ -41,15 +41,23 @@ dependencies:
   
   # For image caching (thumbnails)
   cached_network_image: ^3.3.1
-  
+  toastification: ^3.0.3
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: "^0.13.1"
+
+# ✅ Yahan indentation theek ki hai:
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/logo/logo.png"
+  min_sdk_android: 21
+  remove_alpha_ios: true
 
 flutter:
-
   uses-material-design: true
 
   assets:

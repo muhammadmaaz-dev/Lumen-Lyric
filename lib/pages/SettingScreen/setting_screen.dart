@@ -213,17 +213,17 @@ class SettingScreen extends ConsumerWidget {
                         ),
                       ),
 
-                      const SizedBox(height: 22),
+                      SizedBox(height: 22.h),
 
                       Text(
                         'Privacy & Security',
                         style: TextStyle(
-                          fontSize: 16,
+                          fontSize: 16.sp,
                           fontWeight: FontWeight.w600,
                           color: textColor,
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      SizedBox(height: 12.h),
                       Container(
                         decoration: BoxDecoration(
                           color: cardColor,
@@ -256,12 +256,12 @@ class SettingScreen extends ConsumerWidget {
                         ),
                       ),
 
-                      const SizedBox(height: 22),
+                      SizedBox(height: 22.h),
 
                       Text(
                         'Support',
                         style: TextStyle(
-                          fontSize: 16,
+                          fontSize: 16.sp,
                           fontWeight: FontWeight.w600,
                           color: textColor,
                         ),

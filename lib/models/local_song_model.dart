@@ -7,6 +7,7 @@ class LocalSongModel {
   final int duration;
   final bool isLiked; // <-- Zaroori field
   final bool isDownloaded; // <-- Zaroori field
+  final String? artworkUrl;
 
   LocalSongModel({
     required this.id,
@@ -17,6 +18,7 @@ class LocalSongModel {
     required this.duration,
     this.isLiked = false, // Default false
     this.isDownloaded = false, // Default false
+    this.artworkUrl,
   });
 
   LocalSongModel copyWith({
@@ -28,6 +30,7 @@ class LocalSongModel {
     int? duration,
     bool? isLiked,
     bool? isDownloaded,
+    String? artworkUrl,
   }) {
     return LocalSongModel(
       id: id ?? this.id,
@@ -38,6 +41,7 @@ class LocalSongModel {
       duration: duration ?? this.duration,
       isLiked: isLiked ?? this.isLiked,
       isDownloaded: isDownloaded ?? this.isDownloaded,
+      artworkUrl: artworkUrl ?? this.artworkUrl,
     );
   }
 }

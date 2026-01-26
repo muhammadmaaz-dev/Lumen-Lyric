@@ -6,6 +6,7 @@ import 'package:on_audio_query/on_audio_query.dart';
 import 'package:flutter_audio_tagger/flutter_audio_tagger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'dart:convert'; // ✅ JSON ke liye zaroori
 
 class AudioController {
   static final AudioController instance = AudioController._instance();
@@ -21,7 +22,6 @@ class AudioController {
   final ValueNotifier<List<LocalSongModel>> songs =
       ValueNotifier<List<LocalSongModel>>([]);
 
-  // Playlist-specific playback queue
   final ValueNotifier<List<LocalSongModel>> playbackQueue =
       ValueNotifier<List<LocalSongModel>>([]);
   final ValueNotifier<int> queueIndex = ValueNotifier<int>(-1);
@@ -70,39 +70,64 @@ class AudioController {
     });
   }
 
-  // **********************************************************************
-  // LOAD SONGS (Updated: Filters out Blacklisted IDs)
-  // **********************************************************************
+  Future<void> scanMedia(String path) async {
+    try {
+      debugPrint("Scanning file: $path");
+      await audioQuery.scanMedia(path);
+    } catch (e) {
+      debugPrint("Error scanning media: $e");
+    }
+  }
+
+  Future<void> scanNewMedia(String path) async {
+    try {
+      debugPrint("🔍 Scanning file: $path");
+      await audioQuery.scanMedia(path);
+      await Future.delayed(const Duration(seconds: 1));
+      await loadSongs();
+    } catch (e) {
+      debugPrint("❌ Error scanning media: $e");
+    }
+  }
+
   Future<void> loadSongs() async {
-    if (_isFetching || songs.value.isNotEmpty) return;
+    if (_isFetching) return;
     _isFetching = true;
 
     try {
-      // --- PERMISSION LOGIC ---
-      bool permissionGranted = false;
-      var statusAudio = await Permission.audio.status;
-      var statusStorage = await Permission.storage.status;
+      // -------------------------------------------------------------
+      // 1. STRICT PERMISSION CHECK (CRASH FIX)
+      // -------------------------------------------------------------
+      bool hasPermission = false;
 
-      if (statusAudio.isGranted || statusStorage.isGranted) {
-        permissionGranted = true;
+      // Android 13+ ke liye READ_MEDIA_AUDIO, purane ke liye STORAGE
+      if (await Permission.audio.isGranted ||
+          await Permission.storage.isGranted) {
+        hasPermission = true;
       } else {
+        // Agar permission nahi hai, to maangien
         Map<Permission, PermissionStatus> statuses = await [
-          Permission.storage,
           Permission.audio,
+          Permission.storage,
         ].request();
 
+        // Dobara check karein
         if (statuses[Permission.audio] == PermissionStatus.granted ||
             statuses[Permission.storage] == PermissionStatus.granted) {
-          permissionGranted = true;
+          hasPermission = true;
         }
       }
 
-      if (!permissionGranted) {
-        debugPrint("Permission not granted");
+      // 🛑 AGAR PERMISSION ABHI BHI NAHI MILI TO RETURN KAR JAYEN (CRASH ROKNE KE LIYE)
+      if (!hasPermission) {
+        debugPrint("❌ Permission Denied. Skipping song load to prevent crash.");
+        _isFetching = false;
         return;
       }
 
-      // --- QUERY LOGIC ---
+      // -------------------------------------------------------------
+      // 2. QUERY SONGS (Ab Safe Hai)
+      // -------------------------------------------------------------
       final fetchSongs = await audioQuery.querySongs(
         sortType: null,
         orderType: OrderType.ASC_OR_SMALLER,
@@ -110,43 +135,74 @@ class AudioController {
         ignoreCase: true,
       );
 
-      // ✅ 1. Load Blacklist (Deleted Songs) from Prefs
       final prefs = await SharedPreferences.getInstance();
       final blockedIds = prefs.getStringList('blocked_song_ids') ?? [];
 
-      // ✅ 2. Filter List: Exclude any song inside blockedIds
-      // Inside loadSongs() method...
+      // 3. Load Metadata (Artist & Artwork) from Recent Downloads
+      Map<String, String> artistMap = {};
+      Map<String, String> artworkMap = {};
 
-      // ✅ UPDATED MAPPING LOGIC
+      final recentData = prefs.getString('recent_downloads');
+
+      if (recentData != null) {
+        try {
+          final List<dynamic> decoded = jsonDecode(recentData);
+          for (var item in decoded) {
+            final path = item['filePath'];
+            final meta = item['metadata'];
+            if (path != null && meta != null) {
+              if (meta['artist'] != null &&
+                  meta['artist'].toString().isNotEmpty) {
+                artistMap[path] = meta['artist'];
+              }
+              if (meta['thumbnail'] != null) {
+                artworkMap[path] = meta['thumbnail'];
+              }
+            }
+          }
+        } catch (e) {
+          debugPrint("Error parsing recent metadata: $e");
+        }
+      }
+
+      // 4. Map Songs
       songs.value = fetchSongs
           .where((s) => !blockedIds.contains(s.id.toString()))
           .map((s) {
-            bool isFromMyApp = s.data.contains("MyMusicApp");
+            bool isFromMyApp =
+                s.data.contains("LumenLyric") || s.data.contains("MyMusicApp");
             String songUri = s.uri ?? s.data;
-
-            // 1. Check karein agar custom title saved hai
             String displayTitle = s.title;
-            String customTitleKey = 'custom_title_${s.id}';
 
+            // Custom Title
+            String customTitleKey = 'custom_title_${s.id}';
             if (prefs.containsKey(customTitleKey)) {
               displayTitle = prefs.getString(customTitleKey) ?? s.title;
             }
 
+            // Artist Logic
+            String displayArtist =
+                artistMap[s.data] ?? s.artist ?? "Unknown Artist";
+            if (displayArtist == "<unknown>") displayArtist = "Unknown Artist";
+
+            // Artwork Logic
+            String? customArt = artworkMap[s.data];
+
             return LocalSongModel(
               id: s.id,
-              artist: s.artist ?? "Unknown Artist",
-              title: displayTitle, // <-- Use displayTitle instead of s.title
+              artist: displayArtist,
+              title: displayTitle,
               uri: songUri,
               albumArt: s.album ?? "",
               duration: s.duration ?? 0,
               isDownloaded: isFromMyApp,
               isLiked: false,
+              artworkUrl: customArt,
             );
           })
           .toList();
 
       await _restoreLikes();
-      // ...
     } catch (e) {
       debugPrint("Error loading songs: $e");
     } finally {
@@ -154,13 +210,13 @@ class AudioController {
     }
   }
 
+  // ... (Baqi helper methods same hain: _buildUri, playSong, etc.)
+  // Copy paste existing methods here...
+
   Uri _buildUri(String uri) {
-    if (uri.startsWith("content://")) {
-      return Uri.parse(uri);
-    }
-    if (uri.startsWith("/storage") || uri.startsWith("/sdcard")) {
+    if (uri.startsWith("content://")) return Uri.parse(uri);
+    if (uri.startsWith("/storage") || uri.startsWith("/sdcard"))
       return Uri.file(uri);
-    }
     return Uri.parse(uri);
   }
 
@@ -204,7 +260,6 @@ class AudioController {
     _isPlayingFromQueue = false;
     playbackQueue.value = [];
     queueIndex.value = -1;
-
     try {
       currentIndex.value = index;
       final song = songs.value[index];
@@ -341,30 +396,22 @@ class AudioController {
     }
   }
 
-  // **********************************************************************
-  // DELETE SONG (Updated: Adds to Blacklist)
-  // **********************************************************************
   Future<void> deleteSong(int songId, String filePath) async {
     bool deleted = false;
     try {
       final file = File(filePath);
       if (await file.exists()) {
         await file.delete();
-        print("File deleted from storage");
         deleted = true;
       } else {
-        print("File not found, removing from list");
         deleted = true;
       }
     } catch (e) {
       print("Error deleting song: $e");
-      // Even if file deletion fails (common on Android 11+ for non-owned files),
-      // we mark it as deleted so we can hide it from the UI.
       deleted = true;
     }
 
     if (deleted) {
-      // ✅ 1. Add ID to Blacklist in SharedPreferences
       final prefs = await SharedPreferences.getInstance();
       List<String> blockedIds = prefs.getStringList('blocked_song_ids') ?? [];
 
@@ -373,36 +420,26 @@ class AudioController {
         await prefs.setStringList('blocked_song_ids', blockedIds);
       }
 
-      // ✅ 2. Remove from Memory List (UI Update)
       songs.value = songs.value.where((song) => song.id != songId).toList();
 
-      // ✅ 3. Stop player if that specific song was playing
       if (currentsong?.id == songId) {
         audioPlayer.stop();
         currentIndex.value = -1;
         isPlaying.value = false;
         clearQueue();
       }
-
       _saveLikesToPrefs();
     }
   }
 
-  // Add inside AudioController class in lib/controller/audio_controller.dart
-
   Future<void> renameSong(int songId, String newTitle) async {
-    // 1. SharedPreferences mein save karein
     final prefs = await SharedPreferences.getInstance();
-    // Key format: 'custom_title_12345'
     await prefs.setString('custom_title_$songId', newTitle);
-
-    // 2. Current List (RAM) update karein taaki app restart kiye bina change dikhe
     final index = songs.value.indexWhere((s) => s.id == songId);
     if (index != -1) {
       final updatedList = List<LocalSongModel>.from(songs.value);
       updatedList[index] = updatedList[index].copyWith(title: newTitle);
-      songs.value =
-          updatedList; // Yeh listener trigger karega aur UI update ho jayegi
+      songs.value = updatedList;
     }
   }
 

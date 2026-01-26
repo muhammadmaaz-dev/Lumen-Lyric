@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:musicapp/controller/audio_controller.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 
@@ -18,19 +19,19 @@ class MiniPlayerUI extends ConsumerWidget {
       decoration: BoxDecoration(
         color: Colors.grey.shade900,
         // Top corners rounded
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(18),
-          topRight: Radius.circular(18),
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(18.r),
+          topRight: Radius.circular(18.r),
         ),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 10),
+          BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 10.r),
         ],
       ),
       child: Column(
         children: [
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
+              padding: EdgeInsets.symmetric(horizontal: 12.w),
               child: Row(
                 children: [
                   // ********** Song Thumbnail **********
@@ -40,23 +41,24 @@ class MiniPlayerUI extends ConsumerWidget {
                       final song = controller.currentsong;
                       if (song == null) return const SizedBox();
                       return Container(
-                        width: 50,
-                        height: 50,
+                        width: 50.w,
+                        height: 50.h,
                         decoration: BoxDecoration(
                           color: Colors.black26,
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(8.r),
                         ),
                         child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(8.r),
                           child: QueryArtworkWidget(
                             id: song.id,
                             type: ArtworkType.AUDIO,
                             artworkHeight: 50,
                             artworkWidth: 50,
                             artworkFit: BoxFit.cover,
-                            nullArtworkWidget: const Icon(
+                            nullArtworkWidget: Icon(
                               Icons.music_note,
                               color: Colors.white,
+                              size: 24.sp,
                             ),
                           ),
                         ),
@@ -64,7 +66,7 @@ class MiniPlayerUI extends ConsumerWidget {
                     },
                   ),
 
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12.w),
 
                   // ********** Title & Artist **********
                   Expanded(
@@ -81,9 +83,9 @@ class MiniPlayerUI extends ConsumerWidget {
                               song.title,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: Colors.white,
-                                fontSize: 16,
+                                fontSize: 16.sp,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -91,9 +93,9 @@ class MiniPlayerUI extends ConsumerWidget {
                               song.artist,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: Colors.white70,
-                                fontSize: 13,
+                                fontSize: 13.sp,
                               ),
                             ),
                           ],
@@ -114,7 +116,7 @@ class MiniPlayerUI extends ConsumerWidget {
                                       : Icons.play_circle,
                                   key: ValueKey(isPlaying),
                                   color: Colors.white,
-                                  size: 40,
+                                  size: 40.sp,
                                 )
                                 .animate(key: ValueKey(isPlaying))
                                 .fadeIn(duration: 300.ms)

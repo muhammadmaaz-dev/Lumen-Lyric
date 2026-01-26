@@ -102,8 +102,8 @@ class FeaturedArtistCard extends StatelessWidget {
             // Play Button (only on first card in design)
             if (showPlayButton)
               Container(
-                width: 35,
-                height: 35,
+                width: 35.w,
+                height: 35.h,
                 decoration: const BoxDecoration(
                   shape: BoxShape.circle,
                   color: Colors.black,

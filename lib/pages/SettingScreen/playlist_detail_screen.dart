@@ -336,6 +336,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                             songId: song.id,
                             isDarkTheme: isDarkTheme,
                             isPlaying: isPlaying,
+                            imageUrl: song.artworkUrl,
                             onTap: () => _playSong(song, playlistSongs),
                             onMenuTap: () {
                               showMenu(
@@ -465,17 +466,9 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                       ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(8),
-                        child: QueryArtworkWidget(
-                          id: song.id,
-                          type: ArtworkType.AUDIO,
-                          artworkHeight: 50,
-                          artworkWidth: 50,
-                          artworkFit: BoxFit.cover,
-                          nullArtworkWidget: Icon(
-                            Icons.music_note,
-                            color: miniPlayerTextColor,
-                            size: 30,
-                          ),
+                        child: _buildMiniPlayerArtwork(
+                          song,
+                          miniPlayerTextColor,
                         ),
                       ),
                     ),
@@ -568,6 +561,48 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildMiniPlayerArtwork(
+    LocalSongModel song,
+    Color miniPlayerTextColor,
+  ) {
+    // 1. Check if artworkUrl exists (for downloaded songs)
+    if (song.artworkUrl != null && song.artworkUrl!.isNotEmpty) {
+      return Image.network(
+        song.artworkUrl!,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          // Fallback to local artwork if network fails
+          return QueryArtworkWidget(
+            id: song.id,
+            type: ArtworkType.AUDIO,
+            artworkHeight: 50,
+            artworkWidth: 50,
+            artworkFit: BoxFit.cover,
+            nullArtworkWidget: Icon(
+              Icons.music_note,
+              color: miniPlayerTextColor,
+              size: 30,
+            ),
+          );
+        },
+      );
+    }
+
+    // 2. Fallback to local artwork
+    return QueryArtworkWidget(
+      id: song.id,
+      type: ArtworkType.AUDIO,
+      artworkHeight: 50,
+      artworkWidth: 50,
+      artworkFit: BoxFit.cover,
+      nullArtworkWidget: Icon(
+        Icons.music_note,
+        color: miniPlayerTextColor,
+        size: 30,
       ),
     );
   }

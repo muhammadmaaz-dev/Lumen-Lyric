@@ -23,28 +23,22 @@ class DownloadController {
 
   final ValueNotifier<bool> isProcessing = ValueNotifier<bool>(false);
 
-  /// Initialize - Load recent downloads from storage
   Future<void> init() async {
     await _loadRecentDownloads();
   }
 
-  /// Validate URL
   bool isValidUrl(String url) {
     return _downloadService.isValidYoutubeUrl(url);
   }
 
-  /// Get metadata preview
-  Future<DownloadMetadataModel> getMetadata(String url) async {
-    return await _downloadService.getMetadata(url);
-  }
-
-  /// Add download to queue
+  /// Add download to queue directly
   Future<void> addToQueue(String youtubeUrl) async {
     if (!isValidUrl(youtubeUrl)) {
       throw Exception('Invalid YouTube URL');
     }
 
     final taskId = _uuid.v4();
+    // Start with minimal info
     final task = DownloadTaskModel(
       id: taskId,
       youtubeUrl: youtubeUrl,
@@ -53,13 +47,12 @@ class DownloadController {
 
     downloadQueue.value = [...downloadQueue.value, task];
 
-    // Start processing if not already
+    // Start processing immediately
     if (!isProcessing.value) {
       _processQueue();
     }
   }
 
-  /// Process download queue
   Future<void> _processQueue() async {
     if (isProcessing.value) return;
     isProcessing.value = true;
@@ -74,13 +67,12 @@ class DownloadController {
       final task = downloadQueue.value[taskIndex];
 
       try {
-        // Update status: Fetching Metadata
+        // 1. Metadata Fetch Karein (Taa ke list mein naam show ho)
         _updateTask(task.id, status: DownloadStatus.fetchingMetadata);
-
         final metadata = await _downloadService.getMetadata(task.youtubeUrl);
         _updateTask(task.id, metadata: metadata);
 
-        // Start download
+        // 2. Download Start Karein
         final result = await _downloadService.downloadAudio(
           task.youtubeUrl,
           onStageChange: (stage) {
@@ -113,16 +105,16 @@ class DownloadController {
             task.id,
             status: DownloadStatus.completed,
             filePath: result.filePath,
-            metadata: result.metadata,
+            metadata: result.metadata, // Use final metadata from server
             progress: 1.0,
           );
 
-          // Add to recent downloads
-          _addToRecentDownloads(
+          await _addToRecentDownloads(
             downloadQueue.value.firstWhere((t) => t.id == task.id),
           );
 
-          // Refresh audio library to include new song
+          debugPrint("✅ Download Done. Triggering Scan...");
+          await AudioController.instance.scanNewMedia(result.filePath!);
           await AudioController.instance.loadSongs();
         } else {
           _updateTask(
@@ -169,12 +161,9 @@ class DownloadController {
   Future<void> _addToRecentDownloads(DownloadTaskModel task) async {
     final recent = List<DownloadTaskModel>.from(recentDownloads.value);
     recent.insert(0, task);
-
-    // Keep only last 20 downloads
     if (recent.length > 20) {
       recent.removeRange(20, recent.length);
     }
-
     recentDownloads.value = recent;
     await _saveRecentDownloads();
   }
@@ -221,11 +210,5 @@ class DownloadController {
     recentDownloads.value = [];
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('recent_downloads');
-  }
-
-  void removeFromQueue(String taskId) {
-    downloadQueue.value = downloadQueue.value
-        .where((t) => t.id != taskId)
-        .toList();
   }
 }

@@ -179,6 +179,7 @@ class _LikedSongsScreenState extends State<LikedSongsScreen> {
                                         duration: song.duration,
                                         songId: song.id,
                                         isPlaying: isPlaying,
+                                        imageUrl: song.artworkUrl,
                                         onTap: () {
                                           // Play from liked songs queue only
                                           controller.playFromPlaylist(
@@ -197,6 +198,7 @@ class _LikedSongsScreenState extends State<LikedSongsScreen> {
                                                   title: song.title,
                                                   artist: song.artist,
                                                   filePath: song.uri,
+                                                  imageUrl: song.artworkUrl,
                                                 ),
                                           );
                                         },
@@ -317,17 +319,9 @@ class _LikedSongsScreenState extends State<LikedSongsScreen> {
                       ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(8.r),
-                        child: QueryArtworkWidget(
-                          id: song.id,
-                          type: ArtworkType.AUDIO,
-                          artworkHeight: 44.h,
-                          artworkWidth: 44.w,
-                          artworkFit: BoxFit.cover,
-                          nullArtworkWidget: Icon(
-                            Icons.music_note,
-                            color: miniPlayerTextColor,
-                            size: 26.sp,
-                          ),
+                        child: _buildMiniPlayerArtwork(
+                          song,
+                          miniPlayerTextColor,
                         ),
                       ),
                     ),
@@ -420,6 +414,48 @@ class _LikedSongsScreenState extends State<LikedSongsScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildMiniPlayerArtwork(
+    LocalSongModel song,
+    Color miniPlayerTextColor,
+  ) {
+    // 1. Check if artworkUrl exists (for downloaded songs)
+    if (song.artworkUrl != null && song.artworkUrl!.isNotEmpty) {
+      return Image.network(
+        song.artworkUrl!,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          // Fallback to local artwork if network fails
+          return QueryArtworkWidget(
+            id: song.id,
+            type: ArtworkType.AUDIO,
+            artworkHeight: 44.h,
+            artworkWidth: 44.w,
+            artworkFit: BoxFit.cover,
+            nullArtworkWidget: Icon(
+              Icons.music_note,
+              color: miniPlayerTextColor,
+              size: 26.sp,
+            ),
+          );
+        },
+      );
+    }
+
+    // 2. Fallback to local artwork
+    return QueryArtworkWidget(
+      id: song.id,
+      type: ArtworkType.AUDIO,
+      artworkHeight: 44.h,
+      artworkWidth: 44.w,
+      artworkFit: BoxFit.cover,
+      nullArtworkWidget: Icon(
+        Icons.music_note,
+        color: miniPlayerTextColor,
+        size: 26.sp,
       ),
     );
   }

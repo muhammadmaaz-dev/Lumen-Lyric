@@ -7,8 +7,8 @@ class SongTile extends StatelessWidget {
   final String title;
   final String artist;
   final int duration;
-  final int? songId; // For QueryArtworkWidget
-  final String? imageUrl; // For NetworkImage fallback or alternative
+  final int? songId;
+  final String? imageUrl; // ✅ Added URL field
   final VoidCallback? onTap;
   final VoidCallback? onMenuTap;
   final bool isDarkTheme;
@@ -20,7 +20,7 @@ class SongTile extends StatelessWidget {
     required this.artist,
     required this.duration,
     this.songId,
-    this.imageUrl,
+    this.imageUrl, // ✅ Constructor mein receive karein
     this.onTap,
     this.onMenuTap,
     required this.isDarkTheme,
@@ -32,7 +32,7 @@ class SongTile extends StatelessWidget {
     final textColor = isDarkTheme ? Colors.white : Colors.black;
     final secondaryTextColor = isDarkTheme ? Colors.grey[400] : Colors.grey;
     final titleColor = isPlaying
-        ? const Color(0xFF8E97FD) // Highlight Color
+        ? const Color(0xFF8E97FD)
         : (isDarkTheme ? Colors.white : Colors.black);
 
     return Padding(
@@ -45,7 +45,7 @@ class SongTile extends StatelessWidget {
           width: double.infinity,
           child: Row(
             children: [
-              // Album Art Placeholder
+              // Album Art
               Container(
                 width: 48.h,
                 height: 48.h,
@@ -106,7 +106,25 @@ class SongTile extends StatelessWidget {
     );
   }
 
+  // ✅✅✅ LOGIC UPDATE: Priority to Image URL
   Widget _buildArtwork(Color? placeholderColor) {
+    // 1. Agar Online Image URL hai (Downloaded song)
+    if (imageUrl != null && imageUrl!.isNotEmpty) {
+      return Image.network(
+        imageUrl!,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          // Agar net fail ho jaye to Local ID try karein
+          return _buildLocalArtwork(placeholderColor);
+        },
+      );
+    }
+
+    // 2. Agar URL nahi hai to Local ID se try karein
+    return _buildLocalArtwork(placeholderColor);
+  }
+
+  Widget _buildLocalArtwork(Color? placeholderColor) {
     if (songId != null) {
       return QueryArtworkWidget(
         keepOldArtwork: true,
@@ -118,17 +136,8 @@ class SongTile extends StatelessWidget {
           size: 30,
         ),
       );
-    } else if (imageUrl != null) {
-      return Image.network(
-        imageUrl!,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) {
-          return Icon(Icons.music_note, color: placeholderColor, size: 30);
-        },
-      );
-    } else {
-      return Icon(Icons.music_note, color: placeholderColor, size: 30);
     }
+    return Icon(Icons.music_note, color: placeholderColor, size: 30);
   }
 }
 

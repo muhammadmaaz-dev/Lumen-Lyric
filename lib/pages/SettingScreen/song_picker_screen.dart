@@ -348,15 +348,7 @@ class _SongPickerScreenState extends ConsumerState<SongPickerScreen> {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: QueryArtworkWidget(
-                    id: song.id,
-                    type: ArtworkType.AUDIO,
-                    nullArtworkWidget: Icon(
-                      Icons.music_note,
-                      color: secondaryTextColor,
-                      size: 24,
-                    ),
-                  ),
+                  child: _buildSongArtwork(song, secondaryTextColor),
                 ),
               ),
               const SizedBox(width: 12),
@@ -389,6 +381,39 @@ class _SongPickerScreenState extends ConsumerState<SongPickerScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildSongArtwork(LocalSongModel song, Color? secondaryTextColor) {
+    // 1. Check if artworkUrl exists (for downloaded songs)
+    if (song.artworkUrl != null && song.artworkUrl!.isNotEmpty) {
+      return Image.network(
+        song.artworkUrl!,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          // Fallback to local artwork if network fails
+          return QueryArtworkWidget(
+            id: song.id,
+            type: ArtworkType.AUDIO,
+            nullArtworkWidget: Icon(
+              Icons.music_note,
+              color: secondaryTextColor,
+              size: 24,
+            ),
+          );
+        },
+      );
+    }
+
+    // 2. Fallback to local artwork
+    return QueryArtworkWidget(
+      id: song.id,
+      type: ArtworkType.AUDIO,
+      nullArtworkWidget: Icon(
+        Icons.music_note,
+        color: secondaryTextColor,
+        size: 24,
       ),
     );
   }

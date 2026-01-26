@@ -7,10 +7,9 @@ import 'package:miniplayer/miniplayer.dart';
 import 'package:musicapp/controller/audio_controller.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:musicapp/provider/audio_provider.dart';
-import 'package:musicapp/provider/theme_provider.dart'; // ✅ Import this for Prefs
+import 'package:musicapp/provider/theme_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-// 1. Change to ConsumerStatefulWidget
 class FullPlayer extends ConsumerStatefulWidget {
   final MiniplayerController? miniplayerController;
 
@@ -25,13 +24,11 @@ class _FullPlayerState extends ConsumerState<FullPlayer> {
       DraggableScrollableController();
 
   bool isExpanded = false;
-  late bool _showLottie; // ✅ Removed default value, marked as late
+  late bool _showLottie;
 
   @override
   void initState() {
     super.initState();
-    // 2. Load saved state INSTANTLY (Synchronous)
-    // This prevents the "False -> True" flip that causes the animation loop
     final prefs = ref.read(sharedPreferencesProvider);
     _showLottie = prefs.getBool('show_lottie_convert') ?? false;
 
@@ -190,6 +187,8 @@ class _FullPlayerState extends ConsumerState<FullPlayer> {
                                 child: AlbumArtWidget(
                                   key: ValueKey(song.id),
                                   songId: song.id,
+                                  artworkUrl:
+                                      song.artworkUrl, // ✅ PASS URL HERE
                                   isDarkTheme: isDarkTheme,
                                   heartBgColor: heartBgColor,
                                 ),
@@ -238,7 +237,7 @@ class _FullPlayerState extends ConsumerState<FullPlayer> {
                       child: const PlayerProgressBar(),
                     ),
 
-                    const SizedBox(height: 5),
+                    SizedBox(height: 5.h),
 
                     // ********** CONTROLS **********
                     Expanded(
@@ -418,15 +417,17 @@ class _FullPlayerState extends ConsumerState<FullPlayer> {
   }
 }
 
-// ... Keep AlbumArtWidget and PlayerProgressBar as they were
+// ✅ UPDATED AlbumArtWidget Logic
 class AlbumArtWidget extends StatefulWidget {
   final int songId;
+  final String? artworkUrl; // ✅ ADD THIS
   final bool isDarkTheme;
   final Color heartBgColor;
 
   const AlbumArtWidget({
     Key? key,
     required this.songId,
+    this.artworkUrl, // ✅ Receive it
     required this.isDarkTheme,
     required this.heartBgColor,
   }) : super(key: key);
@@ -463,29 +464,18 @@ class _AlbumArtWidgetState extends State<AlbumArtWidget> {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(26.r),
-              child: QueryArtworkWidget(
-                id: widget.songId,
-                type: ArtworkType.AUDIO,
-                artworkHeight: 264.h,
-                artworkWidth: 264.w,
-                artworkFit: BoxFit.cover,
-                keepOldArtwork: true,
-                nullArtworkWidget: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(45.r),
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF8E97FD), Color(0xFFC2E9FB)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                  ),
-                  child: Icon(
-                    Icons.music_note,
-                    size: 70.sp,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
+              // ✅ Logic to prioritize Network Image
+              child:
+                  (widget.artworkUrl != null && widget.artworkUrl!.isNotEmpty)
+                  ? Image.network(
+                      widget.artworkUrl!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        // Fallback to local artwork if network fails
+                        return _buildLocalArtwork();
+                      },
+                    )
+                  : _buildLocalArtwork(),
             ),
           ),
 
@@ -529,6 +519,28 @@ class _AlbumArtWidgetState extends State<AlbumArtWidget> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildLocalArtwork() {
+    return QueryArtworkWidget(
+      id: widget.songId,
+      type: ArtworkType.AUDIO,
+      artworkHeight: 264.h,
+      artworkWidth: 264.w,
+      artworkFit: BoxFit.cover,
+      keepOldArtwork: true,
+      nullArtworkWidget: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(45.r),
+          gradient: const LinearGradient(
+            colors: [Color(0xFF8E97FD), Color(0xFFC2E9FB)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Icon(Icons.music_note, size: 70.sp, color: Colors.white),
       ),
     );
   }
