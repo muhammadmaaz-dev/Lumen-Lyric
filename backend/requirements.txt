@@ -1,4 +1,5 @@
 fastapi
 uvicorn[standard]
 yt-dlp>=2025.1.0
+yt-dlp-ejs>=0.3.0
 python-multipart
