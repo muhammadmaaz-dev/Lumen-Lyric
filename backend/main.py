@@ -143,7 +143,8 @@ def download_audio(request: DownloadRequest):
     os.makedirs(download_path, exist_ok=True)
 
     try:
-        output_template = os.path.join(download_path, "%(title)s.%(ext)s")
+        # ✅ FIX: Use a fixed filename 'audio' to avoid URL encoding issues with special characters in titles
+        output_template = os.path.join(download_path, "audio.%(ext)s")
 
         ydl_opts = get_ydl_opts()
         ydl_opts.update({
@@ -173,11 +174,12 @@ def download_audio(request: DownloadRequest):
         return {
             "success": True,
             "download_id": download_id,
-            "filename": os.path.basename(mp3_file),
+            "filename": os.path.basename(mp3_file), # This will now be 'audio.mp3'
             "metadata": {
-                "title": info.get("title"),
+                "title": info.get("title"), # The REAL title is sent here
                 "artist": info.get("artist") or info.get("uploader"),
                 "duration": info.get("duration", 0),
+                "thumbnail": info.get("thumbnail") # Ensure thumbnail is passed
             }
         }
     except Exception as e:
