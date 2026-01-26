@@ -6,8 +6,14 @@ import yt_dlp
 import os
 import uuid
 import shutil
+import logging
+from pathlib import Path
 
 app = FastAPI(title="YT-DLP MP3 API")
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Enable CORS for Flutter app
 app.add_middleware(
@@ -18,7 +24,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-DOWNLOAD_DIR = "/tmp/downloads"
+DOWNLOAD_DIR = os.getenv("DOWNLOAD_DIR", "/tmp/downloads")
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
 
@@ -91,7 +97,8 @@ def get_metadata(request: MetadataRequest):
                 "categories": info.get("categories", []),
             }
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        logger.error(f"Metadata extraction failed: {str(e)}")
+        raise HTTPException(status_code=400, detail="Failed to extract metadata from the provided URL")
 
 
 @app.post("/download")
@@ -155,14 +162,30 @@ def download_audio(request: DownloadRequest):
                 }
             }
     except Exception as e:
+        logger.error(f"Download failed: {str(e)}")
         shutil.rmtree(download_path, ignore_errors=True)
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail="Failed to download and convert the video")
 
 
 @app.get("/file/{download_id}/{filename}")
 def get_file(download_id: str, filename: str):
     """Serve the downloaded MP3 file"""
+    # Validate download_id and filename to prevent path traversal
+    if ".." in download_id or "/" in download_id or "\\" in download_id:
+        raise HTTPException(status_code=400, detail="Invalid download ID")
+    if ".." in filename or "/" in filename or "\\" in filename:
+        raise HTTPException(status_code=400, detail="Invalid filename")
+    
     file_path = os.path.join(DOWNLOAD_DIR, download_id, filename)
+    
+    # Ensure the resolved path is still within DOWNLOAD_DIR
+    try:
+        real_path = Path(file_path).resolve()
+        real_download_dir = Path(DOWNLOAD_DIR).resolve()
+        if not str(real_path).startswith(str(real_download_dir)):
+            raise HTTPException(status_code=400, detail="Invalid file path")
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid file path")
 
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="File not found")
@@ -177,7 +200,21 @@ def get_file(download_id: str, filename: str):
 @app.delete("/cleanup/{download_id}")
 def cleanup(download_id: str):
     """Clean up downloaded files"""
+    # Validate download_id to prevent path traversal
+    if ".." in download_id or "/" in download_id or "\\" in download_id:
+        raise HTTPException(status_code=400, detail="Invalid download ID")
+    
     download_path = os.path.join(DOWNLOAD_DIR, download_id)
+    
+    # Ensure the resolved path is still within DOWNLOAD_DIR
+    try:
+        real_path = Path(download_path).resolve()
+        real_download_dir = Path(DOWNLOAD_DIR).resolve()
+        if not str(real_path).startswith(str(real_download_dir)):
+            raise HTTPException(status_code=400, detail="Invalid download ID")
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid download ID")
+    
     if os.path.exists(download_path):
         shutil.rmtree(download_path)
         return {"success": True}
