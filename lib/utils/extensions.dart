@@ -1,24 +1,25 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 
-// Ye extension ValueNotifier ko Stream mein convert karti hai
-extension ValueListenableStream<T> on ValueListenable<T> {
+extension ValueNotifierExtension<T> on ValueNotifier<T> {
+  /// Converts a ValueNotifier to a broadcast Stream
   Stream<T> get asBroadcastStream {
     final controller = StreamController<T>.broadcast();
 
-    // 1. Jaise hi koi listen kare, usay current value bhej do
-    controller.add(this.value);
+    // Emit initial value
+    controller.add(value);
 
-    // 2. Jab bhi value change ho, stream mein naya data daal do
+    // Listen to changes
     void listener() {
-      controller.add(this.value);
+      if (!controller.isClosed) {
+        controller.add(value);
+      }
     }
 
-    this.addListener(listener);
+    addListener(listener);
 
-    // 3. Jab koi sunna band kar de, to listener hata do (Memory Leak se bachne ke liye)
     controller.onCancel = () {
-      this.removeListener(listener);
+      removeListener(listener);
     };
 
     return controller.stream;

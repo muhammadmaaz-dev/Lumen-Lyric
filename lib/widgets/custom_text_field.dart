@@ -32,7 +32,7 @@ class CustomTextField extends StatelessWidget {
     final secondaryTextColor = isDarkTheme ? Colors.grey[400] : Colors.grey;
 
     return Container(
-      height: 44.h,
+      height: 50.h,
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(26.r),

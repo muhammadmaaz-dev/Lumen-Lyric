@@ -7,20 +7,24 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:musicapp/core/configs/theme/app_theme.dart';
 import 'package:musicapp/pages/onboarding/onboarding_wrapper.dart';
 import 'package:musicapp/provider/theme_provider.dart';
+import 'package:musicapp/controller/download_controller.dart'; // ✅ Add this import
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // ✅ 2. Lock Orientation to Portrait
+  // ✅ 1. Lock Orientation to Portrait
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
 
-  // Load SharedPreferences
+  // ✅ 2. Load SharedPreferences
   final prefs = await SharedPreferences.getInstance();
 
-  // Get the saved theme immediately (Sync)
+  // ✅ 3. Initialize Download Controller
+  await DownloadController.instance.init();
+
+  // ✅ 4. Get the saved theme immediately (Sync)
   final savedThemeString = prefs.getString('theme_mode');
   final initialTheme = ThemeMode.values.firstWhere(
     (e) => e.toString() == savedThemeString,
@@ -46,9 +50,6 @@ class MyApp extends ConsumerStatefulWidget {
 }
 
 class _MyAppState extends ConsumerState<MyApp> {
-  // ❌ REMOVED: No need for initState or addPostFrameCallback anymore.
-  // The theme is now loaded before the app starts.
-
   @override
   Widget build(BuildContext context) {
     final themeMode = ref.watch(themeModeProvider);
@@ -64,7 +65,6 @@ class _MyAppState extends ConsumerState<MyApp> {
           theme: AppTheme.lighttheme,
           darkTheme: AppTheme.darktheme,
           themeMode: themeMode,
-          // Keep this zero if you want instant switching
           themeAnimationDuration: Duration.zero,
           home: child,
         );

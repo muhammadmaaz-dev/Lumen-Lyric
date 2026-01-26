@@ -29,6 +29,18 @@ dependencies:
   cupertino_modal_sheet: ^1.1.0
   modal_bottom_sheet: ^3.0.0
   url_launcher: ^6.3.2
+  http: ^1.6.0
+  dio: ^5.9.0
+    # For HTTP requests & file downloads
+  
+  # For getting app directories
+  path_provider: ^2.1.2
+  
+  # For generating unique IDs
+  uuid: ^4.2.1
+  
+  # For image caching (thumbnails)
+  cached_network_image: ^3.3.1
   
 
 dev_dependencies:

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:musicapp/pages/SettingScreen/download_screen.dart';
 import 'package:musicapp/pages/SettingScreen/liked_songs_screen.dart';
 import 'package:musicapp/pages/SettingScreen/playlists.dart';
 import 'package:musicapp/provider/theme_provider.dart';
@@ -196,7 +197,14 @@ class SettingScreen extends ConsumerWidget {
                             SettingsTile(
                               icon: Icons.download_outlined,
                               title: 'Downloads',
-                              onTap: () {},
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  SlideRightToLeftRoute(
+                                    page: const DownloadsScreen(),
+                                  ),
+                                );
+                              },
                               isDarkTheme: isDarkTheme,
                               isLast: true,
                               textColor: textColor,
