@@ -109,7 +109,9 @@ def download_audio(request: DownloadRequest):
     download_path = os.path.join(DOWNLOAD_DIR, download_id)
     os.makedirs(download_path, exist_ok=True)
 
-    output_template = os.path.join(download_path, "%(title)s.%(ext)s")
+    # Use a safe filename to prevent path traversal via video title
+    safe_filename = "audio"
+    output_template = os.path.join(download_path, f"{safe_filename}.%(ext)s")
 
     ydl_opts = get_ydl_opts()
     ydl_opts.update({
@@ -140,14 +142,15 @@ def download_audio(request: DownloadRequest):
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(request.url, download=True)
 
-            mp3_file = None
-            for file in os.listdir(download_path):
-                if file.endswith('.mp3'):
-                    mp3_file = os.path.join(download_path, file)
-                    break
-
-            if not mp3_file:
-                raise HTTPException(status_code=500, detail="MP3 file not created")
+            # Find the MP3 file with safe filename
+            mp3_file = os.path.join(download_path, f"{safe_filename}.mp3")
+            if not os.path.exists(mp3_file):
+                # Fallback: find any MP3 file in the directory
+                mp3_files = [f for f in os.listdir(download_path) if f.endswith('.mp3')]
+                if mp3_files:
+                    mp3_file = os.path.join(download_path, mp3_files[0])
+                else:
+                    raise HTTPException(status_code=500, detail="MP3 file not created")
 
             return {
                 "success": True,
