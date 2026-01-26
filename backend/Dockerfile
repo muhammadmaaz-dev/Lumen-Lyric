@@ -1,27 +1,31 @@
 FROM python:3.11-slim
 
-# Install ffmpeg, curl (for deno install), and unzip
+# Install system dependencies
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends ffmpeg curl unzip && \
-    apt-get clean && \
+    apt-get install -y --no-install-recommends \
+    ffmpeg \
+    curl \
+    unzip \
+    ca-certificates \
+    && apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Install Deno (required for yt-dlp YouTube extraction)
-RUN curl -fsSL https://deno.land/install.sh | sh
-ENV DENO_INSTALL="/root/.deno"
-ENV PATH="$DENO_INSTALL/bin:$PATH"
+# Install Deno properly
+RUN curl -fsSL https://deno.land/x/install/install.sh | DENO_INSTALL=/usr/local sh -s v2.1.4
+
+# Verify Deno is installed
+RUN deno --version
 
 WORKDIR /app
 
-# Copy requirements first for better caching
 COPY requirements.txt .
 
-# Install dependencies with no cache to get latest versions
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+    pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir --upgrade yt-dlp
 
-# Force upgrade yt-dlp to absolute latest
-RUN pip install --no-cache-dir --upgrade yt-dlp
+# Install yt-dlp JavaScript challenge solver
+RUN pip install --no-cache-dir yt-dlp-ejs
 
 COPY . .
 
