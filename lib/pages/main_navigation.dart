@@ -96,13 +96,12 @@ class _MainNavigationState extends State<MainNavigation> {
                   controller: _playerController,
                   minHeight: _playerMinHeight,
                   maxHeight: MediaQuery.of(context).size.height,
-                  elevation: 8,
+                  elevation: 0,
+                  backgroundColor: Colors.transparent,
                   curve: Curves.easeOutQuart,
                   onDismiss: () {
                     // Stop playback and hide miniplayer when dragged down
-                    controller.audioPlayer.stop();
-                    controller.currentIndex.value = -1;
-                    controller.isPlaying.value = false;
+                    controller.closePlayer();
                   },
                   builder: (height, percentage) {
                     // Update percentage state for hiding bottom nav
@@ -362,7 +361,6 @@ class _MainNavigationState extends State<MainNavigation> {
         },
       );
     }
-
     // 2. Fallback to local artwork
     return QueryArtworkWidget(
       id: song.id,
@@ -377,4 +375,3 @@ class _MainNavigationState extends State<MainNavigation> {
       ),
     );
   }
-}

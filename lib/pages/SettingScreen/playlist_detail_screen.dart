@@ -338,28 +338,28 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                             isPlaying: isPlaying,
                             imageUrl: song.artworkUrl,
                             onTap: () => _playSong(song, playlistSongs),
-                            onMenuTap: () {
-                              showMenu(
-                                context: context,
-                                position: RelativeRect.fromLTRB(100, 100, 0, 0),
-                                items: [
-                                  PopupMenuItem(
-                                    value: 'remove',
-                                    onTap: () => _removeSong(song.id),
-                                    child: Row(
-                                      children: [
-                                        Icon(
-                                          Icons.remove_circle_outline,
-                                          size: 20,
-                                          color: Colors.red[400],
-                                        ),
-                                        const SizedBox(width: 12),
-                                        const Text('Remove from playlist'),
-                                      ],
+                            // ✅ NEW: Pass menu items here directly
+                            menuItems: [
+                              PopupMenuItem<String>(
+                                value: 'remove',
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.remove_circle_outline,
+                                      size: 20,
+                                      color: Colors.red[400],
                                     ),
-                                  ),
-                                ],
-                              );
+                                    const SizedBox(width: 12),
+                                    const Text('Remove from playlist'),
+                                  ],
+                                ),
+                              ),
+                            ],
+                            // ✅ NEW: Handle selection here
+                            onMenuItemSelected: (value) {
+                              if (value == 'remove') {
+                                _removeSong(song.id);
+                              }
                             },
                           );
                         },
@@ -389,10 +389,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                 curve: Curves.easeOutQuart,
                 onDismiss: () {
                   // Stop playback and hide miniplayer when dragged down
-                  controller.audioPlayer.stop();
-                  controller.currentIndex.value = -1;
-                  controller.isPlaying.value = false;
-                  controller.clearQueue();
+                  controller.closePlayer();
                 },
                 builder: (height, percentage) {
                   final song = controller.currentsong;

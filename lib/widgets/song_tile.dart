@@ -8,9 +8,15 @@ class SongTile extends StatelessWidget {
   final String artist;
   final int duration;
   final int? songId;
-  final String? imageUrl; // ✅ Added URL field
+  final String? imageUrl;
   final VoidCallback? onTap;
-  final VoidCallback? onMenuTap;
+
+  // ✅ Supports BOTH callbacks now to prevent errors
+  final VoidCallback? onMenuTap; // For BottomSheet (Library/Liked Screens)
+  final List<PopupMenuEntry<String>>?
+  menuItems; // For PopupMenu (Playlist Screen)
+  final void Function(String)? onMenuItemSelected; // For PopupMenu Selection
+
   final bool isDarkTheme;
   final bool isPlaying;
 
@@ -20,9 +26,11 @@ class SongTile extends StatelessWidget {
     required this.artist,
     required this.duration,
     this.songId,
-    this.imageUrl, // ✅ Constructor mein receive karein
+    this.imageUrl,
     this.onTap,
-    this.onMenuTap,
+    this.onMenuTap, // Restored
+    this.menuItems, // New
+    this.onMenuItemSelected, // New
     required this.isDarkTheme,
     this.isPlaying = false,
   });
@@ -94,11 +102,8 @@ class SongTile extends StatelessWidget {
                 ),
               ),
 
-              // Menu Icon
-              IconButton(
-                onPressed: onMenuTap,
-                icon: Icon(Icons.more_vert, color: titleColor),
-              ),
+              // ✅ LOGIC: Choose between PopupMenu (Playlist) OR IconButton (Library)
+              _buildMenuButton(titleColor),
             ],
           ),
         ),
@@ -106,21 +111,35 @@ class SongTile extends StatelessWidget {
     );
   }
 
-  // ✅✅✅ LOGIC UPDATE: Priority to Image URL
+  Widget _buildMenuButton(Color iconColor) {
+    // 1. If menuItems are provided, use PopupMenuButton (Fixes positioning issue)
+    if (menuItems != null && menuItems!.isNotEmpty) {
+      return PopupMenuButton<String>(
+        icon: Icon(Icons.more_vert, color: iconColor),
+        onSelected: onMenuItemSelected,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        color: isDarkTheme ? Colors.grey[900] : Colors.white,
+        itemBuilder: (context) => menuItems!,
+      );
+    }
+
+    // 2. Otherwise use standard IconButton (Fixes "error on other screens")
+    return IconButton(
+      onPressed: onMenuTap,
+      icon: Icon(Icons.more_vert, color: iconColor),
+    );
+  }
+
   Widget _buildArtwork(Color? placeholderColor) {
-    // 1. Agar Online Image URL hai (Downloaded song)
     if (imageUrl != null && imageUrl!.isNotEmpty) {
       return Image.network(
         imageUrl!,
         fit: BoxFit.cover,
         errorBuilder: (context, error, stackTrace) {
-          // Agar net fail ho jaye to Local ID try karein
           return _buildLocalArtwork(placeholderColor);
         },
       );
     }
-
-    // 2. Agar URL nahi hai to Local ID se try karein
     return _buildLocalArtwork(placeholderColor);
   }
 

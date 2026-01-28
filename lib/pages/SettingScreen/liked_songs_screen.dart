@@ -186,6 +186,7 @@ class _LikedSongsScreenState extends State<LikedSongsScreen> {
                                             likedSongs,
                                             index,
                                           );
+                                          FocusScope.of(context).unfocus();
                                         },
                                         onMenuTap: () {
                                           showModalBottomSheet(
@@ -201,6 +202,7 @@ class _LikedSongsScreenState extends State<LikedSongsScreen> {
                                                   imageUrl: song.artworkUrl,
                                                 ),
                                           );
+                                          FocusScope.of(context).unfocus();
                                         },
                                         isDarkTheme: isDarkTheme,
                                       );
@@ -237,14 +239,7 @@ class _LikedSongsScreenState extends State<LikedSongsScreen> {
                 elevation: 8,
                 curve: Curves.easeOutQuart,
                 onDismiss: () {
-                  controller.audioPlayer.stop();
-                  controller.currentIndex.value = -1;
-                  controller.isPlaying.value = false;
-                  // ✅ 1. Clear queue FIRST (Resets flags like _isPlayingFromQueue)
-                  controller.clearQueue();
-
-                  // ✅ 2. Then update index (Triggers UI rebuild with correct state)
-                  controller.currentIndex.value = -1;
+                  controller.closePlayer();
                 },
                 builder: (height, percentage) {
                   final song = controller.currentsong;
@@ -555,6 +550,7 @@ class _LikedSongsScreenState extends State<LikedSongsScreen> {
           // Play from liked songs queue starting from first song
           controller.playFromPlaylist(likedSongs, 0);
         }
+        FocusScope.of(context).unfocus();
       },
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 15.w, vertical: 7.h),

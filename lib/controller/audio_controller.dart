@@ -1,12 +1,13 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:just_audio_background/just_audio_background.dart';
 import 'package:musicapp/models/local_song_model.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:flutter_audio_tagger/flutter_audio_tagger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'dart:convert'; // ✅ JSON ke liye zaroori
+import 'dart:convert';
 
 class AudioController {
   static final AudioController instance = AudioController._instance();
@@ -35,6 +36,9 @@ class AudioController {
 
   bool _isFetching = false;
 
+  // ✅ 1. Ghosting Fix Flag
+  bool _isPlayerDismissed = false;
+
   LocalSongModel? get currentsong {
     if (_isPlayingFromQueue &&
         queueIndex.value != -1 &&
@@ -47,24 +51,32 @@ class AudioController {
   }
 
   void _setupAudioPlayer() {
+    // 1. Sync Playing State
     audioPlayer.playerStateStream.listen((playerState) {
       isPlaying.value = playerState.playing;
 
+      // ✅ NOTE: Removed Manual "Auto-Play Next" logic here.
+      // just_audio's ConcatenatingAudioSource handles this automatically now.
+      // If we keep it, it might cause double-skips.
       if (playerState.processingState == ProcessingState.completed) {
+        isPlaying.value = false;
+        // Optionally reset UI when playlist ends
+      }
+    });
+
+    // 2. Sync Current Song Index (Handles Background Next/Prev updates)
+    audioPlayer.currentIndexStream.listen((index) {
+      // ✅ FIX: Only update index if Player is NOT dismissed
+      if (index != null && !_isPlayerDismissed) {
+        currentIndex.value = index;
+
         if (_isPlayingFromQueue) {
-          if (queueIndex.value < playbackQueue.value.length - 1) {
-            _playFromQueue(queueIndex.value + 1);
-          } else {
-            isPlaying.value = false;
-            audioPlayer.stop();
-          }
-        } else {
-          if (currentIndex.value < songs.value.length - 1) {
-            nextSong();
-          } else {
-            isPlaying.value = false;
-            audioPlayer.stop();
-          }
+          queueIndex.value = index;
+        }
+
+        final song = currentsong;
+        if (song != null) {
+          _fetchLyrics(song.uri);
         }
       }
     });
@@ -95,39 +107,27 @@ class AudioController {
     _isFetching = true;
 
     try {
-      // -------------------------------------------------------------
-      // 1. STRICT PERMISSION CHECK (CRASH FIX)
-      // -------------------------------------------------------------
       bool hasPermission = false;
-
-      // Android 13+ ke liye READ_MEDIA_AUDIO, purane ke liye STORAGE
       if (await Permission.audio.isGranted ||
           await Permission.storage.isGranted) {
         hasPermission = true;
       } else {
-        // Agar permission nahi hai, to maangien
         Map<Permission, PermissionStatus> statuses = await [
           Permission.audio,
           Permission.storage,
         ].request();
-
-        // Dobara check karein
         if (statuses[Permission.audio] == PermissionStatus.granted ||
             statuses[Permission.storage] == PermissionStatus.granted) {
           hasPermission = true;
         }
       }
 
-      // 🛑 AGAR PERMISSION ABHI BHI NAHI MILI TO RETURN KAR JAYEN (CRASH ROKNE KE LIYE)
       if (!hasPermission) {
-        debugPrint("❌ Permission Denied. Skipping song load to prevent crash.");
+        debugPrint("❌ Permission Denied. Skipping song load.");
         _isFetching = false;
         return;
       }
 
-      // -------------------------------------------------------------
-      // 2. QUERY SONGS (Ab Safe Hai)
-      // -------------------------------------------------------------
       final fetchSongs = await audioQuery.querySongs(
         sortType: null,
         orderType: OrderType.ASC_OR_SMALLER,
@@ -138,10 +138,8 @@ class AudioController {
       final prefs = await SharedPreferences.getInstance();
       final blockedIds = prefs.getStringList('blocked_song_ids') ?? [];
 
-      // 3. Load Metadata (Artist & Artwork) from Recent Downloads
       Map<String, String> artistMap = {};
       Map<String, String> artworkMap = {};
-
       final recentData = prefs.getString('recent_downloads');
 
       if (recentData != null) {
@@ -151,13 +149,9 @@ class AudioController {
             final path = item['filePath'];
             final meta = item['metadata'];
             if (path != null && meta != null) {
-              if (meta['artist'] != null &&
-                  meta['artist'].toString().isNotEmpty) {
-                artistMap[path] = meta['artist'];
-              }
-              if (meta['thumbnail'] != null) {
+              if (meta['artist'] != null) artistMap[path] = meta['artist'];
+              if (meta['thumbnail'] != null)
                 artworkMap[path] = meta['thumbnail'];
-              }
             }
           }
         } catch (e) {
@@ -165,7 +159,6 @@ class AudioController {
         }
       }
 
-      // 4. Map Songs
       songs.value = fetchSongs
           .where((s) => !blockedIds.contains(s.id.toString()))
           .map((s) {
@@ -174,18 +167,15 @@ class AudioController {
             String songUri = s.uri ?? s.data;
             String displayTitle = s.title;
 
-            // Custom Title
             String customTitleKey = 'custom_title_${s.id}';
             if (prefs.containsKey(customTitleKey)) {
               displayTitle = prefs.getString(customTitleKey) ?? s.title;
             }
 
-            // Artist Logic
             String displayArtist =
                 artistMap[s.data] ?? s.artist ?? "Unknown Artist";
             if (displayArtist == "<unknown>") displayArtist = "Unknown Artist";
 
-            // Artwork Logic
             String? customArt = artworkMap[s.data];
 
             return LocalSongModel(
@@ -210,14 +200,35 @@ class AudioController {
     }
   }
 
-  // ... (Baqi helper methods same hain: _buildUri, playSong, etc.)
-  // Copy paste existing methods here...
-
   Uri _buildUri(String uri) {
     if (uri.startsWith("content://")) return Uri.parse(uri);
     if (uri.startsWith("/storage") || uri.startsWith("/sdcard"))
       return Uri.file(uri);
     return Uri.parse(uri);
+  }
+
+  // ✅ Helper to create AudioSource with Notification Data
+  AudioSource _createAudioSource(LocalSongModel song) {
+    Uri audioUri = _buildUri(song.uri);
+    Uri? artworkUri;
+    if (song.artworkUrl != null && song.artworkUrl!.isNotEmpty) {
+      if (song.artworkUrl!.startsWith('http')) {
+        artworkUri = Uri.parse(song.artworkUrl!);
+      } else {
+        artworkUri = Uri.file(song.artworkUrl!);
+      }
+    }
+
+    return AudioSource.uri(
+      audioUri,
+      tag: MediaItem(
+        id: song.id.toString(),
+        album: "LumenLyric",
+        title: song.title,
+        artist: song.artist,
+        artUri: artworkUri,
+      ),
+    );
   }
 
   Future<void> toggleLike(int songId) async {
@@ -255,56 +266,61 @@ class AudioController {
     }
   }
 
+  // ✅ Play a song from the main list (Resets Ghosting Flag)
   Future<void> playSong(int index) async {
+    _isPlayerDismissed = false; // Reset
     if (index < 0 || index >= songs.value.length) return;
+
     _isPlayingFromQueue = false;
     playbackQueue.value = [];
     queueIndex.value = -1;
+    currentIndex.value = index;
+
     try {
-      currentIndex.value = index;
-      final song = songs.value[index];
-      _fetchLyrics(song.uri);
-      final uri = _buildUri(song.uri);
-      await audioPlayer.setAudioSource(AudioSource.uri(uri), preload: true);
+      final playlist = ConcatenatingAudioSource(
+        children: songs.value.map((s) => _createAudioSource(s)).toList(),
+      );
+      await audioPlayer.setAudioSource(playlist, initialIndex: index);
       await audioPlayer.play();
-      isPlaying.value = true;
     } catch (e) {
       print("Error Playing: $e");
     }
   }
 
+  // ✅ Play from a specific playlist (Resets Ghosting Flag)
   Future<void> playFromPlaylist(
     List<LocalSongModel> playlistSongs,
     int index,
   ) async {
+    _isPlayerDismissed = false; // Reset
     if (index < 0 || index >= playlistSongs.length) return;
+
     _isPlayingFromQueue = true;
     playbackQueue.value = playlistSongs;
     queueIndex.value = index;
     currentIndex.value = index;
-    await _playCurrentQueueSong();
-  }
 
-  Future<void> _playFromQueue(int index) async {
-    if (index < 0 || index >= playbackQueue.value.length) return;
-    queueIndex.value = index;
-    currentIndex.value = index;
-    await _playCurrentQueueSong();
-  }
-
-  Future<void> _playCurrentQueueSong() async {
-    if (queueIndex.value < 0 || queueIndex.value >= playbackQueue.value.length)
-      return;
     try {
-      final song = playbackQueue.value[queueIndex.value];
-      _fetchLyrics(song.uri);
-      final uri = _buildUri(song.uri);
-      await audioPlayer.setAudioSource(AudioSource.uri(uri), preload: true);
+      final playlist = ConcatenatingAudioSource(
+        children: playlistSongs.map((s) => _createAudioSource(s)).toList(),
+      );
+      await audioPlayer.setAudioSource(playlist, initialIndex: index);
       await audioPlayer.play();
-      isPlaying.value = true;
     } catch (e) {
-      print("Error Playing Queue: $e");
+      print("Error Playing Playlist: $e");
     }
+  }
+
+  // ✅ NEW: Call this to close player and prevent ghosting
+  Future<void> closePlayer() async {
+    _isPlayerDismissed = true; // Block stream updates
+    await audioPlayer.stop();
+
+    // Clear State
+    currentIndex.value = -1;
+    queueIndex.value = -1;
+    isPlaying.value = false;
+    currentLyrics.value = "No Lyrics";
   }
 
   Future<void> pauseSong() async {
@@ -318,7 +334,6 @@ class AudioController {
   }
 
   void tooglePlayPause() async {
-    if (currentIndex.value == -1) return;
     if (isPlaying.value) {
       await pauseSong();
     } else {
@@ -326,45 +341,21 @@ class AudioController {
     }
   }
 
+  // ✅ Uses player's built-in seekToNext (Works in Background)
   Future<void> nextSong() async {
-    if (_isPlayingFromQueue) {
-      if (queueIndex.value < playbackQueue.value.length - 1) {
-        await _playFromQueue(queueIndex.value + 1);
-      } else {
-        await audioPlayer.stop();
-        currentIndex.value = -1;
-        queueIndex.value = -1;
-        isPlaying.value = false;
-      }
+    if (audioPlayer.hasNext) {
+      await audioPlayer.seekToNext();
     } else {
-      if (currentIndex.value < songs.value.length - 1) {
-        await playSong(currentIndex.value + 1);
-      } else {
-        await audioPlayer.stop();
-        currentIndex.value = -1;
-        isPlaying.value = false;
-      }
+      await audioPlayer.stop();
     }
   }
 
+  // ✅ Uses player's built-in seekToPrevious (Works in Background)
   Future<void> previousSong() async {
-    if (_isPlayingFromQueue) {
-      if (queueIndex.value <= 0) {
-        await audioPlayer.stop();
-        currentIndex.value = -1;
-        queueIndex.value = -1;
-        isPlaying.value = false;
-        return;
-      }
-      await _playFromQueue(queueIndex.value - 1);
+    if (audioPlayer.hasPrevious) {
+      await audioPlayer.seekToPrevious();
     } else {
-      if (currentIndex.value <= 0) {
-        await audioPlayer.stop();
-        currentIndex.value = -1;
-        isPlaying.value = false;
-        return;
-      }
-      await playSong(currentIndex.value - 1);
+      await audioPlayer.seek(Duration.zero); // Restart song if no prev
     }
   }
 
@@ -423,10 +414,8 @@ class AudioController {
       songs.value = songs.value.where((song) => song.id != songId).toList();
 
       if (currentsong?.id == songId) {
-        audioPlayer.stop();
-        currentIndex.value = -1;
-        isPlaying.value = false;
-        clearQueue();
+        // ✅ Use closePlayer safely
+        await closePlayer();
       }
       _saveLikesToPrefs();
     }

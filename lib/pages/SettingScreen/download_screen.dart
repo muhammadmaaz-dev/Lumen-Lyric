@@ -192,6 +192,7 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
                                             downloadedSongs,
                                             index,
                                           );
+                                          FocusScope.of(context).unfocus();
                                         },
                                         onMenuTap: () {
                                           showModalBottomSheet(
@@ -243,14 +244,7 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
                 elevation: 8,
                 curve: Curves.easeOutQuart,
                 onDismiss: () {
-                  controller.audioPlayer.stop();
-                  controller.currentIndex.value = -1;
-                  controller.isPlaying.value = false;
-                  // ✅ 1. Clear queue FIRST (Resets flags like _isPlayingFromQueue)
-                  controller.clearQueue();
-
-                  // ✅ 2. Then update index (Triggers UI rebuild with correct state)
-                  controller.currentIndex.value = -1;
+                  controller.closePlayer();
                 },
                 builder: (height, percentage) {
                   final song = controller.currentsong;
@@ -518,6 +512,7 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
           // Play from downloaded songs queue starting from first song
           controller.playFromPlaylist(downloadedSongs, 0);
         }
+        FocusScope.of(context).unfocus();
       },
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 15.w, vertical: 7.h),

@@ -1,10 +1,16 @@
+import 'dart:io';
+import 'dart:typed_data';
+import 'dart:convert';
+import 'dart:async'; // Delay ke liye
 import 'package:flutter/material.dart';
 import 'package:musicapp/models/download_metadata_model.dart';
 import 'package:musicapp/services/yt_download_service.dart';
 import 'package:musicapp/controller/audio_controller.dart';
 import 'package:uuid/uuid.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
+import 'package:dio/dio.dart'; // ✅ Image Download
+import 'package:flutter_audio_tagger/flutter_audio_tagger.dart'; // ✅ Tagging Tool
+import 'package:flutter_audio_tagger/tag.dart'; // ✅ Tag Class
 
 class DownloadController {
   static final DownloadController instance = DownloadController._internal();
@@ -38,7 +44,6 @@ class DownloadController {
     }
 
     final taskId = _uuid.v4();
-    // Start with minimal info
     final task = DownloadTaskModel(
       id: taskId,
       youtubeUrl: youtubeUrl,
@@ -47,7 +52,6 @@ class DownloadController {
 
     downloadQueue.value = [...downloadQueue.value, task];
 
-    // Start processing immediately
     if (!isProcessing.value) {
       _processQueue();
     }
@@ -67,12 +71,12 @@ class DownloadController {
       final task = downloadQueue.value[taskIndex];
 
       try {
-        // 1. Metadata Fetch Karein (Taa ke list mein naam show ho)
+        // 1. Metadata Fetch
         _updateTask(task.id, status: DownloadStatus.fetchingMetadata);
         final metadata = await _downloadService.getMetadata(task.youtubeUrl);
         _updateTask(task.id, metadata: metadata);
 
-        // 2. Download Start Karein
+        // 2. Download Start
         final result = await _downloadService.downloadAudio(
           task.youtubeUrl,
           onStageChange: (stage) {
@@ -101,11 +105,15 @@ class DownloadController {
         );
 
         if (result.success && result.filePath != null) {
+          // ✅ STEP 3: Metadata ko PERMANENTLY file mein write karein
+          await _writeTagsToFile(result.filePath!, result.metadata);
+
           _updateTask(
             task.id,
             status: DownloadStatus.completed,
-            filePath: result.filePath,
-            metadata: result.metadata, // Use final metadata from server
+            filePath:
+                result.filePath, // File wapis original naam se hi save hogi
+            metadata: result.metadata,
             progress: 1.0,
           );
 
@@ -113,7 +121,9 @@ class DownloadController {
             downloadQueue.value.firstWhere((t) => t.id == task.id),
           );
 
-          debugPrint("✅ Download Done. Triggering Scan...");
+          debugPrint("✅ Download & Tagging Done. Triggering Scan...");
+
+          // Scan se Android ko batayen ke naye tags aaye hain
           await AudioController.instance.scanNewMedia(result.filePath!);
           await AudioController.instance.loadSongs();
         } else {
@@ -133,6 +143,93 @@ class DownloadController {
     }
 
     isProcessing.value = false;
+  }
+
+  // ✅ Helper Function: Tags Write + File Swap Logic (Permanent Fix)
+  Future<void> _writeTagsToFile(
+    String filePath,
+    DownloadMetadataModel? metadata,
+  ) async {
+    if (metadata == null) return;
+
+    try {
+      final tagger = FlutterAudioTagger();
+      Uint8List? artworkBytes;
+
+      // 1. Artwork Download (Agar image URL hai)
+      if (metadata.thumbnail != null && metadata.thumbnail!.isNotEmpty) {
+        try {
+          final dio = Dio();
+          final response = await dio.get(
+            metadata.thumbnail!,
+            options: Options(responseType: ResponseType.bytes),
+          );
+          if (response.statusCode == 200) {
+            artworkBytes = Uint8List.fromList(response.data);
+          }
+        } catch (e) {
+          debugPrint("⚠️ Artwork download failed: $e");
+        }
+      }
+
+      // 2. Tags Object Create
+      final tags = Tag(
+        title: metadata.title,
+        artist: metadata.artist,
+        album: "LumenLyric",
+        year: DateTime.now().year.toString(),
+        artwork: artworkBytes, // Image Embed hogi
+      );
+
+      // 3. Write Tags (Yeh 'filename_edited.mp3' banata hai)
+      debugPrint("📝 Writing tags to: $filePath");
+      await tagger.editTags(tags, filePath);
+
+      // Thora wait karein taa ke file system write complete kar le
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      // ---------------------------------------------------------
+      // ✅ FILE SWAP LOGIC (Bina external package ke)
+      // ---------------------------------------------------------
+      String editedPath;
+
+      // Determine Edited File Name based on extension
+      if (filePath.toLowerCase().endsWith(".mp3")) {
+        editedPath = filePath.substring(0, filePath.length - 4) + "_edited.mp3";
+      } else if (filePath.toLowerCase().endsWith(".m4a")) {
+        editedPath = filePath.substring(0, filePath.length - 4) + "_edited.m4a";
+      } else {
+        editedPath = filePath + "_edited";
+      }
+
+      File originalFile = File(filePath);
+      File editedFile = File(editedPath);
+
+      // Agar Edited file ban gayi hai, to Original se swap karein
+      if (await editedFile.exists()) {
+        try {
+          debugPrint("🔄 Swapping files...");
+
+          // 1. Original (bina tags wali) delete karein
+          if (await originalFile.exists()) {
+            await originalFile.delete();
+          }
+
+          // 2. Edited file ko rename karke Original bana dein
+          await editedFile.rename(filePath);
+
+          debugPrint("✅ Tags Saved Permanently in File! ($filePath)");
+        } catch (e) {
+          debugPrint("❌ Error swapping files: $e");
+        }
+      } else {
+        debugPrint(
+          "⚠️ Critical: Edited file ($editedPath) not found. Metadata might NOT be saved.",
+        );
+      }
+    } catch (e) {
+      debugPrint("❌ Error writing ID3 Tags: $e");
+    }
   }
 
   void _updateTask(

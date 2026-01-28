@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:just_audio_background/just_audio_background.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:musicapp/core/configs/theme/app_theme.dart';
@@ -29,6 +30,12 @@ void main() async {
   final initialTheme = ThemeMode.values.firstWhere(
     (e) => e.toString() == savedThemeString,
     orElse: () => ThemeMode.light,
+  );
+
+  await JustAudioBackground.init(
+    androidNotificationChannelId: 'com.ryanheise.bg_demo.channel.audio',
+    androidNotificationChannelName: 'Audio playback',
+    androidNotificationOngoing: true,
   );
 
   runApp(
