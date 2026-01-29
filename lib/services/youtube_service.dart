@@ -1,6 +1,6 @@
 // lib/services/youtube_service.dart
 import 'package:youtube_explode_dart/youtube_explode_dart.dart';
-import 'package:musicapp/models/song_model.dart'; // Apne song model ka path check karlena
+import 'package:musicapp/models/song_model.dart';
 
 class YoutubeService {
   final YoutubeExplode _yt = YoutubeExplode();
@@ -25,7 +25,16 @@ class YoutubeService {
     }
   }
 
-  // 2. Audio Stream URL nikalna (High Quality)
+  // 2. Full Video Details fetch karna (Metadata Screen ke liye)
+  Future<Video> getVideoDetails(String videoId) async {
+    try {
+      return await _yt.videos.get(VideoId(videoId));
+    } catch (e) {
+      throw Exception("Error fetching video details: $e");
+    }
+  }
+
+  // 3. Audio Stream URL nikalna (High Quality)
   Future<String> getAudioStreamUrl(String videoId) async {
     try {
       var manifest = await _yt.videos.streamsClient.getManifest(videoId);
@@ -42,5 +51,10 @@ class YoutubeService {
     } catch (e) {
       throw Exception("Error fetching audio stream: $e");
     }
+  }
+
+  // Dispose method if needed
+  void dispose() {
+    _yt.close();
   }
 }
