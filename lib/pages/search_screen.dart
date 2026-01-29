@@ -1,121 +1,110 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:musicapp/models/song_model.dart';
+import 'package:musicapp/provider/audio_provider.dart';
+import 'package:musicapp/provider/search_provider.dart'; // Ensure ye file bani ho
+import 'package:musicapp/services/youtube_service.dart'; // Ensure ye file bani ho
 
-// Data Model - Ready for backend integration
-class SearchResultModel {
-  final String id;
-  final String title;
-  final String? artist;
-  final String? imageUrl;
-
-  SearchResultModel({
-    required this.id,
-    required this.title,
-    this.artist,
-    this.imageUrl,
-  });
-
-  // Factory constructor for JSON parsing (backend ready)
-  factory SearchResultModel.fromJson(Map<String, dynamic> json) {
-    return SearchResultModel(
-      id: json['id'] ?? '',
-      title: json['title'] ?? '',
-      artist: json['artist'],
-      imageUrl: json['imageUrl'],
-    );
-  }
-}
-
-class SearchScreen extends StatefulWidget {
+class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
 
   @override
-  State<SearchScreen> createState() => _SearchScreenState();
+  ConsumerState<SearchScreen> createState() => _SearchScreenState();
 }
 
-class _SearchScreenState extends State<SearchScreen> {
+class _SearchScreenState extends ConsumerState<SearchScreen> {
   final TextEditingController _searchController = TextEditingController();
-  List<SearchResultModel> _searchResults = [];
-  bool _isSearching = false;
+  Timer? _debounce;
+  bool _isNavigating = false; // Double tap prevent karne ke liye
 
   @override
   void initState() {
     super.initState();
-    // Load initial/recent searches
-    _loadRecentSearches();
+    // Screen khulte hi search clear kar dein agar zaroorat ho
+    // Future.microtask(() => ref.read(searchQueryProvider.notifier).state = '');
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _debounce?.cancel();
     super.dispose();
   }
 
-  // TODO: Replace with actual backend API call
-  Future<void> _loadRecentSearches() async {
-    // Mock recent searches - Replace with backend call
-    await Future.delayed(const Duration(milliseconds: 300));
-    setState(() {
-      _searchResults = [
-        SearchResultModel(id: '1', title: 'Exed up'),
-        SearchResultModel(id: '2', title: 'Afsanay'),
-        SearchResultModel(id: '3', title: 'Dhundala'),
-        SearchResultModel(id: '4', title: 'Thori si Daaru'),
-        SearchResultModel(id: '5', title: 'Winnings Speech'),
-        SearchResultModel(id: '6', title: 'Freak in Me'),
-        SearchResultModel(id: '7', title: 'Out of my mine'),
-        SearchResultModel(id: '8', title: 'So it Goes'),
-        SearchResultModel(id: '9', title: 'Some Feelings'),
-        SearchResultModel(id: '10', title: 'Cold Play'),
-        SearchResultModel(id: '11', title: "I didn't Know"),
-        SearchResultModel(id: '12', title: 'Cannon Ball'),
-      ];
+  // --- Search Logic with Debounce ---
+  void _onSearchChanged(String query) {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+
+    // 600ms ka wait taake har letter pe request na jaye
+    _debounce = Timer(const Duration(milliseconds: 600), () {
+      if (mounted) {
+        ref.read(searchQueryProvider.notifier).state = query;
+      }
     });
   }
 
-  // TODO: Replace with actual backend search API call
-  Future<void> _performSearch(String query) async {
-    if (query.isEmpty) {
-      _loadRecentSearches();
-      return;
-    }
-
-    setState(() {
-      _isSearching = true;
-    });
-
-    // Mock search delay - Replace with actual API call
-    await Future.delayed(const Duration(milliseconds: 500));
-
-    // Mock filtered results - Replace with backend response
-    setState(() {
-      _searchResults = _searchResults
-          .where(
-            (item) => item.title.toLowerCase().contains(query.toLowerCase()),
-          )
-          .toList();
-      _isSearching = false;
-    });
-  }
-
-  void _removeSearchItem(String id) {
-    setState(() {
-      _searchResults.removeWhere((item) => item.id == id);
-    });
-    // TODO: Call backend to remove from recent searches
-  }
-
+  // --- Clear Search ---
   void _clearSearch() {
     _searchController.clear();
-    _loadRecentSearches();
+    ref.read(searchQueryProvider.notifier).state = '';
+  }
+
+  // --- Play Song Logic ---
+  Future<void> _playOnlineSong(SongModel song) async {
+    if (_isNavigating) return;
+
+    setState(() {
+      _isNavigating = true;
+    });
+
+    try {
+      // 1. User ko feedback dein
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Fetching stream for: ${song.title}...'),
+          duration: const Duration(seconds: 1),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+
+      // 2. Stream URL fetch karein (YoutubeService se)
+      final youtubeService = ref.read(youtubeServiceProvider);
+      final streamUrl = await youtubeService.getAudioStreamUrl(song.id);
+
+      // 3. Audio Controller ke through play karein
+      final audioController = ref.read(audioControllerProvider);
+      await audioController.playNetworkAudio(streamUrl, song);
+
+      // Optional: Agar player screen pe le jana ho to navigate karein
+      // Navigator.push(context, MaterialPageRoute(builder: (_) => FullPlayer()));
+    } catch (e) {
+      debugPrint("Error playing song: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to play: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isNavigating = false;
+        });
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('🔄 SearchScreen rebuilt');
+    // Riverpod se state watch kar rahe hain
+    final searchResultsValue = ref.watch(searchResultsProvider);
+    final currentQuery = ref.watch(searchQueryProvider);
 
     final isDarkTheme = Theme.of(context).brightness == Brightness.dark;
-
     final backgroundColor = isDarkTheme
         ? const Color(0xff000000)
         : const Color(0xfff3f4f6);
@@ -130,7 +119,7 @@ class _SearchScreenState extends State<SearchScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Search Bar Header
+            // --- Search Bar Header ---
             Container(
               padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
               decoration: BoxDecoration(
@@ -162,7 +151,7 @@ class _SearchScreenState extends State<SearchScreen> {
                       autofocus: true,
                       style: TextStyle(color: textColor, fontSize: 14.sp),
                       decoration: InputDecoration(
-                        hintText: 'Search Music...',
+                        hintText: 'Search Online Music...',
                         hintStyle: TextStyle(
                           color: secondaryTextColor,
                           fontSize: 14.sp,
@@ -171,12 +160,12 @@ class _SearchScreenState extends State<SearchScreen> {
                         isDense: true,
                         contentPadding: EdgeInsets.zero,
                       ),
-                      onChanged: _performSearch,
+                      onChanged: _onSearchChanged,
                     ),
                   ),
 
                   // Clear Button
-                  if (_searchController.text.isNotEmpty)
+                  if (currentQuery.isNotEmpty)
                     GestureDetector(
                       onTap: _clearSearch,
                       child: Icon(
@@ -189,32 +178,72 @@ class _SearchScreenState extends State<SearchScreen> {
               ),
             ),
 
-            // Search Results List
+            // --- Search Results List ---
             Expanded(
-              child: _isSearching
-                  ? Center(child: CircularProgressIndicator(color: textColor))
-                  : _searchResults.isEmpty
-                  ? Center(
-                      child: Text(
-                        'No results found',
-                        style: TextStyle(
-                          color: secondaryTextColor,
-                          fontSize: 14.sp,
-                        ),
+              child: searchResultsValue.when(
+                data: (songs) {
+                  if (songs.isEmpty) {
+                    // Empty State
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.search,
+                            size: 60,
+                            color: secondaryTextColor?.withOpacity(0.5),
+                          ),
+                          SizedBox(height: 10.h),
+                          Text(
+                            currentQuery.isEmpty
+                                ? 'Type to search songs'
+                                : 'No results found',
+                            style: TextStyle(
+                              color: secondaryTextColor,
+                              fontSize: 14.sp,
+                            ),
+                          ),
+                        ],
                       ),
-                    )
-                  : ListView.builder(
-                      padding: EdgeInsets.symmetric(vertical: 7.h),
-                      itemCount: _searchResults.length,
-                      itemBuilder: (context, index) {
-                        final result = _searchResults[index];
-                        return _buildSearchResultItem(
-                          result,
-                          textColor,
-                          secondaryTextColor,
-                        );
-                      },
+                    );
+                  }
+
+                  // Results List
+                  return ListView.builder(
+                    padding: EdgeInsets.symmetric(vertical: 7.h),
+                    itemCount: songs.length,
+                    itemBuilder: (context, index) {
+                      final song = songs[index];
+                      return _buildSongItem(
+                        song,
+                        textColor,
+                        secondaryTextColor,
+                      );
+                    },
+                  );
+                },
+                // Loading State
+                loading: () => Center(
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: textColor,
+                  ),
+                ),
+                // Error State
+                error: (error, stack) => Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Text(
+                      'Error: $error',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.redAccent,
+                        fontSize: 14.sp,
+                      ),
                     ),
+                  ),
+                ),
+              ),
             ),
           ],
         ),
@@ -222,54 +251,72 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  Widget _buildSearchResultItem(
-    SearchResultModel result,
+  // --- Helper Widget: Individual Song Tile ---
+  Widget _buildSongItem(
+    SongModel song,
     Color textColor,
     Color? secondaryTextColor,
   ) {
     return InkWell(
-      onTap: () {
-        // TODO: Navigate to song detail or play song
-        print('Tapped on: ${result.title}');
-      },
+      onTap: () => _playOnlineSong(song),
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
         child: Row(
           children: [
-            // History/Clock Icon
-            Icon(Icons.history, color: secondaryTextColor, size: 19.sp),
+            // Thumbnail Image
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4.r),
+              child: Image.network(
+                song.imageUrl,
+                width: 45.w,
+                height: 45.w,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    width: 45.w,
+                    height: 45.w,
+                    color: Colors.grey[800],
+                    child: const Icon(Icons.music_note, color: Colors.white),
+                  );
+                },
+              ),
+            ),
             SizedBox(width: 14.w),
 
-            // Song Title
+            // Song Title & Artist
             Expanded(
-              child: Text(
-                result.title,
-                style: TextStyle(
-                  color: textColor,
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.w400,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    song.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: textColor,
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  SizedBox(height: 4.h),
+                  Text(
+                    song.genre, // Using genre field for Artist Name as per logic
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: secondaryTextColor,
+                      fontSize: 12.sp,
+                    ),
+                  ),
+                ],
               ),
             ),
 
-            // Remove Button
-            GestureDetector(
-              onTap: () => _removeSearchItem(result.id),
-              child: Icon(Icons.close, color: secondaryTextColor, size: 18.sp),
-            ),
-            SizedBox(width: 11.w),
-
-            // Arrow/Navigate Icon
-            GestureDetector(
-              onTap: () {
-                // TODO: Navigate to song detail
-                print('Navigate to: ${result.title}');
-              },
-              child: Icon(
-                Icons.north_east,
-                color: secondaryTextColor,
-                size: 18.sp,
-              ),
+            // Play Icon
+            Icon(
+              Icons.play_circle_outline,
+              color: secondaryTextColor,
+              size: 24.sp,
             ),
           ],
         ),

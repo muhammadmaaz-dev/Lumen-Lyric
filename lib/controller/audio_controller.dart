@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:just_audio_background/just_audio_background.dart';
@@ -8,6 +9,7 @@ import 'package:flutter_audio_tagger/flutter_audio_tagger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:convert';
+import 'package:musicapp/models/song_model.dart' as Online;
 
 class AudioController {
   static final AudioController instance = AudioController._instance();
@@ -429,6 +431,52 @@ class AudioController {
       final updatedList = List<LocalSongModel>.from(songs.value);
       updatedList[index] = updatedList[index].copyWith(title: newTitle);
       songs.value = updatedList;
+    }
+  }
+  // lib/controller/audio_controller.dart ke andar
+
+  Future<void> playNetworkAudio(String url, Online.SongModel songMeta) async {
+    // Player reset logic (Ghosting prevent karne ke liye)
+    _isPlayerDismissed = false;
+    _isPlayingFromQueue = false;
+    playbackQueue.value = [];
+    queueIndex.value = -1;
+    currentIndex.value =
+        -1; // Online song ka koi index nahi hota local list mein
+
+    try {
+      final headers = {
+        'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
+        'Referer': 'https://www.youtube.com/',
+      };
+      // 1. Create Audio Source with Metadata
+      final audioSource = AudioSource.uri(
+        Uri.parse(url),
+        headers: headers,
+        tag: MediaItem(
+          // Online.SongModel ki ID String hai, isliye toString() ki zaroorat nahi
+          id: songMeta.id,
+          album: "Online Stream",
+          title: songMeta.title,
+          artist: songMeta.genre, // Artist name humne genre mein store kiya tha
+          artUri: Uri.parse(songMeta.imageUrl), // Ab ye error nahi dega
+        ),
+      );
+
+      // 2. Load and Play
+      // Loading state show karne ke liye
+      currentLyrics.value = "Fetching Audio...";
+
+      await audioPlayer.setAudioSource(audioSource);
+      await audioPlayer.play();
+
+      // Update UI Flags
+      isPlaying.value = true;
+      currentLyrics.value = "Playing Online";
+    } catch (e) {
+      debugPrint("❌ Error Playing Network Audio: $e");
+      isPlaying.value = false;
     }
   }
 
