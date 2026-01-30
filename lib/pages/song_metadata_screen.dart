@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:musicapp/services/youtube_service.dart'; // Ensure path is correct
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:musicapp/widgets/song_metadata_skelton.dart';
+import 'package:musicapp/provider/song_detail_provider.dart'; // Naya Provider
 import 'package:url_launcher/url_launcher.dart';
-import 'package:youtube_explode_dart/youtube_explode_dart.dart' as yt;
+// import 'package:musicapp/services/youtube_service.dart'; // Removed
 
-class SongMetadataScreen extends StatefulWidget {
-  // Hum sirf basic info lenge, baaki khud fetch karenge
+class SongMetadataScreen extends ConsumerStatefulWidget {
   final String songId;
   final String imageUrl;
   final String title;
@@ -20,41 +20,17 @@ class SongMetadataScreen extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  State<SongMetadataScreen> createState() => _SongMetadataScreenState();
+  ConsumerState<SongMetadataScreen> createState() => _SongMetadataScreenState();
 }
 
-class _SongMetadataScreenState extends State<SongMetadataScreen> {
-  final YoutubeService _youtubeService = YoutubeService();
-
-  // Variables to hold fetched data
-  bool _isLoading = true;
-  String _album = '---';
-  String _year = '---';
-  String _duration = '--:--';
-  String _genre = 'Music';
-  bool _explicit = false;
-  String _views = '---';
-  String _likes = '---';
-  String _label = 'YouTube';
-  String _url = '';
-
-  @override
-  void initState() {
-    super.initState();
-    _fetchFullDetails();
-  }
-
-  // --- Link Open Karne Ka Function ---
-  Future<void> _launchYoutubeUrl() async {
-    if (_url.isEmpty) return;
-
-    final Uri uri = Uri.parse(_url);
-
+class _SongMetadataScreenState extends ConsumerState<SongMetadataScreen> {
+  // --- Link Open Karne Ka Function (Same as before) ---
+  Future<void> _launchYoutubeUrl(String url) async {
+    if (url.isEmpty) return;
+    final Uri uri = Uri.parse(url);
     try {
-      // mode: LaunchMode.externalApplication ka matlab hai ke
-      // ye koshish karega YouTube app kholne ki, warna browser mein kholega.
       if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-        throw Exception('Could not launch $_url');
+        throw Exception('Could not launch $url');
       }
     } catch (e) {
       if (mounted) {
@@ -65,38 +41,7 @@ class _SongMetadataScreenState extends State<SongMetadataScreen> {
     }
   }
 
-  Future<void> _fetchFullDetails() async {
-    try {
-      // Data fetch ho raha hai...
-      yt.Video videoDetails = await _youtubeService.getVideoDetails(
-        widget.songId,
-      );
-
-      if (mounted) {
-        setState(() {
-          _album = 'YouTube Music';
-          _year = videoDetails.uploadDate?.year.toString() ?? '2024';
-          _duration = _formatDuration(videoDetails.duration);
-          _genre =
-              'Music'; // YouTube API se exact genre mushkil hai, default rakha
-          _explicit = false;
-          _views = _formatCount(videoDetails.engagement.viewCount);
-          _likes = _formatCount(videoDetails.engagement.likeCount);
-          _label = videoDetails.author; // Using Author as Label mostly
-          _url = videoDetails.url;
-          _isLoading = false; // Loading Khatam!
-        });
-      }
-    } catch (e) {
-      debugPrint("Error fetching metadata: $e");
-      if (mounted) {
-        setState(
-          () => _isLoading = false,
-        ); // Error ke baad bhi content dikha dein (purana wala ya empty)
-      }
-    }
-  }
-
+  // Helpers to format raw data from provider
   String _formatDuration(Duration? duration) {
     if (duration == null) return "--:--";
     String twoDigits(int n) => n.toString().padLeft(2, "0");
@@ -116,12 +61,25 @@ class _SongMetadataScreenState extends State<SongMetadataScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Agar loading hai to Skeleton dikhao
-    if (_isLoading) {
+    // WATCH logic: Automatically calls build when data arrives
+    final metadataState = ref.watch(songDetailProvider(widget.songId));
+
+    if (metadataState.isLoading) {
       return const SongMetadataSkeleton();
     }
 
-    // Loading khatam, asli UI dikhao
+    // Data Extraction from State
+    final video = metadataState.videoDetails;
+    final String album = 'YouTube Music';
+    final String year = video?.uploadDate?.year.toString() ?? '2024';
+    final String duration = _formatDuration(video?.duration);
+    final String genre = 'Music';
+    final bool explicit = false;
+    final String views = _formatCount(video?.engagement.viewCount);
+    final String likes = _formatCount(video?.engagement.likeCount);
+    final String label = video?.author ?? 'YouTube';
+    final String url = video?.url ?? '';
+
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -160,7 +118,6 @@ class _SongMetadataScreenState extends State<SongMetadataScreen> {
                 ),
               ),
               const SizedBox(height: 22),
-              // Song Info
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Text(
@@ -182,7 +139,7 @@ class _SongMetadataScreenState extends State<SongMetadataScreen> {
               ),
               const SizedBox(height: 4),
               Text(
-                _album, // Fetched Data
+                album,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   color: Colors.white38,
@@ -191,7 +148,6 @@ class _SongMetadataScreenState extends State<SongMetadataScreen> {
                 ),
               ),
               const SizedBox(height: 32),
-              // Metadata Grid
               Container(
                 margin: const EdgeInsets.symmetric(horizontal: 24),
                 padding: const EdgeInsets.all(16),
@@ -205,30 +161,29 @@ class _SongMetadataScreenState extends State<SongMetadataScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        _metaItem('YEAR', _year),
-                        _metaItem('DURATION', _duration),
-                        _metaItem('GENRE', _genre, highlight: true),
+                        _metaItem('YEAR', year),
+                        _metaItem('DURATION', duration),
+                        _metaItem('GENRE', genre, highlight: true),
                       ],
                     ),
                     const SizedBox(height: 24),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        _metaItem('EXPLICIT', _explicit ? 'E' : '', box: true),
-                        _metaItem('VIEWS', _views),
-                        _metaItem('LIKES', _likes),
+                        _metaItem('EXPLICIT', explicit ? 'E' : '', box: true),
+                        _metaItem('VIEWS', views),
+                        _metaItem('LIKES', likes),
                       ],
                     ),
                     const SizedBox(height: 24),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
-                      children: [_metaItem('LABEL', _label, wide: true)],
+                      children: [_metaItem('LABEL', label, wide: true)],
                     ),
                   ],
                 ),
               ),
               const SizedBox(height: 40),
-              // Buttons
               Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 24.0,
@@ -248,10 +203,7 @@ class _SongMetadataScreenState extends State<SongMetadataScreen> {
                           ),
                           elevation: 0,
                         ),
-                        onPressed: () {
-                          // Open URL
-                          _launchYoutubeUrl();
-                        },
+                        onPressed: () => _launchYoutubeUrl(url),
                         child: const Text(
                           'OPEN URL',
                           style: TextStyle(

@@ -97,38 +97,37 @@ class HomeNotifier extends StateNotifier<HomeState> {
 
   // Main Function: Data Fetch Karna
   Future<void> fetchHomeData() async {
-    // LOGIC: Agar data pehle se hai, toh dubara load mat karo!
-    if (state.trending.isNotEmpty && !state.isLoading) {
-      return;
-    }
+    if (state.trending.isNotEmpty && !state.isLoading) return;
 
     try {
       final random = Random();
-
-      // Random Keywords pick karo
       String trendingQuery =
           _searchKeywords[random.nextInt(_searchKeywords.length)];
       String featuredQuery =
           _searchKeywords[random.nextInt(_searchKeywords.length)];
 
-      // Ensure both queries are different
       while (featuredQuery == trendingQuery) {
         featuredQuery = _searchKeywords[random.nextInt(_searchKeywords.length)];
       }
 
-      // API Calls
-      final trending = await _youtubeService.searchSongs(trendingQuery);
-      final discover = await _youtubeService.searchSongs(featuredQuery);
+      // CHANGE: Future.wait use kiya parallel loading ke liye
+      final results = await Future.wait([
+        _youtubeService.searchSongs(trendingQuery),
+        _youtubeService.searchSongs(featuredQuery),
+      ]);
+
+      final trending = results[0]; // Pehla result
+      final discover = results[1]; // Doosra result
 
       trending.shuffle();
       discover.shuffle();
 
-      // Artists Generate karo
       final artists = trending
           .map((song) {
             return ArtistModel(
               id: song.id,
-              name: song.genre,
+              name: song
+                  .genre, // Note: Ensure genre holds the artist name correctly
               songTitle: song.title,
               imageUrl: song.imageUrl,
             );
@@ -136,13 +135,11 @@ class HomeNotifier extends StateNotifier<HomeState> {
           .toSet()
           .toList();
 
-      // Distinct Artists Logic
       final distinctArtistsMap = <String, ArtistModel>{};
       for (var a in artists) {
         distinctArtistsMap[a.name] = a;
       }
 
-      // State Update karo (Loading False)
       state = state.copyWith(
         trending: trending,
         featured: discover,
@@ -150,7 +147,6 @@ class HomeNotifier extends StateNotifier<HomeState> {
         isLoading: false,
       );
     } catch (e) {
-      // Agar error aaye toh bas loading band kar do
       state = state.copyWith(isLoading: false);
     }
   }

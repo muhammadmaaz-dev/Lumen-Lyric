@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart'; // Riverpod Import
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -139,9 +140,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           context,
                           homeState.featured,
                         ), // Data from State
-
-                        SizedBox(height: 28.h),
-
                         // Popular Artists
                         _buildSectionTitle('Popular Artist'),
                         SizedBox(height: 16.h),
@@ -150,7 +148,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           homeState.artists,
                         ), // Data from State
 
-                        SizedBox(height: 80.h),
+                        SizedBox(height: 60.h),
                       ],
                     ),
                   ),
@@ -257,13 +255,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
-            child: Image.network(
-              song.imageUrl,
+            child: CachedNetworkImage(
+              imageUrl: song.imageUrl,
               width: 50.h,
               height: 50.h,
               fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) =>
-                  Container(width: 50.h, height: 50.h, color: Colors.grey[900]),
+              placeholder: (context, url) => Container(color: Colors.grey[900]),
+              errorWidget: (context, url, error) =>
+                  Container(color: Colors.grey[900]),
             ),
           ),
           SizedBox(width: 12.w),
@@ -307,7 +306,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget _buildFeaturedTracks(BuildContext context, List<SongModel> songs) {
     if (songs.isEmpty) return const SizedBox.shrink();
     return SizedBox(
-      height: 210.h,
+      height: 180.h,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -335,7 +334,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   AspectRatio(
-                    aspectRatio: 1,
+                    aspectRatio: 16 / 9,
                     child: Container(
                       decoration: BoxDecoration(
                         color: Colors.white10,
@@ -406,6 +405,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 child: CircleAvatar(
                   radius: 32,
                   backgroundImage: NetworkImage(artist.imageUrl),
+
                   onBackgroundImageError: (_, __) {},
                 ),
               ),
