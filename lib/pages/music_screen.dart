@@ -272,9 +272,15 @@ class _MusicScreenState extends State<MusicScreen> {
                             return SongTile(
                               title: task.metadata?.title ?? 'Unknown',
                               artist: task.metadata?.artist ?? 'Unknown Artist',
-                              duration: (task.metadata?.duration ?? 0) * 1000,
+                              // String ko pehle int mein convert kiya, phir multiply kiya
+                              duration:
+                                  (int.tryParse(
+                                        task.metadata?.duration ?? '0',
+                                      ) ??
+                                      0) *
+                                  1000,
                               songId: task.id.hashCode,
-                              imageUrl: task.metadata?.thumbnail,
+                              imageUrl: task.metadata?.thumbnailUrl,
                               isDarkTheme: isDarkTheme,
                               onTap: () {
                                 // Find and play song

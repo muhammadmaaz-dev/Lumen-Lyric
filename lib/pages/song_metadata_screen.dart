@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:musicapp/widgets/song_metadata_skelton.dart';
-import 'package:musicapp/provider/song_detail_provider.dart'; // Naya Provider
+import 'package:musicapp/provider/song_detail_provider.dart';
+import 'package:musicapp/provider/download_provider.dart'; // ✅ Import This
+import 'package:musicapp/models/download_metadata_model.dart'; // ✅ Import This
 import 'package:url_launcher/url_launcher.dart';
-// import 'package:musicapp/services/youtube_service.dart'; // Removed
 
 class SongMetadataScreen extends ConsumerStatefulWidget {
   final String songId;
@@ -24,7 +25,6 @@ class SongMetadataScreen extends ConsumerStatefulWidget {
 }
 
 class _SongMetadataScreenState extends ConsumerState<SongMetadataScreen> {
-  // --- Link Open Karne Ka Function (Same as before) ---
   Future<void> _launchYoutubeUrl(String url) async {
     if (url.isEmpty) return;
     final Uri uri = Uri.parse(url);
@@ -41,7 +41,6 @@ class _SongMetadataScreenState extends ConsumerState<SongMetadataScreen> {
     }
   }
 
-  // Helpers to format raw data from provider
   String _formatDuration(Duration? duration) {
     if (duration == null) return "--:--";
     String twoDigits(int n) => n.toString().padLeft(2, "0");
@@ -61,14 +60,12 @@ class _SongMetadataScreenState extends ConsumerState<SongMetadataScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // WATCH logic: Automatically calls build when data arrives
     final metadataState = ref.watch(songDetailProvider(widget.songId));
 
     if (metadataState.isLoading) {
       return const SongMetadataSkeleton();
     }
 
-    // Data Extraction from State
     final video = metadataState.videoDetails;
     final String album = 'YouTube Music';
     final String year = video?.uploadDate?.year.toString() ?? '2024';
@@ -79,6 +76,17 @@ class _SongMetadataScreenState extends ConsumerState<SongMetadataScreen> {
     final String likes = _formatCount(video?.engagement.likeCount);
     final String label = video?.author ?? 'YouTube';
     final String url = video?.url ?? '';
+
+    // ✅ Download Status Check Logic
+    final downloadTask = ref.watch(downloadTaskByUrlProvider(url));
+
+    // Check if active (not completed, not failed, and exists)
+    final bool isDownloading =
+        downloadTask != null &&
+        downloadTask.status != DownloadStatus.completed &&
+        downloadTask.status != DownloadStatus.failed;
+
+    final double progress = downloadTask?.progress ?? 0.0;
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -98,7 +106,6 @@ class _SongMetadataScreenState extends ConsumerState<SongMetadataScreen> {
           child: Column(
             children: [
               const SizedBox(height: 10),
-              // Album Art
               Container(
                 width: 300,
                 height: 300,
@@ -113,7 +120,7 @@ class _SongMetadataScreenState extends ConsumerState<SongMetadataScreen> {
                   ],
                   image: DecorationImage(
                     image: NetworkImage(widget.imageUrl),
-                    fit: BoxFit.cover,
+                    fit: BoxFit.cover, // Changed to cover for better look
                   ),
                 ),
               ),
@@ -215,19 +222,52 @@ class _SongMetadataScreenState extends ConsumerState<SongMetadataScreen> {
                       ),
                     ),
                     const SizedBox(width: 16),
+
+                    // ✅ DOWNLOAD BUTTON / PROGRESS INDICATOR
                     Container(
+                      width: 60,
+                      height: 60,
                       decoration: BoxDecoration(
                         border: Border.all(color: Colors.white, width: 2),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: IconButton(
-                        icon: const Icon(
-                          Icons.download,
-                          color: Colors.white,
-                          size: 28,
-                        ),
-                        onPressed: () {},
-                      ),
+                      child: isDownloading
+                          ? Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                CircularProgressIndicator(
+                                  value: progress, // Show actual progress
+                                  color: Colors.white,
+                                  strokeWidth: 3,
+                                ),
+                                if (progress > 0)
+                                  Text(
+                                    "${(progress * 100).toInt()}", // Show %
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                              ],
+                            )
+                          : IconButton(
+                              icon: const Icon(
+                                Icons.download,
+                                color: Colors.white,
+                                size: 28,
+                              ),
+                              onPressed: () {
+                                // Start Download
+                                ref
+                                    .read(downloadControllerProvider)
+                                    .addToQueue(url);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text("Download started..."),
+                                  ),
+                                );
+                              },
+                            ),
                     ),
                   ],
                 ),

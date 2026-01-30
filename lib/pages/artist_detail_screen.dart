@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart'; // Cache Import
 import 'package:musicapp/models/song_model.dart';
 import 'package:musicapp/pages/song_metadata_screen.dart';
+import 'package:musicapp/utils/slide_route.dart';
 import 'package:musicapp/widgets/artist_detail_skelton.dart';
 import 'package:musicapp/provider/artist_provider.dart'; // Provider Import
 
@@ -51,8 +52,8 @@ class _ArtistDetailScreenState extends ConsumerState<ArtistDetailScreen> {
   void _handleSongTap(SongModel song) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => SongMetadataScreen(
+      SlideRightToLeftRoute(
+        page: SongMetadataScreen(
           songId: song.id,
           imageUrl: song.imageUrl,
           title: song.title,
@@ -90,10 +91,11 @@ class _ArtistDetailScreenState extends ConsumerState<ArtistDetailScreen> {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor, // Dynamic Color
       appBar: AppBar(
-        backgroundColor: theme.appBarTheme.backgroundColor, // Dynamic Color
+        backgroundColor: Colors.black,
         elevation: 0,
         scrolledUnderElevation: 0,
         surfaceTintColor: Colors.transparent,
+
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: theme.iconTheme.color),
           onPressed: () => Navigator.pop(context),

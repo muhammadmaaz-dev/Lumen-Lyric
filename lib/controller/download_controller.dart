@@ -157,11 +157,11 @@ class DownloadController {
       Uint8List? artworkBytes;
 
       // 1. Artwork Download (Agar image URL hai)
-      if (metadata.thumbnail != null && metadata.thumbnail!.isNotEmpty) {
+      if (metadata.thumbnailUrl != null && metadata.thumbnailUrl!.isNotEmpty) {
         try {
           final dio = Dio();
           final response = await dio.get(
-            metadata.thumbnail!,
+            metadata.thumbnailUrl!,
             options: Options(responseType: ResponseType.bytes),
           );
           if (response.statusCode == 200) {

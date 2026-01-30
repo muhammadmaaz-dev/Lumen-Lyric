@@ -1,11 +1,9 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:musicapp/models/song_model.dart';
-import 'package:musicapp/provider/audio_provider.dart';
-import 'package:musicapp/provider/search_provider.dart'; // Ensure ye file bani ho
-import 'package:musicapp/services/youtube_service.dart'; // Ensure ye file bani ho
+import 'package:musicapp/pages/search_result_screen.dart';
+import 'package:musicapp/provider/search_provider.dart';
+import 'package:musicapp/utils/slide_route.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
@@ -16,311 +14,206 @@ class SearchScreen extends ConsumerStatefulWidget {
 
 class _SearchScreenState extends ConsumerState<SearchScreen> {
   final TextEditingController _searchController = TextEditingController();
-  Timer? _debounce;
-  bool _isNavigating = false; // Double tap prevent karne ke liye
 
-  @override
-  void initState() {
-    super.initState();
-    // Screen khulte hi search clear kar dein agar zaroorat ho
-    // Future.microtask(() => ref.read(searchQueryProvider.notifier).state = '');
+  void _onChanged(String value) {
+    // setState isliye taake UI rebuild ho aur 'isQueryEmpty' update ho
+    setState(() {});
+    ref.read(searchProvider.notifier).fetchSuggestions(value);
   }
 
-  @override
-  void dispose() {
-    _searchController.dispose();
-    _debounce?.cancel();
-    super.dispose();
-  }
+  void _performSearch(String query) {
+    if (query.trim().isEmpty) return;
+    ref.read(searchProvider.notifier).clearSuggestions();
 
-  // --- Search Logic with Debounce ---
-  void _onSearchChanged(String query) {
-    if (_debounce?.isActive ?? false) _debounce!.cancel();
-
-    // 600ms ka wait taake har letter pe request na jaye
-    _debounce = Timer(const Duration(milliseconds: 600), () {
-      if (mounted) {
-        ref.read(searchQueryProvider.notifier).state = query;
-      }
-    });
-  }
-
-  // --- Clear Search ---
-  void _clearSearch() {
-    _searchController.clear();
-    ref.read(searchQueryProvider.notifier).state = '';
-  }
-
-  // --- Play Song Logic ---
-  Future<void> _playOnlineSong(SongModel song) async {
-    if (_isNavigating) return;
-
-    setState(() {
-      _isNavigating = true;
-    });
-
-    try {
-      // 1. User ko feedback dein
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Fetching stream for: ${song.title}...'),
-          duration: const Duration(seconds: 1),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-
-      // 2. Stream URL fetch karein (YoutubeService se)
-      final youtubeService = ref.read(youtubeServiceProvider);
-      final streamUrl = await youtubeService.getAudioStreamUrl(song.id);
-
-      // 3. Audio Controller ke through play karein
-      final audioController = ref.read(audioControllerProvider);
-      await audioController.playNetworkAudio(streamUrl, song);
-
-      // Optional: Agar player screen pe le jana ho to navigate karein
-      // Navigator.push(context, MaterialPageRoute(builder: (_) => FullPlayer()));
-    } catch (e) {
-      debugPrint("Error playing song: $e");
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to play: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isNavigating = false;
-        });
-      }
+    // Save current query to controller if triggered by tap
+    if (_searchController.text != query) {
+      _searchController.text = query;
     }
+
+    Navigator.push(
+      context,
+      SlideRightToLeftRoute(page: SearchResultScreen(searchQuery: query)),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    // Riverpod se state watch kar rahe hain
-    final searchResultsValue = ref.watch(searchResultsProvider);
-    final currentQuery = ref.watch(searchQueryProvider);
-
-    final isDarkTheme = Theme.of(context).brightness == Brightness.dark;
-    final backgroundColor = isDarkTheme
-        ? const Color(0xff000000)
-        : const Color(0xfff3f4f6);
-    final textColor = isDarkTheme ? Colors.white : Colors.black;
-    final secondaryTextColor = isDarkTheme
-        ? Colors.grey[400]
-        : Colors.grey[600];
-    final borderColor = isDarkTheme ? Colors.grey[800] : Colors.grey[300];
+    final theme = Theme.of(context);
+    final searchState = ref.watch(searchProvider);
+    final isQueryEmpty = _searchController.text.isEmpty;
 
     return Scaffold(
-      backgroundColor: backgroundColor,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // --- Search Bar Header ---
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
-              decoration: BoxDecoration(
-                color: backgroundColor,
-                border: Border(
-                  bottom: BorderSide(
-                    color: borderColor ?? Colors.grey,
-                    width: 0.5.h,
-                  ),
-                ),
-              ),
-              child: Row(
-                children: [
-                  // Back Button
-                  GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: Icon(
-                      Icons.arrow_back,
-                      color: textColor,
-                      size: 21.sp,
-                    ),
-                  ),
-                  SizedBox(width: 11.w),
-
-                  // Search Input
-                  Expanded(
-                    child: TextField(
-                      controller: _searchController,
-                      autofocus: true,
-                      style: TextStyle(color: textColor, fontSize: 14.sp),
-                      decoration: InputDecoration(
-                        hintText: 'Search Online Music...',
-                        hintStyle: TextStyle(
-                          color: secondaryTextColor,
-                          fontSize: 14.sp,
-                        ),
-                        border: InputBorder.none,
-                        isDense: true,
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                      onChanged: _onSearchChanged,
-                    ),
-                  ),
-
-                  // Clear Button
-                  if (currentQuery.isNotEmpty)
-                    GestureDetector(
-                      onTap: _clearSearch,
-                      child: Icon(
-                        Icons.close,
-                        color: secondaryTextColor,
-                        size: 18.sp,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-
-            // --- Search Results List ---
-            Expanded(
-              child: searchResultsValue.when(
-                data: (songs) {
-                  if (songs.isEmpty) {
-                    // Empty State
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.search,
-                            size: 60,
-                            color: secondaryTextColor?.withOpacity(0.5),
-                          ),
-                          SizedBox(height: 10.h),
-                          Text(
-                            currentQuery.isEmpty
-                                ? 'Type to search songs'
-                                : 'No results found',
-                            style: TextStyle(
-                              color: secondaryTextColor,
-                              fontSize: 14.sp,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-
-                  // Results List
-                  return ListView.builder(
-                    padding: EdgeInsets.symmetric(vertical: 7.h),
-                    itemCount: songs.length,
-                    itemBuilder: (context, index) {
-                      final song = songs[index];
-                      return _buildSongItem(
-                        song,
-                        textColor,
-                        secondaryTextColor,
-                      );
-                    },
-                  );
-                },
-                // Loading State
-                loading: () => Center(
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: textColor,
-                  ),
-                ),
-                // Error State
-                error: (error, stack) => Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20.0),
-                    child: Text(
-                      'Error: $error',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.redAccent,
-                        fontSize: 14.sp,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
+      backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        titleSpacing: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: theme.iconTheme.color),
+          onPressed: () => Navigator.pop(context),
         ),
+        title: Padding(
+          padding: EdgeInsets.only(right: 16.w),
+          child: TextField(
+            controller: _searchController,
+            style: theme.textTheme.bodyLarge,
+            autofocus: true,
+            textInputAction: TextInputAction.search,
+            onChanged: _onChanged,
+            onSubmitted: _performSearch,
+            decoration: InputDecoration(
+              hintText: "What do you want to play?",
+              hintStyle: TextStyle(color: theme.hintColor),
+              border: InputBorder.none,
+              filled: true,
+              fillColor: theme.cardColor,
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 16.w,
+                vertical: 10.h,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(30),
+                borderSide: BorderSide.none,
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(30),
+                borderSide: BorderSide.none,
+              ),
+              suffixIcon: !isQueryEmpty
+                  ? IconButton(
+                      icon: Icon(Icons.close, color: theme.iconTheme.color),
+                      onPressed: () {
+                        _searchController.clear();
+                        setState(() {});
+                        ref.read(searchProvider.notifier).clearSuggestions();
+                      },
+                    )
+                  : null,
+            ),
+          ),
+        ),
+      ),
+      body: isQueryEmpty
+          ? _buildHistoryAndViral(context, searchState.history, theme)
+          : _buildSuggestionsList(searchState.suggestions, theme),
+    );
+  }
+
+  // --- New Widget: History & Viral Tags ---
+  Widget _buildHistoryAndViral(
+    BuildContext context,
+    List<String> history,
+    ThemeData theme,
+  ) {
+    // Static list of Viral/Trending topics
+    final viralTags = [
+      "Trending Now",
+      "Lo-fi Beats",
+      "Coke Studio",
+      "Arijit Singh",
+      "New Releases",
+      "90s Hits",
+      "Punjabi Pop",
+      "Sleep Music",
+    ];
+
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(16.r),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 1. Recent Searches (Show only if history exists)
+          if (history.isNotEmpty) ...[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "Recent Searches",
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                TextButton(
+                  onPressed: () =>
+                      ref.read(searchProvider.notifier).clearHistory(),
+                  child: Text(
+                    "Clear All",
+                    style: TextStyle(
+                      color: theme.primaryColor,
+                      fontSize: 12.sp,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            ...history.map(
+              (term) => ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.history, color: Colors.grey),
+                title: Text(term, style: theme.textTheme.bodyLarge),
+                trailing: IconButton(
+                  icon: const Icon(Icons.close, size: 18, color: Colors.grey),
+                  onPressed: () =>
+                      ref.read(searchProvider.notifier).removeFromHistory(term),
+                ),
+                onTap: () => _performSearch(term),
+              ),
+            ),
+            SizedBox(height: 20.h),
+          ],
+
+          // 2. Viral Suggestions
+          Text(
+            "Try Searching",
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          SizedBox(height: 12.h),
+          Wrap(
+            spacing: 10.w,
+            runSpacing: 10.h,
+            children: viralTags
+                .map(
+                  (term) => ActionChip(
+                    label: Text(term),
+                    backgroundColor: theme.cardColor,
+                    labelStyle: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w500,
+                    ),
+                    side: BorderSide.none,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    onPressed: () => _performSearch(term),
+                  ),
+                )
+                .toList(),
+          ),
+        ],
       ),
     );
   }
 
-  // --- Helper Widget: Individual Song Tile ---
-  Widget _buildSongItem(
-    SongModel song,
-    Color textColor,
-    Color? secondaryTextColor,
-  ) {
-    return InkWell(
-      onTap: () => _playOnlineSong(song),
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
-        child: Row(
-          children: [
-            // Thumbnail Image
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4.r),
-              child: Image.network(
-                song.imageUrl,
-                width: 45.w,
-                height: 45.w,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    width: 45.w,
-                    height: 45.w,
-                    color: Colors.grey[800],
-                    child: const Icon(Icons.music_note, color: Colors.white),
-                  );
-                },
-              ),
-            ),
-            SizedBox(width: 14.w),
-
-            // Song Title & Artist
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    song.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: textColor,
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  SizedBox(height: 4.h),
-                  Text(
-                    song.genre, // Using genre field for Artist Name as per logic
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: secondaryTextColor,
-                      fontSize: 12.sp,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Play Icon
-            Icon(
-              Icons.play_circle_outline,
-              color: secondaryTextColor,
-              size: 24.sp,
-            ),
-          ],
+  // --- Existing Suggestions List ---
+  Widget _buildSuggestionsList(List<String> suggestions, ThemeData theme) {
+    if (suggestions.isEmpty) {
+      return Center(
+        child: Text(
+          "Searching...",
+          style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey),
         ),
-      ),
+      );
+    }
+    return ListView.builder(
+      itemCount: suggestions.length,
+      itemBuilder: (context, index) {
+        final suggestion = suggestions[index];
+        return ListTile(
+          leading: const Icon(Icons.search, color: Colors.grey),
+          title: Text(suggestion, style: theme.textTheme.bodyLarge),
+          onTap: () => _performSearch(suggestion),
+        );
+      },
     );
   }
 }

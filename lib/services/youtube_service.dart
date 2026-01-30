@@ -53,6 +53,18 @@ class YoutubeService {
     }
   }
 
+  Future<List<String>> getSearchSuggestions(String query) async {
+    try {
+      var suggestions = await _yt.search.getQuerySuggestions(query);
+      // Agar library null de, to empty list return karo
+      // ignore: unnecessary_null_comparison
+      return suggestions ?? <String>[];
+    } catch (e) {
+      // Error par bhi empty list
+      return <String>[];
+    }
+  }
+
   // Dispose method if needed
   void dispose() {
     _yt.close();

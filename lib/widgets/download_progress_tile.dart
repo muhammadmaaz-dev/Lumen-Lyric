@@ -38,9 +38,9 @@ class DownloadProgressTile extends StatelessWidget {
               // Thumbnail
               ClipRRect(
                 borderRadius: BorderRadius.circular(8.r),
-                child: task.metadata?.thumbnail != null
+                child: task.metadata?.thumbnailUrl != null
                     ? CachedNetworkImage(
-                        imageUrl: task.metadata!.thumbnail!,
+                        imageUrl: task.metadata!.thumbnailUrl!,
                         width: 50.w,
                         height: 50.w,
                         fit: BoxFit.cover,
