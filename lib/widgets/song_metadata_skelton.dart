@@ -6,18 +6,20 @@ class SongMetadataSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Dark theme colors for skeleton
-    final baseColor = Colors.grey[900]!;
-    final highlightColor = Colors.grey[800]!;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    // Theme-aware colors for skeleton
+    final baseColor = isDark ? Colors.grey[900]! : Colors.grey[300]!;
+    final highlightColor = isDark ? Colors.grey[800]! : Colors.grey[100]!;
+    final shimmerItemColor = isDark ? Colors.white : Colors.grey[400]!;
+    final iconColor = isDark ? Colors.grey[800] : Colors.grey[400];
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.black,
-        leading: Icon(
-          Icons.arrow_back,
-          color: Colors.grey[800],
-        ), // Disabled look
+        backgroundColor: theme.appBarTheme.backgroundColor,
+        leading: Icon(Icons.arrow_back, color: iconColor), // Disabled look
         elevation: 0,
       ),
       body: SafeArea(
@@ -33,7 +35,7 @@ class SongMetadataSkeleton extends StatelessWidget {
                   width: 300,
                   height: 300,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: shimmerItemColor,
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
@@ -44,7 +46,7 @@ class SongMetadataSkeleton extends StatelessWidget {
                   width: 200,
                   height: 28,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: shimmerItemColor,
                     borderRadius: BorderRadius.circular(4),
                   ),
                 ),
@@ -55,7 +57,7 @@ class SongMetadataSkeleton extends StatelessWidget {
                   width: 150,
                   height: 20,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: shimmerItemColor,
                     borderRadius: BorderRadius.circular(4),
                   ),
                 ),
@@ -66,7 +68,7 @@ class SongMetadataSkeleton extends StatelessWidget {
                   width: 100,
                   height: 16,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: shimmerItemColor,
                     borderRadius: BorderRadius.circular(4),
                   ),
                 ),
@@ -77,7 +79,7 @@ class SongMetadataSkeleton extends StatelessWidget {
                   margin: const EdgeInsets.symmetric(horizontal: 24),
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    border: Border.all(color: Colors.white12),
+                    border: Border.all(color: theme.dividerColor),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Column(
@@ -87,7 +89,7 @@ class SongMetadataSkeleton extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: List.generate(
                           3,
-                          (index) => _buildMiniBlock(),
+                          (index) => _buildMiniBlock(shimmerItemColor),
                         ),
                       ),
                       const SizedBox(height: 24),
@@ -96,7 +98,7 @@ class SongMetadataSkeleton extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: List.generate(
                           3,
-                          (index) => _buildMiniBlock(),
+                          (index) => _buildMiniBlock(shimmerItemColor),
                         ),
                       ),
                       const SizedBox(height: 24),
@@ -105,7 +107,7 @@ class SongMetadataSkeleton extends StatelessWidget {
                         width: 150,
                         height: 40,
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: shimmerItemColor,
                           borderRadius: BorderRadius.circular(4),
                         ),
                       ),
@@ -124,7 +126,7 @@ class SongMetadataSkeleton extends StatelessWidget {
                         child: Container(
                           height: 60,
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: shimmerItemColor,
                             borderRadius: BorderRadius.circular(8),
                           ),
                         ),
@@ -134,7 +136,7 @@ class SongMetadataSkeleton extends StatelessWidget {
                         width: 60,
                         height: 60,
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: shimmerItemColor,
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
@@ -149,12 +151,12 @@ class SongMetadataSkeleton extends StatelessWidget {
     );
   }
 
-  Widget _buildMiniBlock() {
+  Widget _buildMiniBlock(Color color) {
     return Column(
       children: [
-        Container(width: 50, height: 12, color: Colors.white),
+        Container(width: 50, height: 12, color: color),
         const SizedBox(height: 6),
-        Container(width: 40, height: 16, color: Colors.white),
+        Container(width: 40, height: 16, color: color),
       ],
     );
   }

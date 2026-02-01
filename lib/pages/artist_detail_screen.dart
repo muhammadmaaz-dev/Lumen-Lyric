@@ -91,7 +91,7 @@ class _ArtistDetailScreenState extends ConsumerState<ArtistDetailScreen> {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor, // Dynamic Color
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: theme.appBarTheme.backgroundColor,
         elevation: 0,
         scrolledUnderElevation: 0,
         surfaceTintColor: Colors.transparent,
@@ -295,13 +295,7 @@ class _ArtistDetailScreenState extends ConsumerState<ArtistDetailScreen> {
                 ],
               ),
             ),
-            Text(
-              "--:--",
-              style: theme.textTheme.bodySmall?.copyWith(
-                fontFamily: 'RobotoMono',
-                fontSize: 15,
-              ),
-            ),
+
             const SizedBox(width: 10),
             Icon(
               Icons.more_horiz,

@@ -6,20 +6,25 @@ class ArtistDetailSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Dark theme colors for skeleton
-    final baseColor = Colors.grey[900]!;
-    final highlightColor = Colors.grey[800]!;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    // Theme-aware colors for skeleton
+    final baseColor = isDark ? Colors.grey[900]! : Colors.grey[300]!;
+    final highlightColor = isDark ? Colors.grey[800]! : Colors.grey[100]!;
+    final shimmerItemColor = isDark ? Colors.white : Colors.grey[400]!;
+    final iconColor = isDark ? Colors.grey[800] : Colors.grey[400];
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: theme.appBarTheme.backgroundColor,
         elevation: 0,
-        leading: Icon(Icons.arrow_back, color: Colors.grey[800]),
+        leading: Icon(Icons.arrow_back, color: iconColor),
         actions: [
-          Icon(Icons.search, color: Colors.grey[800]),
+          Icon(Icons.search, color: iconColor),
           const SizedBox(width: 16),
-          Icon(Icons.more_vert, color: Colors.grey[800]),
+          Icon(Icons.more_vert, color: iconColor),
           const SizedBox(width: 16),
         ],
       ),
@@ -34,8 +39,8 @@ class ArtistDetailSkeleton extends StatelessWidget {
               Container(
                 width: 160,
                 height: 160,
-                decoration: const BoxDecoration(
-                  color: Colors.white,
+                decoration: BoxDecoration(
+                  color: shimmerItemColor,
                   shape: BoxShape.circle,
                 ),
               ),
@@ -45,7 +50,7 @@ class ArtistDetailSkeleton extends StatelessWidget {
                 width: 200,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: shimmerItemColor,
                   borderRadius: BorderRadius.circular(4),
                 ),
               ),
@@ -55,7 +60,7 @@ class ArtistDetailSkeleton extends StatelessWidget {
                 width: 120,
                 height: 14,
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: shimmerItemColor,
                   borderRadius: BorderRadius.circular(4),
                 ),
               ),
@@ -64,9 +69,9 @@ class ArtistDetailSkeleton extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  _buildButtonSkeleton(),
+                  _buildButtonSkeleton(shimmerItemColor),
                   const SizedBox(width: 24),
-                  _buildButtonSkeleton(),
+                  _buildButtonSkeleton(shimmerItemColor),
                 ],
               ),
               const SizedBox(height: 36),
@@ -76,8 +81,8 @@ class ArtistDetailSkeleton extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Container(width: 150, height: 20, color: Colors.white),
-                    Container(width: 80, height: 14, color: Colors.white),
+                    Container(width: 150, height: 20, color: shimmerItemColor),
+                    Container(width: 80, height: 14, color: shimmerItemColor),
                   ],
                 ),
               ),
@@ -96,7 +101,11 @@ class ArtistDetailSkeleton extends StatelessWidget {
                     child: Row(
                       children: [
                         // Number
-                        Container(width: 20, height: 16, color: Colors.white),
+                        Container(
+                          width: 20,
+                          height: 16,
+                          color: shimmerItemColor,
+                        ),
                         const SizedBox(width: 16),
                         // Title & Info
                         Expanded(
@@ -106,20 +115,24 @@ class ArtistDetailSkeleton extends StatelessWidget {
                               Container(
                                 width: double.infinity,
                                 height: 16,
-                                color: Colors.white,
+                                color: shimmerItemColor,
                               ),
                               const SizedBox(height: 6),
                               Container(
                                 width: 100,
                                 height: 12,
-                                color: Colors.white,
+                                color: shimmerItemColor,
                               ),
                             ],
                           ),
                         ),
                         const SizedBox(width: 16),
                         // Duration/Menu
-                        Container(width: 40, height: 14, color: Colors.white),
+                        Container(
+                          width: 40,
+                          height: 14,
+                          color: shimmerItemColor,
+                        ),
                       ],
                     ),
                   );
@@ -132,12 +145,12 @@ class ArtistDetailSkeleton extends StatelessWidget {
     );
   }
 
-  Widget _buildButtonSkeleton() {
+  Widget _buildButtonSkeleton(Color color) {
     return Container(
       width: 120,
       height: 50,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: color,
         borderRadius: BorderRadius.circular(32),
       ),
     );

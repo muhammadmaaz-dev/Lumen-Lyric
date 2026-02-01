@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:musicapp/controller/audio_controller.dart';
 import 'package:musicapp/controller/download_controller.dart';
 import 'package:musicapp/models/download_metadata_model.dart';
@@ -41,11 +42,10 @@ class _MusicScreenState extends State<MusicScreen> {
     if (url.isEmpty) return;
 
     if (!_downloadController.isValidUrl(url)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Invalid YouTube URL'),
-          backgroundColor: Colors.red,
-        ),
+      Fluttertoast.showToast(
+        msg: 'Invalid YouTube URL',
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
       );
       return;
     }
@@ -59,16 +59,16 @@ class _MusicScreenState extends State<MusicScreen> {
       FocusScope.of(context).unfocus();
 
       // Feedback
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Added to download queue...'),
-          backgroundColor: Color(0xFF1DB954),
-          duration: Duration(seconds: 2),
-        ),
+      Fluttertoast.showToast(
+        msg: 'Added to download queue...',
+        backgroundColor: const Color(0xFF1DB954),
+        textColor: Colors.white,
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+      Fluttertoast.showToast(
+        msg: 'Error: $e',
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
       );
     }
   }
@@ -92,11 +92,10 @@ class _MusicScreenState extends State<MusicScreen> {
         // Process karein
         _processUrl(pastedUrl);
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Clipboard is empty'),
-            backgroundColor: Colors.red,
-          ),
+        Fluttertoast.showToast(
+          msg: 'Clipboard is empty',
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
         );
       }
     } else {

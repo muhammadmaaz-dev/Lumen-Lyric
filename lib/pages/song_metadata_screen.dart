@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:musicapp/widgets/song_metadata_skelton.dart';
 import 'package:musicapp/provider/song_detail_provider.dart';
 import 'package:musicapp/provider/download_provider.dart'; // ✅ Import This
@@ -34,9 +35,7 @@ class _SongMetadataScreenState extends ConsumerState<SongMetadataScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Could not open link: $e")));
+        Fluttertoast.showToast(msg: "Could not open link: $e");
       }
     }
   }
@@ -61,6 +60,8 @@ class _SongMetadataScreenState extends ConsumerState<SongMetadataScreen> {
   @override
   Widget build(BuildContext context) {
     final metadataState = ref.watch(songDetailProvider(widget.songId));
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     if (metadataState.isLoading) {
       return const SongMetadataSkeleton();
@@ -89,14 +90,14 @@ class _SongMetadataScreenState extends ConsumerState<SongMetadataScreen> {
     final double progress = downloadTask?.progress ?? 0.0;
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: theme.scaffoldBackgroundColor,
         elevation: 0,
         scrolledUnderElevation: 0,
         surfaceTintColor: Colors.transparent,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: Icon(Icons.arrow_back, color: theme.iconTheme.color),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -111,11 +112,11 @@ class _SongMetadataScreenState extends ConsumerState<SongMetadataScreen> {
                 height: 300,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(16),
-                  boxShadow: const [
+                  boxShadow: [
                     BoxShadow(
-                      color: Colors.black54,
+                      color: isDark ? Colors.black54 : Colors.black26,
                       blurRadius: 24,
-                      offset: Offset(0, 8),
+                      offset: const Offset(0, 8),
                     ),
                   ],
                   image: DecorationImage(
@@ -130,8 +131,8 @@ class _SongMetadataScreenState extends ConsumerState<SongMetadataScreen> {
                 child: Text(
                   widget.title,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: theme.textTheme.headlineMedium?.color,
                     fontWeight: FontWeight.bold,
                     fontSize: 22,
                     letterSpacing: 1.5,
@@ -142,14 +143,17 @@ class _SongMetadataScreenState extends ConsumerState<SongMetadataScreen> {
               Text(
                 widget.artist,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.white70, fontSize: 18),
+                style: TextStyle(
+                  color: theme.textTheme.bodyMedium?.color,
+                  fontSize: 18,
+                ),
               ),
               const SizedBox(height: 4),
               Text(
                 album,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Colors.white38,
+                style: TextStyle(
+                  color: theme.textTheme.bodySmall?.color,
                   fontSize: 16,
                   letterSpacing: 1.2,
                 ),
@@ -159,8 +163,8 @@ class _SongMetadataScreenState extends ConsumerState<SongMetadataScreen> {
                 margin: const EdgeInsets.symmetric(horizontal: 24),
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.black,
-                  border: Border.all(color: Colors.white12),
+                  color: theme.scaffoldBackgroundColor,
+                  border: Border.all(color: theme.dividerColor),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Column(
@@ -168,24 +172,38 @@ class _SongMetadataScreenState extends ConsumerState<SongMetadataScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        _metaItem('YEAR', year),
-                        _metaItem('DURATION', duration),
-                        _metaItem('GENRE', genre, highlight: true),
+                        _metaItem('YEAR', year, theme, isDark),
+                        _metaItem('DURATION', duration, theme, isDark),
+                        _metaItem(
+                          'GENRE',
+                          genre,
+                          theme,
+                          isDark,
+                          highlight: true,
+                        ),
                       ],
                     ),
                     const SizedBox(height: 24),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        _metaItem('EXPLICIT', explicit ? 'E' : '', box: true),
-                        _metaItem('VIEWS', views),
-                        _metaItem('LIKES', likes),
+                        _metaItem(
+                          'EXPLICIT',
+                          explicit ? 'E' : 'E',
+                          theme,
+                          isDark,
+                          box: true,
+                        ),
+                        _metaItem('VIEWS', views, theme, isDark),
+                        _metaItem('LIKES', likes, theme, isDark),
                       ],
                     ),
                     const SizedBox(height: 24),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
-                      children: [_metaItem('LABEL', label, wide: true)],
+                      children: [
+                        _metaItem('LABEL', label, theme, isDark, wide: true),
+                      ],
                     ),
                   ],
                 ),
@@ -202,8 +220,11 @@ class _SongMetadataScreenState extends ConsumerState<SongMetadataScreen> {
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
-                          foregroundColor: Colors.white,
-                          side: const BorderSide(color: Colors.white, width: 2),
+                          foregroundColor: theme.textTheme.bodyLarge?.color,
+                          side: BorderSide(
+                            color: theme.dividerColor.withOpacity(0.5),
+                            width: 2,
+                          ),
                           padding: const EdgeInsets.symmetric(vertical: 18),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
@@ -211,9 +232,10 @@ class _SongMetadataScreenState extends ConsumerState<SongMetadataScreen> {
                           elevation: 0,
                         ),
                         onPressed: () => _launchYoutubeUrl(url),
-                        child: const Text(
+                        child: Text(
                           'OPEN URL',
                           style: TextStyle(
+                            color: theme.textTheme.bodyLarge?.color,
                             fontWeight: FontWeight.bold,
                             fontSize: 18,
                             letterSpacing: 1.2,
@@ -228,7 +250,10 @@ class _SongMetadataScreenState extends ConsumerState<SongMetadataScreen> {
                       width: 60,
                       height: 60,
                       decoration: BoxDecoration(
-                        border: Border.all(color: Colors.white, width: 2),
+                        border: Border.all(
+                          color: theme.dividerColor.withOpacity(0.5),
+                          width: 2,
+                        ),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: isDownloading
@@ -237,23 +262,23 @@ class _SongMetadataScreenState extends ConsumerState<SongMetadataScreen> {
                               children: [
                                 CircularProgressIndicator(
                                   value: progress, // Show actual progress
-                                  color: Colors.white,
+                                  color: theme.primaryColor,
                                   strokeWidth: 3,
                                 ),
                                 if (progress > 0)
                                   Text(
                                     "${(progress * 100).toInt()}", // Show %
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 10,
-                                      color: Colors.white,
+                                      color: theme.textTheme.bodySmall?.color,
                                     ),
                                   ),
                               ],
                             )
                           : IconButton(
-                              icon: const Icon(
+                              icon: Icon(
                                 Icons.download,
-                                color: Colors.white,
+                                color: theme.iconTheme.color,
                                 size: 28,
                               ),
                               onPressed: () {
@@ -261,10 +286,8 @@ class _SongMetadataScreenState extends ConsumerState<SongMetadataScreen> {
                                 ref
                                     .read(downloadControllerProvider)
                                     .addToQueue(url);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text("Download started..."),
-                                  ),
+                                Fluttertoast.showToast(
+                                  msg: "Download started...",
                                 );
                               },
                             ),
@@ -282,7 +305,9 @@ class _SongMetadataScreenState extends ConsumerState<SongMetadataScreen> {
 
   Widget _metaItem(
     String label,
-    String value, {
+    String value,
+    ThemeData theme,
+    bool isDark, {
     bool highlight = false,
     bool box = false,
     bool wide = false,
@@ -295,9 +320,8 @@ class _SongMetadataScreenState extends ConsumerState<SongMetadataScreen> {
         children: [
           Text(
             label,
-            style: const TextStyle(
-              fontFamily: 'RobotoMono',
-              color: Colors.white54,
+            style: TextStyle(
+              color: theme.textTheme.bodySmall?.color,
               fontSize: 13,
               letterSpacing: 2,
             ),
@@ -310,13 +334,13 @@ class _SongMetadataScreenState extends ConsumerState<SongMetadataScreen> {
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: theme.textTheme.bodyLarge?.color,
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
                     value,
-                    style: const TextStyle(
-                      color: Colors.black,
+                    style: TextStyle(
+                      color: theme.scaffoldBackgroundColor,
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
                     ),
@@ -325,7 +349,9 @@ class _SongMetadataScreenState extends ConsumerState<SongMetadataScreen> {
               : Text(
                   value,
                   style: TextStyle(
-                    color: highlight ? Colors.white : Colors.white70,
+                    color: highlight
+                        ? theme.textTheme.bodyLarge?.color
+                        : theme.textTheme.bodyMedium?.color,
                     fontWeight: highlight ? FontWeight.bold : FontWeight.normal,
                     fontSize: highlight ? 16 : 15,
                   ),

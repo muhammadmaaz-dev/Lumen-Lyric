@@ -45,7 +45,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: theme.appBarTheme.backgroundColor,
         titleSpacing: 0,
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: theme.iconTheme.color),

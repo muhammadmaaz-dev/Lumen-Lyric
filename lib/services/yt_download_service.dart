@@ -14,9 +14,13 @@ class YtDownloadService {
     _dio = Dio(
       BaseOptions(
         baseUrl: baseUrl,
-        connectTimeout: const Duration(seconds: 60),
-        receiveTimeout: const Duration(minutes: 10),
-        sendTimeout: const Duration(seconds: 30),
+        connectTimeout: const Duration(
+          seconds: 120,
+        ), // 2 minutes for cold start
+        receiveTimeout: const Duration(
+          minutes: 15,
+        ), // 15 mins for long conversions
+        sendTimeout: const Duration(seconds: 60),
         headers: {'Content-Type': 'application/json'},
       ),
     );
@@ -35,20 +39,35 @@ class YtDownloadService {
     }
   }
 
-  /// Wake up server
+  /// Wake up server (Render.com free tier can take 50+ seconds to cold start)
   Future<bool> wakeUpServer() async {
     debugPrint('🔄 Waking up server...');
-    for (int attempt = 1; attempt <= 3; attempt++) {
+
+    // Try up to 5 times with longer timeouts for cold start
+    for (int attempt = 1; attempt <= 5; attempt++) {
       try {
+        debugPrint('⏳ Wake attempt $attempt/5...');
         final response = await _dio.get(
           '/',
-          options: Options(receiveTimeout: const Duration(seconds: 45)),
+          options: Options(
+            receiveTimeout: const Duration(
+              seconds: 60,
+            ), // Longer timeout for cold start
+            sendTimeout: const Duration(seconds: 30),
+          ),
         );
-        if (response.statusCode == 200) return true;
+        if (response.statusCode == 200) {
+          debugPrint('✅ Server is awake!');
+          return true;
+        }
       } catch (e) {
-        if (attempt < 3) await Future.delayed(const Duration(seconds: 2));
+        debugPrint('⚠️ Wake attempt $attempt failed: $e');
+        if (attempt < 5) {
+          await Future.delayed(const Duration(seconds: 3));
+        }
       }
     }
+    debugPrint('❌ Server wake-up failed after 5 attempts');
     return false;
   }
 
@@ -218,6 +237,75 @@ class YtDownloadService {
         .replaceAll(RegExp(r'\s+'), ' ')
         .trim();
   }
+
+  /// Get the direct download URL after server conversion (for background downloads)
+  Future<BackgroundDownloadInfo> getBackgroundDownloadInfo(
+    String youtubeUrl,
+  ) async {
+    try {
+      final isOnline = await wakeUpServer();
+      if (!isOnline) {
+        throw Exception('Server is unavailable. Please try again.');
+      }
+
+      // Request conversion on server
+      final convertResponse = await _dio.post(
+        '/download',
+        data: {'url': youtubeUrl, 'include_metadata': true},
+        options: Options(receiveTimeout: const Duration(minutes: 10)),
+      );
+
+      if (convertResponse.statusCode != 200) {
+        throw Exception('Conversion failed: ${convertResponse.statusMessage}');
+      }
+
+      final data = convertResponse.data;
+      final downloadId = data['download_id'];
+      final serverFilename = data['filename'];
+      final metadata = DownloadMetadataModel.fromJson(data['metadata']);
+
+      // Build download URL
+      final downloadUrl = '$baseUrl/file/$downloadId/$serverFilename';
+
+      // Create safe filename
+      final songTitle = metadata.title ?? "Unknown Song";
+      final safeTitle = _sanitizeFilename(songTitle);
+      final localFilename = '$safeTitle.mp3';
+
+      return BackgroundDownloadInfo(
+        downloadUrl: downloadUrl,
+        fileName: localFilename,
+        downloadId: downloadId,
+        metadata: metadata,
+      );
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
+  }
+
+  /// Cleanup server resources after download
+  Future<void> cleanupDownload(String downloadId) async {
+    try {
+      await _dio.delete('/cleanup/$downloadId');
+    } catch (_) {
+      // Ignore cleanup errors
+    }
+  }
+}
+
+/// Info needed for background download
+class BackgroundDownloadInfo {
+  final String downloadUrl;
+  final String fileName;
+  final String downloadId;
+  final DownloadMetadataModel metadata;
+
+  BackgroundDownloadInfo({
+    required this.downloadUrl,
+    required this.fileName,
+    required this.downloadId,
+    required this.metadata,
+  });
 }
 
 // --- UPDATED RESULT CLASS ---

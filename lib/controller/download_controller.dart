@@ -3,8 +3,10 @@ import 'dart:typed_data';
 import 'dart:convert';
 import 'dart:async'; // Delay ke liye
 import 'package:flutter/material.dart';
+import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:musicapp/models/download_metadata_model.dart';
 import 'package:musicapp/services/yt_download_service.dart';
+import 'package:musicapp/services/background_download_service.dart';
 import 'package:musicapp/controller/audio_controller.dart';
 import 'package:uuid/uuid.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -18,6 +20,8 @@ class DownloadController {
   DownloadController._internal();
 
   final YtDownloadService _downloadService = YtDownloadService();
+  final BackgroundDownloadService _backgroundService =
+      BackgroundDownloadService.instance;
   final Uuid _uuid = const Uuid();
 
   // Observable state
@@ -29,8 +33,175 @@ class DownloadController {
 
   final ValueNotifier<bool> isProcessing = ValueNotifier<bool>(false);
 
+  // Map to track flutter_downloader taskIds to our internal taskIds
+  final Map<String, String> _downloaderTaskIdMap = {};
+
   Future<void> init() async {
     await _loadRecentDownloads();
+    await _loadDownloaderTaskMapping();
+
+    // Initialize and bind background download service
+    await _backgroundService.initialize();
+    _backgroundService.registerCallback();
+    _backgroundService.bindBackgroundIsolate();
+
+    // Listen to download progress updates
+    _backgroundService.onProgressUpdate = _handleBackgroundDownloadProgress;
+
+    // Process any completed downloads from when app was closed
+    await _processCompletedBackgroundDownloads();
+
+    // Restore any in-progress downloads
+    await _restoreDownloadTasks();
+  }
+
+  /// Handle progress updates from background downloads
+  void _handleBackgroundDownloadProgress(
+    String downloaderTaskId,
+    int status,
+    int progress,
+  ) {
+    // Find our internal task ID
+    final internalTaskId = _downloaderTaskIdMap.entries
+        .where((e) => e.value == downloaderTaskId)
+        .map((e) => e.key)
+        .firstOrNull;
+
+    if (internalTaskId == null) return;
+
+    // Map flutter_downloader status to our status
+    DownloadStatus downloadStatus;
+    switch (status) {
+      case 1: // enqueued
+        downloadStatus = DownloadStatus.pending;
+        break;
+      case 2: // running
+        downloadStatus = DownloadStatus.downloading;
+        break;
+      case 3: // complete
+        downloadStatus = DownloadStatus.completed;
+        break;
+      case 4: // failed
+        downloadStatus = DownloadStatus.failed;
+        break;
+      case 5: // canceled
+        downloadStatus = DownloadStatus.failed;
+        break;
+      case 6: // paused
+        downloadStatus = DownloadStatus.pending;
+        break;
+      default:
+        downloadStatus = DownloadStatus.pending;
+    }
+
+    _updateTask(
+      internalTaskId,
+      status: downloadStatus,
+      progress: progress / 100.0,
+    );
+
+    // If completed, process the metadata
+    if (status == 3) {
+      _handleBackgroundDownloadComplete(internalTaskId);
+    }
+  }
+
+  /// Handle background download completion
+  Future<void> _handleBackgroundDownloadComplete(String taskId) async {
+    final task = downloadQueue.value.firstWhere(
+      (t) => t.id == taskId,
+      orElse: () => DownloadTaskModel(
+        id: '',
+        youtubeUrl: '',
+        status: DownloadStatus.failed,
+      ),
+    );
+
+    if (task.id.isEmpty) return;
+
+    // Get file path from background service
+    final tasks = await _backgroundService.getAllTasks();
+    final downloaderTaskId = _downloaderTaskIdMap[taskId];
+    final downloaderTask = tasks?.firstWhere(
+      (t) => t.taskId == downloaderTaskId,
+    );
+
+    if (downloaderTask != null && downloaderTask.taskId.isNotEmpty) {
+      final filePath = '${downloaderTask.savedDir}/${downloaderTask.filename}';
+
+      // Write metadata tags
+      await _writeTagsToFile(filePath, task.metadata);
+
+      _updateTask(
+        taskId,
+        status: DownloadStatus.completed,
+        filePath: filePath,
+        progress: 1.0,
+      );
+
+      await _addToRecentDownloads(
+        downloadQueue.value.firstWhere((t) => t.id == taskId),
+      );
+
+      // Scan media
+      await AudioController.instance.scanNewMedia(filePath);
+      await AudioController.instance.loadSongs();
+
+      debugPrint("✅ Background Download Complete: $filePath");
+    }
+  }
+
+  /// Process downloads that completed while app was closed
+  Future<void> _processCompletedBackgroundDownloads() async {
+    final completedQueue = await _backgroundService.getAndClearCompletedQueue();
+
+    for (final item in completedQueue) {
+      final metadata = item['metadata'] as Map<String, dynamic>?;
+      final filePath = metadata?['filePath'] as String?;
+
+      if (filePath != null && await File(filePath).exists()) {
+        // Write tags to the downloaded file
+        if (metadata != null) {
+          final downloadMetadata = DownloadMetadataModel.fromJson(metadata);
+          await _writeTagsToFile(filePath, downloadMetadata);
+        }
+
+        // Scan media
+        await AudioController.instance.scanNewMedia(filePath);
+
+        debugPrint("✅ Processed background download: $filePath");
+      }
+    }
+
+    await AudioController.instance.loadSongs();
+  }
+
+  /// Restore download tasks from flutter_downloader
+  Future<void> _restoreDownloadTasks() async {
+    final tasks = await _backgroundService.getAllTasks();
+    if (tasks == null) return;
+
+    for (final task in tasks) {
+      if (task.status == DownloadTaskStatus.running ||
+          task.status == DownloadTaskStatus.enqueued ||
+          task.status == DownloadTaskStatus.paused) {
+        // Restore in-progress downloads to our queue
+        final internalTaskId = _uuid.v4();
+        _downloaderTaskIdMap[internalTaskId] = task.taskId;
+
+        final downloadTask = DownloadTaskModel(
+          id: internalTaskId,
+          youtubeUrl: '', // We don't have this info anymore
+          status: task.status == DownloadTaskStatus.running
+              ? DownloadStatus.downloading
+              : DownloadStatus.pending,
+          progress: task.progress / 100.0,
+          filePath: '${task.savedDir}/${task.filename}',
+        );
+
+        downloadQueue.value = [...downloadQueue.value, downloadTask];
+      }
+    }
   }
 
   bool isValidUrl(String url) {
@@ -71,69 +242,13 @@ class DownloadController {
       final task = downloadQueue.value[taskIndex];
 
       try {
-        // 1. Metadata Fetch
-        _updateTask(task.id, status: DownloadStatus.fetchingMetadata);
-        final metadata = await _downloadService.getMetadata(task.youtubeUrl);
-        _updateTask(task.id, metadata: metadata);
+        debugPrint("📥 Starting download for: ${task.youtubeUrl}");
 
-        // 2. Download Start
-        final result = await _downloadService.downloadAudio(
-          task.youtubeUrl,
-          onStageChange: (stage) {
-            DownloadStatus status;
-            switch (stage) {
-              case DownloadStage.converting:
-                status = DownloadStatus.converting;
-                break;
-              case DownloadStage.downloading:
-                status = DownloadStatus.downloading;
-                break;
-              case DownloadStage.completed:
-                status = DownloadStatus.completed;
-                break;
-              case DownloadStage.failed:
-                status = DownloadStatus.failed;
-                break;
-              default:
-                status = DownloadStatus.pending;
-            }
-            _updateTask(task.id, status: status);
-          },
-          onProgress: (progress) {
-            _updateTask(task.id, progress: progress);
-          },
-        );
-
-        if (result.success && result.filePath != null) {
-          // ✅ STEP 3: Metadata ko PERMANENTLY file mein write karein
-          await _writeTagsToFile(result.filePath!, result.metadata);
-
-          _updateTask(
-            task.id,
-            status: DownloadStatus.completed,
-            filePath:
-                result.filePath, // File wapis original naam se hi save hogi
-            metadata: result.metadata,
-            progress: 1.0,
-          );
-
-          await _addToRecentDownloads(
-            downloadQueue.value.firstWhere((t) => t.id == task.id),
-          );
-
-          debugPrint("✅ Download & Tagging Done. Triggering Scan...");
-
-          // Scan se Android ko batayen ke naye tags aaye hain
-          await AudioController.instance.scanNewMedia(result.filePath!);
-          await AudioController.instance.loadSongs();
-        } else {
-          _updateTask(
-            task.id,
-            status: DownloadStatus.failed,
-            errorMessage: result.errorMessage ?? 'Download failed',
-          );
-        }
+        // Use the reliable direct download method
+        // This downloads within the app and shows real progress
+        await _directDownload(task);
       } catch (e) {
+        debugPrint("❌ Download failed: $e");
         _updateTask(
           task.id,
           status: DownloadStatus.failed,
@@ -143,6 +258,81 @@ class DownloadController {
     }
 
     isProcessing.value = false;
+  }
+
+  /// Direct download method - uses Dio for reliable in-app downloads with progress
+  Future<void> _directDownload(DownloadTaskModel task) async {
+    final result = await _downloadService.downloadAudio(
+      task.youtubeUrl,
+      onStageChange: (stage) {
+        DownloadStatus status;
+        switch (stage) {
+          case DownloadStage.converting:
+            status = DownloadStatus.converting;
+            break;
+          case DownloadStage.downloading:
+            status = DownloadStatus.downloading;
+            break;
+          case DownloadStage.completed:
+            status = DownloadStatus.completed;
+            break;
+          case DownloadStage.failed:
+            status = DownloadStatus.failed;
+            break;
+          default:
+            status = DownloadStatus.pending;
+        }
+        _updateTask(task.id, status: status);
+      },
+      onProgress: (progress) {
+        _updateTask(task.id, progress: progress);
+      },
+    );
+
+    if (result.success && result.filePath != null) {
+      await _writeTagsToFile(result.filePath!, result.metadata);
+
+      _updateTask(
+        task.id,
+        status: DownloadStatus.completed,
+        filePath: result.filePath,
+        metadata: result.metadata,
+        progress: 1.0,
+      );
+
+      await _addToRecentDownloads(
+        downloadQueue.value.firstWhere((t) => t.id == task.id),
+      );
+
+      debugPrint("✅ Download Complete: ${result.filePath}");
+
+      await AudioController.instance.scanNewMedia(result.filePath!);
+      await AudioController.instance.loadSongs();
+    } else {
+      throw Exception(result.errorMessage ?? 'Download failed');
+    }
+  }
+
+  /// Save task ID mapping for app restart
+  Future<void> _saveDownloaderTaskMapping() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      'downloader_task_map',
+      jsonEncode(_downloaderTaskIdMap),
+    );
+  }
+
+  /// Load task ID mapping on app start
+  Future<void> _loadDownloaderTaskMapping() async {
+    final prefs = await SharedPreferences.getInstance();
+    final data = prefs.getString('downloader_task_map');
+    if (data != null) {
+      final decoded = jsonDecode(data) as Map<String, dynamic>;
+      _downloaderTaskIdMap.clear();
+      decoded.forEach((key, value) {
+        _downloaderTaskIdMap[key] = value.toString();
+      });
+    }
   }
 
   // ✅ Helper Function: Tags Write + File Swap Logic (Permanent Fix)

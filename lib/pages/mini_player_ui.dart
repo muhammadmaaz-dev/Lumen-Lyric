@@ -13,11 +13,20 @@ class MiniPlayerUI extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final controller = AudioController.instance;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    final containerColor = isDark ? Colors.grey.shade900 : Colors.grey.shade200;
+    final textColor = isDark ? Colors.white : Colors.black;
+    final subTextColor = isDark ? Colors.white70 : Colors.black54;
+    final iconColor = isDark ? Colors.white : Colors.black;
+    final progressBgColor = isDark ? Colors.white12 : Colors.black12;
+    final progressColor = isDark ? Colors.white : Colors.black;
 
     return Container(
       height: height,
       decoration: BoxDecoration(
-        color: Colors.grey.shade900,
+        color: containerColor,
         // Top corners rounded
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(18.r),
@@ -44,7 +53,7 @@ class MiniPlayerUI extends ConsumerWidget {
                         width: 50.w,
                         height: 50.h,
                         decoration: BoxDecoration(
-                          color: Colors.black26,
+                          color: isDark ? Colors.black26 : Colors.grey.shade300,
                           borderRadius: BorderRadius.circular(8.r),
                         ),
                         child: ClipRRect(
@@ -57,7 +66,7 @@ class MiniPlayerUI extends ConsumerWidget {
                             artworkFit: BoxFit.cover,
                             nullArtworkWidget: Icon(
                               Icons.music_note,
-                              color: Colors.white,
+                              color: iconColor,
                               size: 24.sp,
                             ),
                           ),
@@ -84,7 +93,7 @@ class MiniPlayerUI extends ConsumerWidget {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                color: Colors.white,
+                                color: textColor,
                                 fontSize: 16.sp,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -94,7 +103,7 @@ class MiniPlayerUI extends ConsumerWidget {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                color: Colors.white70,
+                                color: subTextColor,
                                 fontSize: 13.sp,
                               ),
                             ),
@@ -115,7 +124,7 @@ class MiniPlayerUI extends ConsumerWidget {
                                       ? Icons.pause_circle
                                       : Icons.play_circle,
                                   key: ValueKey(isPlaying),
-                                  color: Colors.white,
+                                  color: iconColor,
                                   size: 40.sp,
                                 )
                                 .animate(key: ValueKey(isPlaying))
@@ -152,8 +161,8 @@ class MiniPlayerUI extends ConsumerWidget {
               return LinearProgressIndicator(
                 value: progress,
                 minHeight: 2,
-                backgroundColor: Colors.white12,
-                color: Colors.white,
+                backgroundColor: progressBgColor,
+                color: progressColor,
               );
             },
           ),

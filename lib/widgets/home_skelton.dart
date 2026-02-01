@@ -7,12 +7,16 @@ class HomeSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Dark theme colors for skeleton
-    final baseColor = Colors.grey[900]!;
-    final highlightColor = Colors.grey[800]!;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    // Theme-aware colors for skeleton
+    final baseColor = isDark ? Colors.grey[900]! : Colors.grey[300]!;
+    final highlightColor = isDark ? Colors.grey[800]! : Colors.grey[100]!;
+    final shimmerItemColor = isDark ? Colors.white : Colors.grey[400]!;
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: Shimmer.fromColors(
           baseColor: baseColor,
@@ -33,7 +37,7 @@ class HomeSkeleton extends StatelessWidget {
                         width: 150.w,
                         height: 30.h,
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: shimmerItemColor,
                           borderRadius: BorderRadius.circular(4),
                         ),
                       ),
@@ -42,19 +46,19 @@ class HomeSkeleton extends StatelessWidget {
                   SizedBox(height: 24.h),
 
                   // --- Trending Section Skeleton ---
-                  _buildSectionTitleSkeleton(),
+                  _buildSectionTitleSkeleton(shimmerItemColor),
                   SizedBox(height: 12.h),
                   Column(
                     children: List.generate(
                       4,
-                      (index) => _buildListItemSkeleton(),
+                      (index) => _buildListItemSkeleton(shimmerItemColor),
                     ),
                   ),
 
                   SizedBox(height: 28.h),
 
                   // --- Featured Section Skeleton ---
-                  _buildSectionTitleSkeleton(),
+                  _buildSectionTitleSkeleton(shimmerItemColor),
                   SizedBox(height: 16.h),
                   SizedBox(
                     height: 210.h,
@@ -70,7 +74,7 @@ class HomeSkeleton extends StatelessWidget {
                             width: 160.w,
                             height: 160.w,
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: shimmerItemColor,
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
@@ -78,13 +82,13 @@ class HomeSkeleton extends StatelessWidget {
                           Container(
                             width: 100.w,
                             height: 16.h,
-                            color: Colors.white,
+                            color: shimmerItemColor,
                           ),
                           SizedBox(height: 6.h),
                           Container(
                             width: 60.w,
                             height: 14.h,
-                            color: Colors.white,
+                            color: shimmerItemColor,
                           ),
                         ],
                       ),
@@ -94,7 +98,7 @@ class HomeSkeleton extends StatelessWidget {
                   SizedBox(height: 28.h),
 
                   // --- Artists Section Skeleton ---
-                  _buildSectionTitleSkeleton(),
+                  _buildSectionTitleSkeleton(shimmerItemColor),
                   SizedBox(height: 16.h),
                   SizedBox(
                     height: 110.h,
@@ -108,8 +112,8 @@ class HomeSkeleton extends StatelessWidget {
                           Container(
                             width: 64.w,
                             height: 64.w,
-                            decoration: const BoxDecoration(
-                              color: Colors.white,
+                            decoration: BoxDecoration(
+                              color: shimmerItemColor,
                               shape: BoxShape.circle,
                             ),
                           ),
@@ -117,7 +121,7 @@ class HomeSkeleton extends StatelessWidget {
                           Container(
                             width: 50.w,
                             height: 12.h,
-                            color: Colors.white,
+                            color: shimmerItemColor,
                           ),
                         ],
                       ),
@@ -132,17 +136,17 @@ class HomeSkeleton extends StatelessWidget {
     );
   }
 
-  Widget _buildSectionTitleSkeleton() {
+  Widget _buildSectionTitleSkeleton(Color color) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Container(width: 120.w, height: 20.h, color: Colors.white),
-        Container(width: 40.w, height: 14.h, color: Colors.white),
+        Container(width: 120.w, height: 20.h, color: color),
+        Container(width: 40.w, height: 14.h, color: color),
       ],
     );
   }
 
-  Widget _buildListItemSkeleton() {
+  Widget _buildListItemSkeleton(Color color) {
     return Container(
       margin: EdgeInsets.only(bottom: 10.h),
       child: Row(
@@ -151,7 +155,7 @@ class HomeSkeleton extends StatelessWidget {
             width: 50.h,
             height: 50.h,
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: color,
               borderRadius: BorderRadius.circular(4),
             ),
           ),
@@ -159,9 +163,9 @@ class HomeSkeleton extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(width: 150.w, height: 14.h, color: Colors.white),
+              Container(width: 150.w, height: 14.h, color: color),
               SizedBox(height: 6.h),
-              Container(width: 100.w, height: 12.h, color: Colors.white),
+              Container(width: 100.w, height: 12.h, color: color),
             ],
           ),
         ],

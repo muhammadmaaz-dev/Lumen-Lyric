@@ -43,7 +43,7 @@ class _SearchResultScreenState extends ConsumerState<SearchResultScreen>
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: theme.appBarTheme.backgroundColor,
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: theme.iconTheme.color),
           onPressed: () => Navigator.pop(context),
@@ -69,9 +69,6 @@ class _SearchResultScreenState extends ConsumerState<SearchResultScreen>
         ),
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: theme.primaryColor,
-          labelColor: theme.primaryColor,
-          unselectedLabelColor: Colors.grey,
           labelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.sp),
           tabs: const [
             Tab(text: "Songs"),

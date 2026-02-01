@@ -61,36 +61,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     // CHANGE 2: Data ab Provider se aayega
     final homeState = ref.watch(homeProvider);
+    final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: theme.scaffoldBackgroundColor,
 
       appBar: homeState.isLoading
           ? null
           : AppBar(
-              backgroundColor: Colors.black,
+              backgroundColor: theme.appBarTheme.backgroundColor,
               elevation: 0,
               scrolledUnderElevation: 0,
               surfaceTintColor: Colors.transparent,
               automaticallyImplyLeading: false,
               titleSpacing: 20,
-              title: const Text(
+              title: Text(
                 "Home",
                 style: TextStyle(
-                  color: Colors.white,
+                  color: theme.textTheme.headlineLarge?.color,
                   fontSize: 26,
                   fontWeight: FontWeight.bold,
-                  fontFamily: 'Metropolis',
-                  letterSpacing: 1.2,
                 ),
               ),
               actions: [
                 Padding(
                   padding: const EdgeInsets.only(right: 16.0),
                   child: IconButton(
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.search,
-                      color: Colors.white,
+                      color: theme.iconTheme.color,
                       size: 24,
                     ),
                     onPressed: () {
@@ -112,8 +111,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 onRefresh: () async {
                   await ref.read(homeProvider.notifier).refresh();
                 },
-                color: Colors.white,
-                backgroundColor: Colors.grey[900],
+                color: theme.primaryColor,
+                backgroundColor: theme.cardColor,
                 child: SingleChildScrollView(
                   physics: const BouncingScrollPhysics(),
                   child: Padding(
@@ -161,6 +160,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   // --- WIDGET BUILDERS (Same as before, no changes needed below) ---
 
   Widget _buildSectionTitle(String title, {String? actionText}) {
+    final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20.0),
       child: Row(
@@ -168,8 +168,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         children: [
           Text(
             title,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: theme.textTheme.headlineMedium?.color,
               fontWeight: FontWeight.bold,
               fontSize: 22,
               letterSpacing: 1.2,
@@ -178,8 +178,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           if (actionText != null)
             Text(
               actionText,
-              style: const TextStyle(
-                color: Colors.white70,
+              style: TextStyle(
+                color: theme.textTheme.bodyMedium?.color,
                 fontWeight: FontWeight.w500,
                 fontSize: 15,
                 decoration: TextDecoration.underline,
@@ -248,6 +248,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     SongModel song, {
     bool disableTap = false,
   }) {
+    final theme = Theme.of(context);
     final row = Container(
       height: 60.h,
       margin: EdgeInsets.only(bottom: 10.h, left: 20.w),
@@ -260,9 +261,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               width: 50.h,
               height: 50.h,
               fit: BoxFit.cover,
-              placeholder: (context, url) => Container(color: Colors.grey[900]),
+              placeholder: (context, url) => Container(color: theme.cardColor),
               errorWidget: (context, url, error) =>
-                  Container(color: Colors.grey[900]),
+                  Container(color: theme.cardColor),
             ),
           ),
           SizedBox(width: 12.w),
@@ -276,7 +277,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: Colors.white,
+                    color: theme.textTheme.bodyLarge?.color,
                     fontWeight: FontWeight.bold,
                     fontSize: 15.sp,
                   ),
@@ -286,12 +287,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   song.genre,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: Colors.white60, fontSize: 13.sp),
+                  style: TextStyle(
+                    color: theme.textTheme.bodyMedium?.color,
+                    fontSize: 13.sp,
+                  ),
                 ),
               ],
             ),
           ),
-          Icon(Icons.more_vert, color: Colors.white54, size: 20.sp),
+          Icon(
+            Icons.more_vert,
+            color: theme.iconTheme.color?.withOpacity(0.5),
+            size: 20.sp,
+          ),
         ],
       ),
     );
@@ -304,6 +312,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Widget _buildFeaturedTracks(BuildContext context, List<SongModel> songs) {
+    final theme = Theme.of(context);
     if (songs.isEmpty) return const SizedBox.shrink();
     return SizedBox(
       height: 180.h,
@@ -337,7 +346,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     aspectRatio: 16 / 9,
                     child: Container(
                       decoration: BoxDecoration(
-                        color: Colors.white10,
+                        color: theme.cardColor,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: ClipRRect(
@@ -346,7 +355,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           song.imageUrl,
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) =>
-                              Container(color: Colors.grey[900]),
+                              Container(color: theme.cardColor),
                         ),
                       ),
                     ),
@@ -357,7 +366,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      color: Colors.white,
+                      color: theme.textTheme.bodyLarge?.color,
                       fontWeight: FontWeight.bold,
                       fontSize: 16.sp,
                     ),
@@ -366,7 +375,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     song.genre,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: Colors.white70, fontSize: 14.sp),
+                    style: TextStyle(
+                      color: theme.textTheme.bodyMedium?.color,
+                      fontSize: 14.sp,
+                    ),
                   ),
                 ],
               ),
@@ -378,6 +390,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Widget _buildPopularArtists(BuildContext context, List<ArtistModel> artists) {
+    final theme = Theme.of(context);
     if (artists.isEmpty) return const SizedBox.shrink();
     return SizedBox(
       height: 110,
@@ -405,7 +418,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 child: CircleAvatar(
                   radius: 32,
                   backgroundImage: NetworkImage(artist.imageUrl),
-
+                  backgroundColor: theme.cardColor,
                   onBackgroundImageError: (_, __) {},
                 ),
               ),
@@ -417,8 +430,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   textAlign: TextAlign.center,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: theme.textTheme.bodyLarge?.color,
                     fontWeight: FontWeight.bold,
                     fontSize: 13,
                   ),

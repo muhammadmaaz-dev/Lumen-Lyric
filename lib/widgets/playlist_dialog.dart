@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:musicapp/models/playlist_model.dart';
 import 'package:musicapp/provider/playlist_provider.dart';
 
@@ -430,10 +431,8 @@ class PlaylistSelectorDialog extends ConsumerWidget {
                           return InkWell(
                             onTap: () async {
                               if (alreadyInPlaylist) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Already in playlist'),
-                                  ),
+                                Fluttertoast.showToast(
+                                  msg: 'Already in playlist',
                                 );
                                 return;
                               }
@@ -445,12 +444,8 @@ class PlaylistSelectorDialog extends ConsumerWidget {
 
                               if (context.mounted) {
                                 Navigator.pop(context);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      'Added to "${playlist.name}"',
-                                    ),
-                                  ),
+                                Fluttertoast.showToast(
+                                  msg: 'Added to "${playlist.name}"',
                                 );
                               }
                             },
