@@ -10,6 +10,7 @@ import 'package:musicapp/pages/search_screen.dart'; // For search bar tap
 import 'package:musicapp/provider/search_provider.dart';
 import 'package:musicapp/utils/slide_route.dart';
 import 'package:musicapp/widgets/search_result_skelton.dart';
+import 'package:musicapp/widgets/bottom_sheet_lib.dart';
 
 class SearchResultScreen extends ConsumerStatefulWidget {
   final String searchQuery;
@@ -57,7 +58,7 @@ class _SearchResultScreenState extends ConsumerState<SearchResultScreen>
             padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
             decoration: BoxDecoration(
               color: theme.cardColor,
-              borderRadius: BorderRadius.circular(30),
+              borderRadius: BorderRadius.circular(30.r),
             ),
             child: Row(
               children: [
@@ -125,6 +126,22 @@ class _SearchResultScreenState extends ConsumerState<SearchResultScreen>
             song.genre,
             maxLines: 1,
             style: theme.textTheme.bodySmall,
+          ),
+          trailing: IconButton(
+            icon: Icon(Icons.more_vert, color: theme.iconTheme.color),
+            onPressed: () {
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                builder: (context) => NetworkSongOptionsWidget(
+                  songId: song.id,
+                  title: song.title,
+                  artist: song.genre,
+                  imageUrl: song.imageUrl,
+                ),
+              );
+            },
           ),
           onTap: () {
             Navigator.push(

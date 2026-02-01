@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:musicapp/pages/SettingScreen/download_screen.dart';
 import 'package:musicapp/pages/SettingScreen/liked_songs_screen.dart';
 import 'package:musicapp/pages/SettingScreen/playlists.dart';
+import 'package:musicapp/provider/profile_provider.dart';
 import 'package:musicapp/provider/theme_provider.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:musicapp/utils/slide_route.dart';
@@ -18,6 +19,7 @@ class SettingScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // 2. Fetch the SharedPreferences instance
     final prefs = ref.watch(sharedPreferencesProvider);
+    final profileImage = ref.watch(profileImageProvider);
     // 3. Get the name saved during onboarding (Key: 'user_name')
     final userName = prefs.getString('user_name') ?? 'Guest';
 
@@ -82,11 +84,9 @@ class SettingScreen extends ConsumerWidget {
                               decoration: BoxDecoration(
                                 color: avatarBgColor,
                                 shape: BoxShape.circle,
-                              ),
-                              child: Center(
-                                child: Text(
-                                  '😊',
-                                  style: TextStyle(fontSize: 53.sp),
+                                image: DecorationImage(
+                                  image: AssetImage(profileImage),
+                                  fit: BoxFit.cover,
                                 ),
                               ),
                             ),

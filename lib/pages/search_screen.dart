@@ -71,11 +71,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 vertical: 10.h,
               ),
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(30),
+                borderRadius: BorderRadius.circular(30.r),
                 borderSide: BorderSide.none,
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(30),
+                borderRadius: BorderRadius.circular(30.r),
                 borderSide: BorderSide.none,
               ),
               suffixIcon: !isQueryEmpty

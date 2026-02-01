@@ -132,7 +132,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                                   style: TextStyle(
                                     color: textColor,
                                     fontWeight: FontWeight.w500,
-                                    fontSize: 15,
+                                    fontSize: 12.sp,
                                   ),
                                 ),
                               ],
@@ -144,7 +144,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                         if (displaySongs.isEmpty)
                           SliverToBoxAdapter(
                             child: Container(
-                              height: 200,
+                              height: 200.h,
                               alignment: Alignment.center,
                               child: Text(
                                 _searchQuery.isNotEmpty
@@ -156,7 +156,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                           )
                         else
                           SliverPadding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            padding: EdgeInsets.symmetric(horizontal: 16.w),
                             sliver: SliverList(
                               delegate: SliverChildBuilderDelegate((
                                 context,

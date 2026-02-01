@@ -5,6 +5,128 @@ import 'package:musicapp/controller/audio_controller.dart';
 import 'package:musicapp/models/local_song_model.dart';
 import 'package:musicapp/widgets/playlist_dialog.dart';
 import 'package:on_audio_query/on_audio_query.dart'; // ✅ Import Added
+import 'package:musicapp/provider/download_provider.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+
+class NetworkSongOptionsWidget extends ConsumerWidget {
+  final String songId; // This acts as the video ID
+  final String title;
+  final String artist;
+  final String imageUrl;
+
+  const NetworkSongOptionsWidget({
+    super.key,
+    required this.songId,
+    required this.title,
+    required this.artist,
+    required this.imageUrl,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E1E1E),
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(24.r),
+          topRight: Radius.circular(24.r),
+        ),
+      ),
+      padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
+
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(height: 8.h),
+          Container(
+            width: 40.w,
+            height: 4.h,
+            decoration: BoxDecoration(
+              color: Colors.white24,
+              borderRadius: BorderRadius.circular(2.r),
+            ),
+          ),
+          SizedBox(height: 24.h),
+
+          // Header
+          Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8.r),
+                child: Image.network(
+                  imageUrl,
+                  width: 55.h,
+                  height: 55.h,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    width: 55.h,
+                    height: 55.h,
+                    color: Colors.grey[800],
+                    child: const Icon(Icons.music_note, color: Colors.white),
+                  ),
+                ),
+              ),
+              SizedBox(width: 14.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    SizedBox(height: 4.h),
+                    Text(
+                      artist,
+                      style: TextStyle(
+                        color: Colors.grey[400],
+                        fontSize: 12.sp,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 24.h),
+          Divider(color: Colors.white12, thickness: 1.h),
+          SizedBox(height: 12.h),
+
+          // Download Action
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(
+              Icons.download_rounded,
+              color: Colors.white,
+              size: 26.sp,
+            ),
+            title: Text(
+              "Download",
+              style: TextStyle(color: Colors.white, fontSize: 16.sp),
+            ),
+            onTap: () {
+              Navigator.pop(context);
+              // Constructing URL from ID if it's just an ID, otherwise use as is if it looks like URL?
+              // Assuming ID.
+              final url = "https://youtube.com/watch?v=$songId";
+              ref.read(downloadControllerProvider).addToQueue(url);
+              Fluttertoast.showToast(msg: "Download started...");
+            },
+          ),
+          SizedBox(height: 24.h),
+        ],
+      ),
+    );
+  }
+}
 
 class SongOptionsWidget extends ConsumerWidget {
   final int songId;

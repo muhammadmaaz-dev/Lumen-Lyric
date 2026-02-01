@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart'; // ScreenUtil Import
 import 'package:cached_network_image/cached_network_image.dart'; // Cache Import
 import 'package:musicapp/models/song_model.dart';
 import 'package:musicapp/pages/song_metadata_screen.dart';
 import 'package:musicapp/utils/slide_route.dart';
 import 'package:musicapp/widgets/artist_detail_skelton.dart';
 import 'package:musicapp/provider/artist_provider.dart'; // Provider Import
+import 'package:musicapp/widgets/bottom_sheet_lib.dart';
 
 class ArtistDetailScreen extends ConsumerStatefulWidget {
   final String artistName;
@@ -114,46 +116,46 @@ class _ArtistDetailScreenState extends ConsumerState<ArtistDetailScreen> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            const SizedBox(height: 8),
+            SizedBox(height: 6.h),
             // Cached Image
             CircleAvatar(
-              radius: 80,
+              radius: 80.r,
               backgroundColor: theme.cardColor,
               backgroundImage: CachedNetworkImageProvider(
                 widget.artistImageUrl,
               ),
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: 20.h),
             Text(
               widget.artistName.toUpperCase(),
               textAlign: TextAlign.center,
               style: theme.textTheme.headlineMedium?.copyWith(
                 fontWeight: FontWeight.bold,
-                fontSize: 32,
+                fontSize: 28.sp,
                 letterSpacing: 2,
               ),
             ),
-            const SizedBox(height: 10),
+            SizedBox(height: 8.h),
             Text(
               'Verified SUBSCRIBERS',
               style: theme.textTheme.bodyMedium?.copyWith(
                 fontFamily: 'RobotoMono',
-                fontSize: 15,
+                fontSize: 12.sp,
                 letterSpacing: 2,
               ),
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: 20.h),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 _roundedButton('SHUFFLE', Icons.shuffle, theme, onTap: () {}),
-                const SizedBox(width: 24),
+                SizedBox(width: 20.w),
                 _roundedButton('FOLLOW', Icons.add, theme, onTap: () {}),
               ],
             ),
-            const SizedBox(height: 36),
+            SizedBox(height: 32.h),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              padding: EdgeInsets.symmetric(horizontal: 20.0.w),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -161,7 +163,7 @@ class _ArtistDetailScreenState extends ConsumerState<ArtistDetailScreen> {
                     'POPULAR TRACKS',
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
-                      fontSize: 18,
+                      fontSize: 15.sp,
                       letterSpacing: 2,
                     ),
                   ),
@@ -169,7 +171,7 @@ class _ArtistDetailScreenState extends ConsumerState<ArtistDetailScreen> {
                     '${artistState.songs.length} TRACKS TOTAL',
                     style: theme.textTheme.bodySmall?.copyWith(
                       fontFamily: 'RobotoMono',
-                      fontSize: 13,
+                      fontSize: 10.sp,
                       letterSpacing: 1.5,
                       color: theme.textTheme.bodySmall?.color?.withOpacity(0.6),
                     ),
@@ -177,45 +179,45 @@ class _ArtistDetailScreenState extends ConsumerState<ArtistDetailScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 10.h),
 
             ListView.separated(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: _displayedTracks.length,
               separatorBuilder: (context, index) =>
-                  Divider(color: theme.dividerColor, height: 1),
+                  Divider(color: theme.dividerColor, height: 1.h),
               itemBuilder: (context, index) {
                 final track = _displayedTracks[index];
                 return _trackTile(index + 1, track, theme);
               },
             ),
 
-            const SizedBox(height: 24),
+            SizedBox(height: 20.h),
 
             if (_showLoadAllButton)
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                padding: EdgeInsets.symmetric(horizontal: 20.0.w),
                 child: SizedBox(
                   width: double.infinity,
                   child: OutlinedButton(
                     style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: theme.dividerColor, width: 1.5),
-                      padding: const EdgeInsets.symmetric(vertical: 18),
+                      side: BorderSide(color: theme.dividerColor, width: 1.5.w),
+                      padding: EdgeInsets.symmetric(vertical: 18.h),
                     ),
                     onPressed: () => _loadAllTracks(artistState.songs),
                     child: Text(
                       'LOAD ALL TRACKS',
                       style: theme.textTheme.bodyMedium?.copyWith(
                         fontFamily: 'RobotoMono',
-                        fontSize: 16,
+                        fontSize: 13.sp,
                         letterSpacing: 2,
                       ),
                     ),
                   ),
                 ),
               ),
-            const SizedBox(height: 32),
+            SizedBox(height: 28.h),
           ],
         ),
       ),
@@ -230,19 +232,21 @@ class _ArtistDetailScreenState extends ConsumerState<ArtistDetailScreen> {
   }) {
     return OutlinedButton.icon(
       style: OutlinedButton.styleFrom(
-        side: BorderSide(color: theme.dividerColor, width: 2),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
-        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+        side: BorderSide(color: theme.dividerColor, width: 2.w),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(28.r),
+        ),
+        padding: EdgeInsets.symmetric(horizontal: 28.w, vertical: 12.h),
         foregroundColor: theme.textTheme.bodyLarge?.color,
       ),
       onPressed: onTap,
-      icon: Icon(icon, size: 22, color: theme.iconTheme.color),
+      icon: Icon(icon, size: 18.sp, color: theme.iconTheme.color),
       label: Text(
         label,
         style: TextStyle(
           color: theme.textTheme.bodyLarge?.color,
           fontWeight: FontWeight.bold,
-          fontSize: 16,
+          fontSize: 12.sp,
           letterSpacing: 1.2,
         ),
       ),
@@ -253,20 +257,20 @@ class _ArtistDetailScreenState extends ConsumerState<ArtistDetailScreen> {
     return GestureDetector(
       onTap: () => _handleSongTap(track),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12),
+        padding: EdgeInsets.symmetric(horizontal: 20.0.w, vertical: 10.h),
         child: Row(
           children: [
             SizedBox(
-              width: 28,
+              width: 24.w,
               child: Text(
                 number.toString().padLeft(2, '0'),
                 style: theme.textTheme.bodySmall?.copyWith(
                   fontFamily: 'RobotoMono',
-                  fontSize: 16,
+                  fontSize: 12.sp,
                 ),
               ),
             ),
-            const SizedBox(width: 16),
+            SizedBox(width: 12.w),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -277,7 +281,7 @@ class _ArtistDetailScreenState extends ConsumerState<ArtistDetailScreen> {
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodyLarge?.copyWith(
                       fontWeight: FontWeight.normal,
-                      fontSize: 17,
+                      fontSize: 13.sp,
                       letterSpacing: 1.1,
                     ),
                   ),
@@ -285,7 +289,7 @@ class _ArtistDetailScreenState extends ConsumerState<ArtistDetailScreen> {
                     track.genre,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       fontFamily: 'RobotoMono',
-                      fontSize: 13,
+                      fontSize: 10.sp,
                       letterSpacing: 1.1,
                       color: theme.textTheme.bodyMedium?.color?.withOpacity(
                         0.7,
@@ -296,10 +300,25 @@ class _ArtistDetailScreenState extends ConsumerState<ArtistDetailScreen> {
               ),
             ),
 
-            const SizedBox(width: 10),
-            Icon(
-              Icons.more_horiz,
-              color: theme.iconTheme.color?.withOpacity(0.5),
+            SizedBox(width: 8.w),
+            IconButton(
+              icon: Icon(
+                Icons.more_horiz,
+                color: theme.iconTheme.color?.withOpacity(0.5),
+              ),
+              onPressed: () {
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (context) => NetworkSongOptionsWidget(
+                    songId: track.id,
+                    title: track.title,
+                    artist: track.genre,
+                    imageUrl: track.imageUrl,
+                  ),
+                );
+              },
             ),
           ],
         ),

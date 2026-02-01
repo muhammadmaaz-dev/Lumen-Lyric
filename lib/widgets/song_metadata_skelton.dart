@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart'; // Import ScreenUtil
 import 'package:shimmer/shimmer.dart';
 
 class SongMetadataSkeleton extends StatelessWidget {
@@ -29,58 +30,58 @@ class SongMetadataSkeleton extends StatelessWidget {
           child: SingleChildScrollView(
             child: Column(
               children: [
-                const SizedBox(height: 10),
+                SizedBox(height: 10.h),
                 // Album Art Skeleton
                 Container(
-                  width: 300,
-                  height: 300,
+                  width: 300.w,
+                  height: 300.h,
                   decoration: BoxDecoration(
                     color: shimmerItemColor,
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(16.r),
                   ),
                 ),
-                const SizedBox(height: 22),
+                SizedBox(height: 22.h),
 
                 // Title Skeleton
                 Container(
-                  width: 200,
-                  height: 28,
+                  width: 200.w,
+                  height: 28.h,
                   decoration: BoxDecoration(
                     color: shimmerItemColor,
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: BorderRadius.circular(4.r),
                   ),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12.h),
 
                 // Artist Skeleton
                 Container(
-                  width: 150,
-                  height: 20,
+                  width: 150.w,
+                  height: 20.h,
                   decoration: BoxDecoration(
                     color: shimmerItemColor,
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: BorderRadius.circular(4.r),
                   ),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8.h),
 
                 // Album Skeleton
                 Container(
-                  width: 100,
-                  height: 16,
+                  width: 100.w,
+                  height: 16.h,
                   decoration: BoxDecoration(
                     color: shimmerItemColor,
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: BorderRadius.circular(4.r),
                   ),
                 ),
-                const SizedBox(height: 32),
+                SizedBox(height: 32.h),
 
                 // Metadata Grid Skeleton
                 Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 24),
-                  padding: const EdgeInsets.all(16),
+                  margin: EdgeInsets.symmetric(horizontal: 24.w),
+                  padding: EdgeInsets.all(16.r),
                   decoration: BoxDecoration(
                     border: Border.all(color: theme.dividerColor),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(12.r),
                   ),
                   child: Column(
                     children: [
@@ -92,7 +93,7 @@ class SongMetadataSkeleton extends StatelessWidget {
                           (index) => _buildMiniBlock(shimmerItemColor),
                         ),
                       ),
-                      const SizedBox(height: 24),
+                      SizedBox(height: 24.h),
                       // Row 2
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -101,43 +102,43 @@ class SongMetadataSkeleton extends StatelessWidget {
                           (index) => _buildMiniBlock(shimmerItemColor),
                         ),
                       ),
-                      const SizedBox(height: 24),
+                      SizedBox(height: 24.h),
                       // Row 3 (Label)
                       Container(
-                        width: 150,
-                        height: 40,
+                        width: 150.w,
+                        height: 40.h,
                         decoration: BoxDecoration(
                           color: shimmerItemColor,
-                          borderRadius: BorderRadius.circular(4),
+                          borderRadius: BorderRadius.circular(4.r),
                         ),
                       ),
                     ],
                   ),
                 ),
 
-                const SizedBox(height: 40),
+                SizedBox(height: 40.h),
 
                 // Buttons Skeleton
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                  padding: EdgeInsets.symmetric(horizontal: 24.0.w),
                   child: Row(
                     children: [
                       Expanded(
                         child: Container(
-                          height: 60,
+                          height: 60.h,
                           decoration: BoxDecoration(
                             color: shimmerItemColor,
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(8.r),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 16),
+                      SizedBox(width: 16.w),
                       Container(
-                        width: 60,
-                        height: 60,
+                        width: 60.w,
+                        height: 60.h,
                         decoration: BoxDecoration(
                           color: shimmerItemColor,
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(8.r),
                         ),
                       ),
                     ],
@@ -154,9 +155,9 @@ class SongMetadataSkeleton extends StatelessWidget {
   Widget _buildMiniBlock(Color color) {
     return Column(
       children: [
-        Container(width: 50, height: 12, color: color),
-        const SizedBox(height: 6),
-        Container(width: 40, height: 16, color: color),
+        Container(width: 50.w, height: 12.h, color: color),
+        SizedBox(height: 6.h),
+        Container(width: 40.w, height: 16.h, color: color),
       ],
     );
   }

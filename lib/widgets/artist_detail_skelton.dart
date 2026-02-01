@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart'; // Import ScreenUtil
 import 'package:shimmer/shimmer.dart';
 
 class ArtistDetailSkeleton extends StatelessWidget {
@@ -23,9 +24,9 @@ class ArtistDetailSkeleton extends StatelessWidget {
         leading: Icon(Icons.arrow_back, color: iconColor),
         actions: [
           Icon(Icons.search, color: iconColor),
-          const SizedBox(width: 16),
+          SizedBox(width: 16.w),
           Icon(Icons.more_vert, color: iconColor),
-          const SizedBox(width: 16),
+          SizedBox(width: 16.w),
         ],
       ),
       body: Shimmer.fromColors(
@@ -34,59 +35,67 @@ class ArtistDetailSkeleton extends StatelessWidget {
         child: SingleChildScrollView(
           child: Column(
             children: [
-              const SizedBox(height: 8),
+              SizedBox(height: 8.h),
               // Artist Circle Image
               Container(
-                width: 160,
-                height: 160,
+                width: 160.r,
+                height: 160.r,
                 decoration: BoxDecoration(
                   color: shimmerItemColor,
                   shape: BoxShape.circle,
                 ),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24.h),
               // Artist Name
               Container(
-                width: 200,
-                height: 32,
+                width: 200.w,
+                height: 32.h,
                 decoration: BoxDecoration(
                   color: shimmerItemColor,
-                  borderRadius: BorderRadius.circular(4),
+                  borderRadius: BorderRadius.circular(4.r),
                 ),
               ),
-              const SizedBox(height: 10),
+              SizedBox(height: 10.h),
               // Subscribers Text
               Container(
-                width: 120,
-                height: 14,
+                width: 120.w,
+                height: 14.h,
                 decoration: BoxDecoration(
                   color: shimmerItemColor,
-                  borderRadius: BorderRadius.circular(4),
+                  borderRadius: BorderRadius.circular(4.r),
                 ),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24.h),
               // Buttons Row (Shuffle & Follow)
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   _buildButtonSkeleton(shimmerItemColor),
-                  const SizedBox(width: 24),
+                  SizedBox(width: 24.w),
                   _buildButtonSkeleton(shimmerItemColor),
                 ],
               ),
-              const SizedBox(height: 36),
+              SizedBox(height: 36.h),
               // "Popular Tracks" Header
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                padding: EdgeInsets.symmetric(horizontal: 24.0.w),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Container(width: 150, height: 20, color: shimmerItemColor),
-                    Container(width: 80, height: 14, color: shimmerItemColor),
+                    Container(
+                      width: 150.w,
+                      height: 20.h,
+                      color: shimmerItemColor,
+                    ),
+                    Container(
+                      width: 80.w,
+                      height: 14.h,
+                      color: shimmerItemColor,
+                    ),
                   ],
                 ),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12.h),
               // Tracks List
               ListView.builder(
                 shrinkWrap: true,
@@ -94,19 +103,19 @@ class ArtistDetailSkeleton extends StatelessWidget {
                 itemCount: 8, // Fake items
                 itemBuilder: (context, index) {
                   return Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24.0,
-                      vertical: 12,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 24.0.w,
+                      vertical: 12.h,
                     ),
                     child: Row(
                       children: [
                         // Number
                         Container(
-                          width: 20,
-                          height: 16,
+                          width: 20.w,
+                          height: 16.h,
                           color: shimmerItemColor,
                         ),
-                        const SizedBox(width: 16),
+                        SizedBox(width: 16.w),
                         // Title & Info
                         Expanded(
                           child: Column(
@@ -114,23 +123,23 @@ class ArtistDetailSkeleton extends StatelessWidget {
                             children: [
                               Container(
                                 width: double.infinity,
-                                height: 16,
+                                height: 16.h,
                                 color: shimmerItemColor,
                               ),
-                              const SizedBox(height: 6),
+                              SizedBox(height: 6.h),
                               Container(
-                                width: 100,
-                                height: 12,
+                                width: 100.w,
+                                height: 12.h,
                                 color: shimmerItemColor,
                               ),
                             ],
                           ),
                         ),
-                        const SizedBox(width: 16),
+                        SizedBox(width: 16.w),
                         // Duration/Menu
                         Container(
-                          width: 40,
-                          height: 14,
+                          width: 40.w,
+                          height: 14.h,
                           color: shimmerItemColor,
                         ),
                       ],
@@ -147,11 +156,11 @@ class ArtistDetailSkeleton extends StatelessWidget {
 
   Widget _buildButtonSkeleton(Color color) {
     return Container(
-      width: 120,
-      height: 50,
+      width: 120.w,
+      height: 50.h,
       decoration: BoxDecoration(
         color: color,
-        borderRadius: BorderRadius.circular(32),
+        borderRadius: BorderRadius.circular(32.r),
       ),
     );
   }

@@ -10,6 +10,7 @@ import 'package:musicapp/pages/song_metadata_screen.dart';
 import 'package:musicapp/provider/home_provider.dart'; // Apna naya provider import karo
 import 'package:musicapp/utils/slide_route.dart';
 import 'package:musicapp/widgets/home_skelton.dart'; // Spelling check karlena (skeleton/skelton)
+import 'package:musicapp/widgets/bottom_sheet_lib.dart';
 
 // CHANGE 1: ConsumerStatefulWidget use karenge
 class HomeScreen extends ConsumerStatefulWidget {
@@ -295,10 +296,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ],
             ),
           ),
-          Icon(
-            Icons.more_vert,
-            color: theme.iconTheme.color?.withOpacity(0.5),
-            size: 20.sp,
+          IconButton(
+            icon: Icon(
+              Icons.more_vert,
+              color: theme.iconTheme.color?.withOpacity(0.5),
+              size: 20.sp,
+            ),
+            onPressed: () {
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                builder: (context) => NetworkSongOptionsWidget(
+                  songId: song.id,
+                  title: song.title,
+                  artist: song.genre,
+                  imageUrl: song.imageUrl,
+                ),
+              );
+            },
           ),
         ],
       ),
