@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -378,22 +379,36 @@ class SongOptionsWidget extends ConsumerWidget {
   Widget _buildArtwork(LocalSongModel song) {
     // 1. Check Live Song Object first (Best source)
     if (song.artworkUrl != null && song.artworkUrl!.isNotEmpty) {
-      return Image.network(
-        song.artworkUrl!,
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => _buildLocalArtwork(),
-      );
+      return _buildImageFromPath(song.artworkUrl!);
     }
     // 2. Check Constructor Param (Backup)
     if (imageUrl != null && imageUrl!.isNotEmpty) {
-      return Image.network(
-        imageUrl!,
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => _buildLocalArtwork(),
-      );
+      return _buildImageFromPath(imageUrl!);
     }
     // 3. Fallback to Local ID
     return _buildLocalArtwork();
+  }
+
+  /// Helper to load image from either network URL or local file path
+  Widget _buildImageFromPath(String path) {
+    if (path.startsWith('http://') || path.startsWith('https://')) {
+      return Image.network(
+        path,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _buildLocalArtwork(),
+      );
+    } else {
+      // Local file path
+      final file = File(path);
+      if (file.existsSync()) {
+        return Image.file(
+          file,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _buildLocalArtwork(),
+        );
+      }
+      return _buildLocalArtwork();
+    }
   }
 
   Widget _buildLocalArtwork() {

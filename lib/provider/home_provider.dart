@@ -1,4 +1,6 @@
 import 'dart:math';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/foundation.dart'; // For debugPrint
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:musicapp/models/artist_model.dart';
@@ -11,12 +13,14 @@ class HomeState {
   final List<SongModel> featured;
   final List<ArtistModel> artists;
   final bool isLoading;
+  final bool isOffline;
 
   HomeState({
     this.trending = const [],
     this.featured = const [],
     this.artists = const [],
     this.isLoading = true,
+    this.isOffline = false,
   });
 
   // Data update karne ke liye helper function
@@ -25,12 +29,14 @@ class HomeState {
     List<SongModel>? featured,
     List<ArtistModel>? artists,
     bool? isLoading,
+    bool? isOffline,
   }) {
     return HomeState(
       trending: trending ?? this.trending,
       featured: featured ?? this.featured,
       artists: artists ?? this.artists,
       isLoading: isLoading ?? this.isLoading,
+      isOffline: isOffline ?? this.isOffline,
     );
   }
 }
@@ -97,7 +103,21 @@ class HomeNotifier extends StateNotifier<HomeState> {
 
   // Main Function: Data Fetch Karna
   Future<void> fetchHomeData() async {
+    // 1. Connectivity Check (Safeguarded)
+    try {
+      final connectivityResult = await Connectivity().checkConnectivity();
+      if (connectivityResult.contains(ConnectivityResult.none)) {
+        state = state.copyWith(isLoading: false, isOffline: true);
+        return;
+      }
+    } catch (e) {
+      debugPrint("Connectivity check failed: $e");
+      // Proceed to fetch if check fails
+    }
+
     if (state.trending.isNotEmpty && !state.isLoading) return;
+
+    state = state.copyWith(isLoading: true, isOffline: false);
 
     try {
       final random = Random();
@@ -110,11 +130,11 @@ class HomeNotifier extends StateNotifier<HomeState> {
         featuredQuery = _searchKeywords[random.nextInt(_searchKeywords.length)];
       }
 
-      // CHANGE: Future.wait use kiya parallel loading ke liye
+      // CHANGE: Future.wait use kiya parallel loading ke liye. Added timeout.
       final results = await Future.wait([
         _youtubeService.searchSongs(trendingQuery),
         _youtubeService.searchSongs(featuredQuery),
-      ]);
+      ]).timeout(const Duration(seconds: 15));
 
       final trending = results[0]; // Pehla result
       final discover = results[1]; // Doosra result
@@ -147,6 +167,7 @@ class HomeNotifier extends StateNotifier<HomeState> {
         isLoading: false,
       );
     } catch (e) {
+      debugPrint("Fetch data error: $e");
       state = state.copyWith(isLoading: false);
     }
   }

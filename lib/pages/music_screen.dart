@@ -268,6 +268,10 @@ class _MusicScreenState extends State<MusicScreen> {
                           itemCount: recentDownloads.length,
                           itemBuilder: (context, index) {
                             final task = recentDownloads[index];
+                            // Use localImagePath first (offline), fallback to thumbnailUrl
+                            final artworkPath =
+                                task.localImagePath ??
+                                task.metadata?.thumbnailUrl;
                             return SongTile(
                               title: task.metadata?.title ?? 'Unknown',
                               artist: task.metadata?.artist ?? 'Unknown Artist',
@@ -279,7 +283,7 @@ class _MusicScreenState extends State<MusicScreen> {
                                       0) *
                                   1000,
                               songId: task.id.hashCode,
-                              imageUrl: task.metadata?.thumbnailUrl,
+                              imageUrl: artworkPath,
                               isDarkTheme: isDarkTheme,
                               onTap: () {
                                 // Find and play song

@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -388,25 +389,41 @@ class _SongPickerScreenState extends ConsumerState<SongPickerScreen> {
   Widget _buildSongArtwork(LocalSongModel song, Color? secondaryTextColor) {
     // 1. Check if artworkUrl exists (for downloaded songs)
     if (song.artworkUrl != null && song.artworkUrl!.isNotEmpty) {
-      return Image.network(
-        song.artworkUrl!,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) {
-          // Fallback to local artwork if network fails
-          return QueryArtworkWidget(
-            id: song.id,
-            type: ArtworkType.AUDIO,
-            nullArtworkWidget: Icon(
-              Icons.music_note,
-              color: secondaryTextColor,
-              size: 24,
-            ),
+      final artworkPath = song.artworkUrl!;
+
+      // Check if it's a local file or network URL
+      if (artworkPath.startsWith('http://') ||
+          artworkPath.startsWith('https://')) {
+        return Image.network(
+          artworkPath,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return _buildDefaultSongArtwork(song, secondaryTextColor);
+          },
+        );
+      } else {
+        // Local file path
+        final file = File(artworkPath);
+        if (file.existsSync()) {
+          return Image.file(
+            file,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return _buildDefaultSongArtwork(song, secondaryTextColor);
+            },
           );
-        },
-      );
+        }
+      }
     }
 
     // 2. Fallback to local artwork
+    return _buildDefaultSongArtwork(song, secondaryTextColor);
+  }
+
+  Widget _buildDefaultSongArtwork(
+    LocalSongModel song,
+    Color? secondaryTextColor,
+  ) {
     return QueryArtworkWidget(
       id: song.id,
       type: ArtworkType.AUDIO,

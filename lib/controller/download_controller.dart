@@ -7,12 +7,14 @@ import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:musicapp/models/download_metadata_model.dart';
 import 'package:musicapp/services/yt_download_service.dart';
 import 'package:musicapp/services/background_download_service.dart';
+import 'package:musicapp/services/metadata_database_service.dart'; // ✅ Permanent Metadata Storage
 import 'package:musicapp/controller/audio_controller.dart';
 import 'package:uuid/uuid.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart'; // ✅ Image Download
 import 'package:flutter_audio_tagger/flutter_audio_tagger.dart'; // ✅ Tagging Tool
 import 'package:flutter_audio_tagger/tag.dart'; // ✅ Tag Class
+import 'package:path/path.dart' as path; // ✅ For file path operations
 
 class DownloadController {
   static final DownloadController instance = DownloadController._internal();
@@ -22,6 +24,8 @@ class DownloadController {
   final YtDownloadService _downloadService = YtDownloadService();
   final BackgroundDownloadService _backgroundService =
       BackgroundDownloadService.instance;
+  final MetadataDatabaseService _metadataDb =
+      MetadataDatabaseService.instance; // ✅ Permanent Storage
   final Uuid _uuid = const Uuid();
 
   // Observable state
@@ -36,7 +40,18 @@ class DownloadController {
   // Map to track flutter_downloader taskIds to our internal taskIds
   final Map<String, String> _downloaderTaskIdMap = {};
 
+  // Version for metadata migration (increment when metadata structure changes)
+  // Version 3: Also clears sidecar JSON files during cleanup
+  static const int _metadataVersion = 3;
+
   Future<void> init() async {
+    // ✅ Check if we need to clear corrupted metadata from previous versions
+    await _checkAndClearCorruptedMetadata();
+
+    // ✅ Initialize metadata database first (syncs from external after reinstall)
+    await _metadataDb.initialize();
+    await _metadataDb.syncFromExternalDatabase();
+
     await _loadRecentDownloads();
     await _loadDownloaderTaskMapping();
 
@@ -53,6 +68,30 @@ class DownloadController {
 
     // Restore any in-progress downloads
     await _restoreDownloadTasks();
+  }
+
+  /// Clear corrupted metadata from previous app versions
+  Future<void> _checkAndClearCorruptedMetadata() async {
+    final prefs = await SharedPreferences.getInstance();
+    final storedVersion = prefs.getInt('metadata_version') ?? 0;
+
+    if (storedVersion < _metadataVersion) {
+      debugPrint(
+        '🧹 Clearing corrupted metadata from version $storedVersion -> $_metadataVersion',
+      );
+
+      // Clear the corrupted metadata database
+      await _metadataDb.initialize();
+      await _metadataDb.clearAllMetadata();
+
+      // Clear legacy SharedPreferences metadata
+      await prefs.remove('recent_downloads');
+
+      // Save new version
+      await prefs.setInt('metadata_version', _metadataVersion);
+
+      debugPrint('✅ Metadata cleanup complete');
+    }
   }
 
   /// Handle progress updates from background downloads
@@ -132,6 +171,14 @@ class DownloadController {
       // Write metadata tags
       await _writeTagsToFile(filePath, task.metadata);
 
+      // ✅ Save metadata permanently to SQLite database
+      await _saveMetadataPermanently(
+        filePath: filePath,
+        metadata: task.metadata,
+        localImagePath: task.localImagePath,
+        youtubeUrl: task.youtubeUrl,
+      );
+
       _updateTask(
         taskId,
         status: DownloadStatus.completed,
@@ -161,9 +208,20 @@ class DownloadController {
 
       if (filePath != null && await File(filePath).exists()) {
         // Write tags to the downloaded file
-        if (metadata != null) {
-          final downloadMetadata = DownloadMetadataModel.fromJson(metadata);
+        final downloadMetadata = metadata != null
+            ? DownloadMetadataModel.fromJson(metadata)
+            : null;
+
+        if (downloadMetadata != null) {
           await _writeTagsToFile(filePath, downloadMetadata);
+
+          // ✅ Save metadata permanently to SQLite database
+          await _saveMetadataPermanently(
+            filePath: filePath,
+            metadata: downloadMetadata,
+            localImagePath: metadata?['localImagePath'] as String?,
+            youtubeUrl: metadata?['youtubeUrl'] as String?,
+          );
         }
 
         // Scan media
@@ -292,11 +350,20 @@ class DownloadController {
     if (result.success && result.filePath != null) {
       await _writeTagsToFile(result.filePath!, result.metadata);
 
+      // ✅ Save metadata permanently to SQLite database
+      await _saveMetadataPermanently(
+        filePath: result.filePath!,
+        metadata: result.metadata,
+        localImagePath: result.localImagePath,
+        youtubeUrl: task.youtubeUrl,
+      );
+
       _updateTask(
         task.id,
         status: DownloadStatus.completed,
         filePath: result.filePath,
         metadata: result.metadata,
+        localImagePath: result.localImagePath,
         progress: 1.0,
       );
 
@@ -310,6 +377,67 @@ class DownloadController {
       await AudioController.instance.loadSongs();
     } else {
       throw Exception(result.errorMessage ?? 'Download failed');
+    }
+  }
+
+  /// ✅ Save metadata permanently to SQLite database (survives reinstall)
+  Future<void> _saveMetadataPermanently({
+    required String filePath,
+    DownloadMetadataModel? metadata,
+    String? localImagePath,
+    String? youtubeUrl,
+  }) async {
+    if (metadata == null) return;
+
+    try {
+      final fileName = path.basename(filePath);
+
+      // Parse duration if available
+      int? durationMs;
+      if (metadata.duration != null) {
+        try {
+          // Duration might be in seconds or "MM:SS" format
+          final durationStr = metadata.duration!;
+          if (durationStr.contains(':')) {
+            final parts = durationStr.split(':');
+            if (parts.length == 2) {
+              durationMs =
+                  (int.parse(parts[0]) * 60 + int.parse(parts[1])) * 1000;
+            } else if (parts.length == 3) {
+              durationMs =
+                  (int.parse(parts[0]) * 3600 +
+                      int.parse(parts[1]) * 60 +
+                      int.parse(parts[2])) *
+                  1000;
+            }
+          } else {
+            durationMs = int.tryParse(durationStr);
+            if (durationMs != null && durationMs < 100000) {
+              durationMs = durationMs * 1000; // Convert seconds to ms
+            }
+          }
+        } catch (e) {
+          debugPrint('⚠️ Could not parse duration: ${metadata.duration}');
+        }
+      }
+
+      final persistentMeta = PersistentSongMetadata(
+        filePath: filePath,
+        fileName: fileName,
+        title: metadata.title ?? fileName.replaceAll('.mp3', ''),
+        artist: metadata.artist ?? 'Unknown Artist',
+        album: metadata.album ?? 'LumenLyric',
+        duration: durationMs,
+        artworkPath: localImagePath,
+        artworkUrl: metadata.thumbnailUrl,
+        youtubeUrl: youtubeUrl,
+        description: metadata.description,
+      );
+
+      await _metadataDb.saveMetadata(persistentMeta);
+      debugPrint('✅ Metadata saved permanently for: ${persistentMeta.title}');
+    } catch (e) {
+      debugPrint('❌ Error saving permanent metadata: $e');
     }
   }
 
@@ -428,6 +556,7 @@ class DownloadController {
     DownloadStatus? status,
     double? progress,
     String? filePath,
+    String? localImagePath,
     String? errorMessage,
   }) {
     final tasks = List<DownloadTaskModel>.from(downloadQueue.value);
@@ -439,6 +568,7 @@ class DownloadController {
         status: status,
         progress: progress,
         filePath: filePath,
+        localImagePath: localImagePath,
         errorMessage: errorMessage,
       );
       downloadQueue.value = tasks;
@@ -463,6 +593,7 @@ class DownloadController {
             'id': t.id,
             'youtubeUrl': t.youtubeUrl,
             'filePath': t.filePath,
+            'localImagePath': t.localImagePath,
             'createdAt': t.createdAt.toIso8601String(),
             'metadata': t.metadata?.toJson(),
           },
@@ -482,6 +613,7 @@ class DownloadController {
           id: item['id'],
           youtubeUrl: item['youtubeUrl'],
           filePath: item['filePath'],
+          localImagePath: item['localImagePath'],
           status: DownloadStatus.completed,
           progress: 1.0,
           createdAt: DateTime.parse(item['createdAt']),

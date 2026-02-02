@@ -5,6 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:musicapp/models/artist_model.dart';
 import 'package:musicapp/models/song_model.dart';
 import 'package:musicapp/pages/artist_detail_screen.dart';
+import 'package:musicapp/pages/LibraryScreen/library_screen.dart';
 import 'package:musicapp/pages/search_screen.dart';
 import 'package:musicapp/pages/song_metadata_screen.dart';
 import 'package:musicapp/provider/home_provider.dart'; // Apna naya provider import karo
@@ -63,6 +64,60 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     // CHANGE 2: Data ab Provider se aayega
     final homeState = ref.watch(homeProvider);
     final theme = Theme.of(context);
+
+    if (homeState.isOffline) {
+      return Scaffold(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        body: Center(
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 24.w),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.wifi_off_rounded,
+                  size: 80.sp,
+                  color: theme.iconTheme.color,
+                ),
+                SizedBox(height: 24.h),
+                Text(
+                  "No Internet Connection",
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 22.sp,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: 12.h),
+                Text(
+                  "You are not connected to the internet. Please check your connection.",
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: 32.h),
+
+                // Button to Go to Library
+                SizedBox(height: 16.h),
+                // Retry Button
+                TextButton(
+                  onPressed: () {
+                    ref.read(homeProvider.notifier).fetchHomeData();
+                  },
+                  style: TextButton.styleFrom(
+                    foregroundColor: theme.brightness == Brightness.dark
+                        ? Colors.white
+                        : Colors.black,
+                  ),
+                  child: const Text("Retry"),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,

@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -464,18 +465,8 @@ class _AlbumArtWidgetState extends State<AlbumArtWidget> {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(26.r),
-              // ✅ Logic to prioritize Network Image
-              child:
-                  (widget.artworkUrl != null && widget.artworkUrl!.isNotEmpty)
-                  ? Image.network(
-                      widget.artworkUrl!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        // Fallback to local artwork if network fails
-                        return _buildLocalArtwork();
-                      },
-                    )
-                  : _buildLocalArtwork(),
+              // ✅ Logic to prioritize downloaded artwork (local file first)
+              child: _buildArtworkImage(),
             ),
           ),
 
@@ -521,6 +512,38 @@ class _AlbumArtWidgetState extends State<AlbumArtWidget> {
         ],
       ),
     );
+  }
+
+  /// Build artwork image - handles both local file paths and network URLs
+  Widget _buildArtworkImage() {
+    if (widget.artworkUrl != null && widget.artworkUrl!.isNotEmpty) {
+      final artworkPath = widget.artworkUrl!;
+
+      // Check if it's a local file or network URL
+      if (artworkPath.startsWith('http://') ||
+          artworkPath.startsWith('https://')) {
+        return Image.network(
+          artworkPath,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return _buildLocalArtwork();
+          },
+        );
+      } else {
+        // Local file path
+        final file = File(artworkPath);
+        if (file.existsSync()) {
+          return Image.file(
+            file,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return _buildLocalArtwork();
+            },
+          );
+        }
+      }
+    }
+    return _buildLocalArtwork();
   }
 
   Widget _buildLocalArtwork() {

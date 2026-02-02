@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:on_audio_query/on_audio_query.dart';
@@ -132,13 +133,28 @@ class SongTile extends StatelessWidget {
 
   Widget _buildArtwork(Color? placeholderColor) {
     if (imageUrl != null && imageUrl!.isNotEmpty) {
-      return Image.network(
-        imageUrl!,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) {
-          return _buildLocalArtwork(placeholderColor);
-        },
-      );
+      // Check if it's a local file path or network URL
+      if (imageUrl!.startsWith('http://') || imageUrl!.startsWith('https://')) {
+        return Image.network(
+          imageUrl!,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return _buildLocalArtwork(placeholderColor);
+          },
+        );
+      } else {
+        // Local file path
+        final file = File(imageUrl!);
+        if (file.existsSync()) {
+          return Image.file(
+            file,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return _buildLocalArtwork(placeholderColor);
+            },
+          );
+        }
+      }
     }
     return _buildLocalArtwork(placeholderColor);
   }

@@ -4,12 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 import 'package:musicapp/models/local_song_model.dart';
+import 'package:musicapp/services/metadata_database_service.dart'; // ✅ Permanent Metadata Storage
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:flutter_audio_tagger/flutter_audio_tagger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:convert';
 import 'package:musicapp/models/song_model.dart' as Online;
+import 'package:path/path.dart' as path; // ✅ For file path operations
 
 class AudioController {
   static final AudioController instance = AudioController._instance();
@@ -21,6 +23,8 @@ class AudioController {
   final AudioPlayer audioPlayer = AudioPlayer();
   final OnAudioQuery audioQuery = OnAudioQuery();
   final FlutterAudioTagger _tagger = FlutterAudioTagger();
+  final MetadataDatabaseService _metadataDb =
+      MetadataDatabaseService.instance; // ✅ Permanent Storage
 
   final ValueNotifier<List<LocalSongModel>> songs =
       ValueNotifier<List<LocalSongModel>>([]);
@@ -140,6 +144,14 @@ class AudioController {
       final prefs = await SharedPreferences.getInstance();
       final blockedIds = prefs.getStringList('blocked_song_ids') ?? [];
 
+      // ✅ Load metadata from PERMANENT SQLite database (survives reinstall & offline)
+      await _metadataDb.initialize();
+      final permanentMetadataMap = await _metadataDb.getMetadataMap();
+      debugPrint(
+        '📦 Loaded ${permanentMetadataMap.length ~/ 2} permanent metadata records',
+      );
+
+      // Fallback: Also load from SharedPreferences (legacy support)
       Map<String, String> artistMap = {};
       Map<String, String> artworkMap = {};
       final recentData = prefs.getString('recent_downloads');
@@ -148,12 +160,12 @@ class AudioController {
         try {
           final List<dynamic> decoded = jsonDecode(recentData);
           for (var item in decoded) {
-            final path = item['filePath'];
+            final filePath = item['filePath'];
             final meta = item['metadata'];
-            if (path != null && meta != null) {
-              if (meta['artist'] != null) artistMap[path] = meta['artist'];
+            if (filePath != null && meta != null) {
+              if (meta['artist'] != null) artistMap[filePath] = meta['artist'];
               if (meta['thumbnail'] != null)
-                artworkMap[path] = meta['thumbnail'];
+                artworkMap[filePath] = meta['thumbnail'];
             }
           }
         } catch (e) {
@@ -161,38 +173,80 @@ class AudioController {
         }
       }
 
-      songs.value = fetchSongs
-          .where((s) => !blockedIds.contains(s.id.toString()))
-          .map((s) {
-            bool isFromMyApp =
-                s.data.contains("LumenLyric") || s.data.contains("MyMusicApp");
-            String songUri = s.uri ?? s.data;
-            String displayTitle = s.title;
+      songs
+          .value = fetchSongs.where((s) => !blockedIds.contains(s.id.toString())).map((
+        s,
+      ) {
+        bool isFromMyApp =
+            s.data.contains("LumenLyric") || s.data.contains("MyMusicApp");
+        String songUri = s.uri ?? s.data;
+        String displayTitle = s.title;
+        String displayArtist = s.artist ?? "Unknown Artist";
+        String? customArt;
 
-            String customTitleKey = 'custom_title_${s.id}';
-            if (prefs.containsKey(customTitleKey)) {
-              displayTitle = prefs.getString(customTitleKey) ?? s.title;
+        // ✅ PRIORITY 1: Check permanent SQLite database (ONLY for downloaded songs)
+        // Only apply downloaded metadata to songs from our app's folder
+        final fileName = path.basename(s.data);
+        PersistentSongMetadata? permMeta;
+
+        if (isFromMyApp) {
+          // First try exact file path match
+          permMeta = permanentMetadataMap[s.data];
+
+          // Only try fileName match if it's a unique match and song is from our app
+          if (permMeta == null) {
+            final fileNameMeta = permanentMetadataMap[fileName];
+            // Verify the matched metadata is actually for this song's location
+            if (fileNameMeta != null &&
+                fileNameMeta.filePath.contains('LumenLyric')) {
+              permMeta = fileNameMeta;
             }
+          }
+        }
 
-            String displayArtist =
-                artistMap[s.data] ?? s.artist ?? "Unknown Artist";
-            if (displayArtist == "<unknown>") displayArtist = "Unknown Artist";
+        if (permMeta != null) {
+          // Use permanent metadata (works offline and after reinstall)
+          displayTitle = permMeta.title;
+          displayArtist = permMeta.artist;
+          // Prefer local artwork path (offline-first)
+          if (permMeta.artworkPath != null &&
+              File(permMeta.artworkPath!).existsSync()) {
+            customArt = permMeta.artworkPath;
+          } else if (permMeta.artworkUrl != null &&
+              permMeta.artworkUrl!.isNotEmpty) {
+            customArt = permMeta.artworkUrl;
+          }
+          debugPrint('✅ Using permanent metadata for: $displayTitle');
+        } else if (isFromMyApp) {
+          // ✅ PRIORITY 2: Check SharedPreferences (legacy fallback) - ONLY for our app's songs
+          String customTitleKey = 'custom_title_${s.id}';
+          if (prefs.containsKey(customTitleKey)) {
+            displayTitle = prefs.getString(customTitleKey) ?? s.title;
+          }
 
-            String? customArt = artworkMap[s.data];
+          if (artistMap.containsKey(s.data)) {
+            displayArtist = artistMap[s.data]!;
+          }
 
-            return LocalSongModel(
-              id: s.id,
-              artist: displayArtist,
-              title: displayTitle,
-              uri: songUri,
-              albumArt: s.album ?? "",
-              duration: s.duration ?? 0,
-              isDownloaded: isFromMyApp,
-              isLiked: false,
-              artworkUrl: customArt,
-            );
-          })
-          .toList();
+          if (artworkMap.containsKey(s.data)) {
+            customArt = artworkMap[s.data];
+          }
+        }
+
+        if (displayArtist == "<unknown>") displayArtist = "Unknown Artist";
+
+        return LocalSongModel(
+          id: s.id,
+          artist: displayArtist,
+          title: displayTitle,
+          uri: songUri,
+          albumArt: s.album ?? "",
+          duration: s.duration ?? 0,
+          isDownloaded: isFromMyApp,
+          isLiked: false,
+          artworkUrl: customArt,
+        );
+      }).toList();
 
       await _restoreLikes();
     } catch (e) {
