@@ -1,18 +1,25 @@
 import 'dart:io';
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 import 'package:musicapp/models/local_song_model.dart';
-import 'package:musicapp/services/metadata_database_service.dart'; // ✅ Permanent Metadata Storage
+import 'package:musicapp/services/id3_tag_service.dart'; // ✅ ID3 Tag Reading - SINGLE SOURCE OF TRUTH
+import 'package:musicapp/services/metadata_database_service.dart'; // ✅ Database fallback for display
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:flutter_audio_tagger/flutter_audio_tagger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'dart:convert';
-import 'package:musicapp/models/song_model.dart' as Online;
-import 'package:path/path.dart' as path; // ✅ For file path operations
+import 'package:musicapp/models/song_model.dart' as online;
+import 'package:path/path.dart' as path;
 
+/// ═══════════════════════════════════════════════════════════════════════════
+/// AUDIO CONTROLLER
+/// ═══════════════════════════════════════════════════════════════════════════
+///
+/// METADATA INVARIANT: ID3 tags embedded in MP3 files are the SINGLE source
+/// of truth. This controller NEVER rewrites metadata - it only READS from
+/// the files themselves.
+/// ═══════════════════════════════════════════════════════════════════════════
 class AudioController {
   static final AudioController instance = AudioController._instance();
   factory AudioController() => instance;
@@ -21,10 +28,12 @@ class AudioController {
   }
 
   final AudioPlayer audioPlayer = AudioPlayer();
-  final OnAudioQuery audioQuery = OnAudioQuery();
+  final OnAudioQuery audioQuery = OnAudioQuery(); // ONLY for file discovery
   final FlutterAudioTagger _tagger = FlutterAudioTagger();
+  final Id3TagService _id3Service =
+      Id3TagService.instance; // SINGLE SOURCE OF TRUTH
   final MetadataDatabaseService _metadataDb =
-      MetadataDatabaseService.instance; // ✅ Permanent Storage
+      MetadataDatabaseService.instance; // Fallback for display only
 
   final ValueNotifier<List<LocalSongModel>> songs =
       ValueNotifier<List<LocalSongModel>>([]);
@@ -134,6 +143,9 @@ class AudioController {
         return;
       }
 
+      // ═══════════════════════════════════════════════════════════════════════
+      // MEDIASTORE: USED ONLY FOR FILE DISCOVERY - NEVER FOR METADATA
+      // ═══════════════════════════════════════════════════════════════════════
       final fetchSongs = await audioQuery.querySongs(
         sortType: null,
         orderType: OrderType.ASC_OR_SMALLER,
@@ -144,111 +156,96 @@ class AudioController {
       final prefs = await SharedPreferences.getInstance();
       final blockedIds = prefs.getStringList('blocked_song_ids') ?? [];
 
-      // ✅ Load metadata from PERMANENT SQLite database (survives reinstall & offline)
-      await _metadataDb.initialize();
-      final permanentMetadataMap = await _metadataDb.getMetadataMap();
-      debugPrint(
-        '📦 Loaded ${permanentMetadataMap.length ~/ 2} permanent metadata records',
-      );
+      final loadedSongs = <LocalSongModel>[];
 
-      // Fallback: Also load from SharedPreferences (legacy support)
-      Map<String, String> artistMap = {};
-      Map<String, String> artworkMap = {};
-      final recentData = prefs.getString('recent_downloads');
+      for (final s in fetchSongs) {
+        if (blockedIds.contains(s.id.toString())) continue;
 
-      if (recentData != null) {
-        try {
-          final List<dynamic> decoded = jsonDecode(recentData);
-          for (var item in decoded) {
-            final filePath = item['filePath'];
-            final meta = item['metadata'];
-            if (filePath != null && meta != null) {
-              if (meta['artist'] != null) artistMap[filePath] = meta['artist'];
-              if (meta['thumbnail'] != null)
-                artworkMap[filePath] = meta['thumbnail'];
-            }
-          }
-        } catch (e) {
-          debugPrint("Error parsing recent metadata: $e");
-        }
-      }
+        final bool isFromMyApp = _id3Service.isLumenLyricFile(s.data);
+        final String songUri = s.uri ?? s.data;
 
-      songs
-          .value = fetchSongs.where((s) => !blockedIds.contains(s.id.toString())).map((
-        s,
-      ) {
-        bool isFromMyApp =
-            s.data.contains("LumenLyric") || s.data.contains("MyMusicApp");
-        String songUri = s.uri ?? s.data;
-        String displayTitle = s.title;
-        String displayArtist = s.artist ?? "Unknown Artist";
+        // ═══════════════════════════════════════════════════════════════════════
+        // METADATA RESOLUTION - ID3 TAGS ARE THE SINGLE SOURCE OF TRUTH
+        // ═══════════════════════════════════════════════════════════════════════
+        //
+        // INVARIANTS:
+        // 1. Every MP3 is an independent, self-describing object
+        // 2. ID3 tags embedded in MP3 are the ONLY source of truth
+        // 3. This code NEVER rewrites metadata - it only READS
+        // 4. No filename, MediaStore ID, list index, or download order is identity
+        // 5. If ID3 tags are missing, check database fallback for display only
+        // ═══════════════════════════════════════════════════════════════════════
+
+        String displayTitle;
+        String displayArtist;
         String? customArt;
 
-        // ✅ PRIORITY 1: Check permanent SQLite database (ONLY for downloaded songs)
-        // Only apply downloaded metadata to songs from our app's folder
-        final fileName = path.basename(s.data);
-        PersistentSongMetadata? permMeta;
-
         if (isFromMyApp) {
-          // First try exact file path match
-          permMeta = permanentMetadataMap[s.data];
+          // READ ID3 TAGS - THE ONLY AUTHORITATIVE SOURCE
+          final id3Metadata = await _id3Service.readMetadataFromFile(s.data);
 
-          // Only try fileName match if it's a unique match and song is from our app
-          if (permMeta == null) {
-            final fileNameMeta = permanentMetadataMap[fileName];
-            // Verify the matched metadata is actually for this song's location
-            if (fileNameMeta != null &&
-                fileNameMeta.filePath.contains('LumenLyric')) {
-              permMeta = fileNameMeta;
+          if (id3Metadata != null && id3Metadata.hasValidMetadata) {
+            // ✅ ID3 tags found - use them as the source of truth
+            displayTitle = id3Metadata.displayTitle;
+            displayArtist = id3Metadata.displayArtist;
+
+            // ✅ Use artwork from ID3 metadata (includes sidecar check)
+            customArt = id3Metadata.artworkPath;
+
+            debugPrint(
+              '🎵 [ID3] $displayTitle by $displayArtist${customArt != null ? " (artwork: $customArt)" : ""}',
+            );
+          } else {
+            // ⚠️ ID3 tags missing - try database as DISPLAY fallback
+            // This does NOT violate the invariant since we're not writing to files
+            final dbMetadata = await _metadataDb.getMetadataByPath(s.data);
+
+            if (dbMetadata != null) {
+              // Use database metadata for display
+              displayTitle = dbMetadata.title;
+              displayArtist = dbMetadata.artist;
+              customArt = dbMetadata.artworkPath;
+              debugPrint('📦 [DB] Fallback: $displayTitle by $displayArtist');
+            } else {
+              // No database record either - use neutral defaults
+              displayTitle = 'Unknown Title';
+              displayArtist = 'Unknown Artist';
+              debugPrint('⚠️ [ID3] No metadata for: ${path.basename(s.data)}');
+            }
+
+            // Still check for sidecar artwork even if ID3 tags are missing
+            if (customArt == null) {
+              final artworkPath = _id3Service.getArtworkPath(s.data);
+              if (artworkPath != null && File(artworkPath).existsSync()) {
+                customArt = artworkPath;
+              }
             }
           }
+        } else {
+          // Non-LumenLyric files: use MediaStore data (system manages these)
+          displayTitle = s.title;
+          displayArtist = s.artist ?? 'Unknown Artist';
+          if (displayArtist == '<unknown>') displayArtist = 'Unknown Artist';
         }
 
-        if (permMeta != null) {
-          // Use permanent metadata (works offline and after reinstall)
-          displayTitle = permMeta.title;
-          displayArtist = permMeta.artist;
-          // Prefer local artwork path (offline-first)
-          if (permMeta.artworkPath != null &&
-              File(permMeta.artworkPath!).existsSync()) {
-            customArt = permMeta.artworkPath;
-          } else if (permMeta.artworkUrl != null &&
-              permMeta.artworkUrl!.isNotEmpty) {
-            customArt = permMeta.artworkUrl;
-          }
-          debugPrint('✅ Using permanent metadata for: $displayTitle');
-        } else if (isFromMyApp) {
-          // ✅ PRIORITY 2: Check SharedPreferences (legacy fallback) - ONLY for our app's songs
-          String customTitleKey = 'custom_title_${s.id}';
-          if (prefs.containsKey(customTitleKey)) {
-            displayTitle = prefs.getString(customTitleKey) ?? s.title;
-          }
-
-          if (artistMap.containsKey(s.data)) {
-            displayArtist = artistMap[s.data]!;
-          }
-
-          if (artworkMap.containsKey(s.data)) {
-            customArt = artworkMap[s.data];
-          }
-        }
-
-        if (displayArtist == "<unknown>") displayArtist = "Unknown Artist";
-
-        return LocalSongModel(
-          id: s.id,
-          artist: displayArtist,
-          title: displayTitle,
-          uri: songUri,
-          albumArt: s.album ?? "",
-          duration: s.duration ?? 0,
-          isDownloaded: isFromMyApp,
-          isLiked: false,
-          artworkUrl: customArt,
+        loadedSongs.add(
+          LocalSongModel(
+            id: s.id,
+            artist: displayArtist,
+            title: displayTitle,
+            uri: songUri,
+            albumArt: s.album ?? "",
+            duration: s.duration ?? 0,
+            isDownloaded: isFromMyApp,
+            isLiked: false,
+            artworkUrl: customArt,
+          ),
         );
-      }).toList();
+      }
 
+      songs.value = loadedSongs;
       await _restoreLikes();
+      debugPrint('✅ Loaded ${loadedSongs.length} songs');
     } catch (e) {
       debugPrint("Error loading songs: $e");
     } finally {
@@ -489,7 +486,7 @@ class AudioController {
   }
   // lib/controller/audio_controller.dart ke andar
 
-  Future<void> playNetworkAudio(String url, Online.SongModel songMeta) async {
+  Future<void> playNetworkAudio(String url, online.SongModel songMeta) async {
     // Player reset logic (Ghosting prevent karne ke liye)
     _isPlayerDismissed = false;
     _isPlayingFromQueue = false;

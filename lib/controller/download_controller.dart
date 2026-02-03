@@ -168,8 +168,12 @@ class DownloadController {
     if (downloaderTask != null && downloaderTask.taskId.isNotEmpty) {
       final filePath = '${downloaderTask.savedDir}/${downloaderTask.filename}';
 
-      // Write metadata tags
-      await _writeTagsToFile(filePath, task.metadata);
+      // Write metadata tags (YouTube URL stored in composer field as logical identity)
+      await _writeTagsToFile(
+        filePath,
+        task.metadata,
+        youtubeUrl: task.youtubeUrl,
+      );
 
       // ✅ Save metadata permanently to SQLite database
       await _saveMetadataPermanently(
@@ -213,7 +217,11 @@ class DownloadController {
             : null;
 
         if (downloadMetadata != null) {
-          await _writeTagsToFile(filePath, downloadMetadata);
+          await _writeTagsToFile(
+            filePath,
+            downloadMetadata,
+            youtubeUrl: metadata?['youtubeUrl'] as String?,
+          );
 
           // ✅ Save metadata permanently to SQLite database
           await _saveMetadataPermanently(
@@ -348,7 +356,12 @@ class DownloadController {
     );
 
     if (result.success && result.filePath != null) {
-      await _writeTagsToFile(result.filePath!, result.metadata);
+      // Write ID3 tags with YouTube URL as logical identity
+      await _writeTagsToFile(
+        result.filePath!,
+        result.metadata,
+        youtubeUrl: task.youtubeUrl,
+      );
 
       // ✅ Save metadata permanently to SQLite database
       await _saveMetadataPermanently(
@@ -463,18 +476,27 @@ class DownloadController {
     }
   }
 
-  // ✅ Helper Function: Tags Write + File Swap Logic (Permanent Fix)
+  // ═══════════════════════════════════════════════════════════════════════════
+  // WRITE ID3 TAGS TO MP3 FILE - THIS IS THE SINGLE SOURCE OF TRUTH
+  // ═══════════════════════════════════════════════════════════════════════════
+  //
+  // INVARIANT: Metadata is written ONCE at download time and NEVER modified.
+  // The YouTube URL is stored in the 'composer' field as logical identity.
+  // ═══════════════════════════════════════════════════════════════════════════
   Future<void> _writeTagsToFile(
     String filePath,
-    DownloadMetadataModel? metadata,
-  ) async {
+    DownloadMetadataModel? metadata, {
+    String? youtubeUrl,
+  }) async {
     if (metadata == null) return;
 
     try {
       final tagger = FlutterAudioTagger();
       Uint8List? artworkBytes;
 
-      // 1. Artwork Download (Agar image URL hai)
+      // ═══════════════════════════════════════════════════════════════════════
+      // STEP 1: Download artwork bytes for embedding into ID3 APIC frame
+      // ═══════════════════════════════════════════════════════════════════════
       if (metadata.thumbnailUrl != null && metadata.thumbnailUrl!.isNotEmpty) {
         try {
           final dio = Dio();
@@ -484,66 +506,156 @@ class DownloadController {
           );
           if (response.statusCode == 200) {
             artworkBytes = Uint8List.fromList(response.data);
+            debugPrint(
+              "✅ [ID3] Artwork downloaded: ${artworkBytes.length} bytes",
+            );
+
+            // ═══════════════════════════════════════════════════════════════════
+            // STEP 1b: Also save artwork as sidecar .jpg file (backup for reading)
+            // ═══════════════════════════════════════════════════════════════════
+            try {
+              final artworkPath = filePath.replaceAll(
+                RegExp(r'\.mp3$', caseSensitive: false),
+                '.jpg',
+              );
+              await File(artworkPath).writeAsBytes(artworkBytes);
+              debugPrint("✅ [ID3] Artwork also saved as sidecar: $artworkPath");
+            } catch (e) {
+              debugPrint("⚠️ [ID3] Failed to save sidecar artwork: $e");
+            }
           }
         } catch (e) {
           debugPrint("⚠️ Artwork download failed: $e");
         }
       }
 
-      // 2. Tags Object Create
+      // ═══════════════════════════════════════════════════════════════════════
+      // STEP 2: Create ID3v2 Tags object with ALL metadata
+      // ═══════════════════════════════════════════════════════════════════════
+      // IMPORTANT: 'composer' field stores the YouTube URL as LOGICAL IDENTITY
+      // This allows us to identify the song's source even after file operations
+      //
+      // ID3 Frames being written:
+      // - TIT2 → Title
+      // - TPE1 → Artist
+      // - TALB → Album
+      // - TYER → Year
+      // - TCOM → Composer (stores YouTube URL as logical identity)
+      // - APIC → Embedded artwork (cover image bytes)
+      // ═══════════════════════════════════════════════════════════════════════
       final tags = Tag(
         title: metadata.title,
         artist: metadata.artist,
-        album: "LumenLyric",
+        album: metadata.album ?? "LumenLyric",
         year: DateTime.now().year.toString(),
-        artwork: artworkBytes, // Image Embed hogi
+        composer: youtubeUrl, // ✅ LOGICAL IDENTITY - YouTube URL stored here
+        artwork: artworkBytes, // ✅ EMBEDDED ARTWORK - stored in APIC frame
       );
 
-      // 3. Write Tags (Yeh 'filename_edited.mp3' banata hai)
-      debugPrint("📝 Writing tags to: $filePath");
+      // ═══════════════════════════════════════════════════════════════════════
+      // STEP 3: Write Tags to MP3 file (creates 'filename_edited.mp3')
+      // ═══════════════════════════════════════════════════════════════════════
+      debugPrint("📝 [ID3] Writing tags to: $filePath");
+      debugPrint("📝 [ID3] Title: ${metadata.title}");
+      debugPrint("📝 [ID3] Artist: ${metadata.artist}");
+      debugPrint("📝 [ID3] Album: ${metadata.album ?? 'LumenLyric'}");
+      if (youtubeUrl != null) {
+        debugPrint("📝 [ID3] YouTube URL (composer): $youtubeUrl");
+      }
+      if (artworkBytes != null) {
+        debugPrint("📝 [ID3] Artwork: ${artworkBytes.length} bytes embedded");
+      }
+
+      // Write tags to the file
       await tagger.editTags(tags, filePath);
 
-      // Thora wait karein taa ke file system write complete kar le
-      await Future.delayed(const Duration(milliseconds: 500));
+      // Wait for file system to complete write
+      await Future.delayed(const Duration(milliseconds: 800));
 
-      // ---------------------------------------------------------
-      // ✅ FILE SWAP LOGIC (Bina external package ke)
-      // ---------------------------------------------------------
+      // ─────────────────────────────────────────────────────────────────────────
+      // FILE SWAP LOGIC - Replace original with tagged version
+      // flutter_audio_tagger creates a new file with _edited suffix
+      // ─────────────────────────────────────────────────────────────────────────
       String editedPath;
 
-      // Determine Edited File Name based on extension
       if (filePath.toLowerCase().endsWith(".mp3")) {
-        editedPath = filePath.substring(0, filePath.length - 4) + "_edited.mp3";
+        editedPath = "${filePath.substring(0, filePath.length - 4)}_edited.mp3";
       } else if (filePath.toLowerCase().endsWith(".m4a")) {
-        editedPath = filePath.substring(0, filePath.length - 4) + "_edited.m4a";
+        editedPath = "${filePath.substring(0, filePath.length - 4)}_edited.m4a";
       } else {
-        editedPath = filePath + "_edited";
+        editedPath = "${filePath}_edited";
       }
 
       File originalFile = File(filePath);
       File editedFile = File(editedPath);
 
-      // Agar Edited file ban gayi hai, to Original se swap karein
+      debugPrint("🔍 [ID3] Checking for edited file at: $editedPath");
+      debugPrint("🔍 [ID3] Edited file exists: ${await editedFile.exists()}");
+
       if (await editedFile.exists()) {
         try {
           debugPrint("🔄 Swapping files...");
+          // First copy edited file to a temp location
+          final tempPath = "${filePath}.temp";
+          await editedFile.copy(tempPath);
 
-          // 1. Original (bina tags wali) delete karein
+          // Delete original
           if (await originalFile.exists()) {
             await originalFile.delete();
           }
 
-          // 2. Edited file ko rename karke Original bana dein
-          await editedFile.rename(filePath);
+          // Rename temp to original path
+          await File(tempPath).rename(filePath);
 
-          debugPrint("✅ Tags Saved Permanently in File! ($filePath)");
+          // Delete the edited file if it still exists
+          if (await editedFile.exists()) {
+            await editedFile.delete();
+          }
+
+          debugPrint("✅ [ID3] Tags saved permanently to: $filePath");
+
+          // Verify the tags were written
+          final verifyTags = await tagger.getAllTags(filePath);
+          if (verifyTags != null) {
+            debugPrint(
+              "✅ [ID3] Verified - Title: ${verifyTags.title}, Artist: ${verifyTags.artist}",
+            );
+          } else {
+            debugPrint("⚠️ [ID3] Warning: Could not verify tags after write");
+          }
         } catch (e) {
           debugPrint("❌ Error swapping files: $e");
+          // Try alternative: just copy the edited file over
+          try {
+            await editedFile.copy(filePath);
+            await editedFile.delete();
+            debugPrint("✅ [ID3] Tags saved via copy fallback");
+          } catch (e2) {
+            debugPrint("❌ Copy fallback also failed: $e2");
+          }
         }
       } else {
         debugPrint(
-          "⚠️ Critical: Edited file ($editedPath) not found. Metadata might NOT be saved.",
+          "⚠️ [ID3] Edited file not found at: $editedPath - trying direct write",
         );
+
+        // Try writing tags again with a different approach
+        // Some versions of the library might write directly to the file
+        try {
+          // Check if the original file now has tags
+          final checkTags = await tagger.getAllTags(filePath);
+          if (checkTags != null &&
+              checkTags.title != null &&
+              checkTags.title!.isNotEmpty) {
+            debugPrint(
+              "✅ [ID3] Tags written directly - Title: ${checkTags.title}",
+            );
+          } else {
+            debugPrint("⚠️ [ID3] Tags not found in original file either");
+          }
+        } catch (e) {
+          debugPrint("❌ Error checking tags: $e");
+        }
       }
     } catch (e) {
       debugPrint("❌ Error writing ID3 Tags: $e");

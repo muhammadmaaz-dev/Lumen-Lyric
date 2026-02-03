@@ -521,19 +521,18 @@ class MetadataDatabaseService {
   }
 
   /// Get metadata map for quick lookups (file path -> metadata)
+  ///
+  /// ARCHITECTURE FIX: Only uses full file path as key.
+  /// NEVER use fileName as a lookup key - this caused metadata collision
+  /// after reinstall where all songs got the first song's metadata.
   Future<Map<String, PersistentSongMetadata>> getMetadataMap() async {
     final allMetadata = await getAllMetadata();
     final map = <String, PersistentSongMetadata>{};
 
     for (final meta in allMetadata) {
-      // Primary key: full file path
+      // ONLY use full file path as key - no fileName fallback!
+      // fileName lookup was causing metadata collision bug
       map[meta.filePath] = meta;
-
-      // Secondary key: fileName BUT only if it doesn't conflict
-      // This prevents one song's metadata from overwriting another
-      if (!map.containsKey(meta.fileName)) {
-        map[meta.fileName] = meta;
-      }
     }
 
     return map;
