@@ -8,7 +8,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:musicapp/core/configs/theme/app_theme.dart';
 import 'package:musicapp/pages/onboarding/onboarding_wrapper.dart';
 import 'package:musicapp/provider/theme_provider.dart';
-import 'package:musicapp/controller/download_controller.dart'; // ✅ Add this import
+import 'package:musicapp/controller/download_controller.dart';
+import 'package:musicapp/controller/audio_controller.dart'; // ✅ Audio controller for centralized song loading
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,7 +23,7 @@ void main() async {
   // ✅ 2. Load SharedPreferences
   final prefs = await SharedPreferences.getInstance();
 
-  // ✅ 3. Initialize Download Controller
+  // ✅ 3. Initialize Download Controller (includes metadata database sync)
   await DownloadController.instance.init();
 
   // ✅ 4. Get the saved theme immediately (Sync)
@@ -37,6 +38,16 @@ void main() async {
     androidNotificationChannelName: 'Audio playback',
     androidNotificationOngoing: true,
   );
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ✅ 5. CENTRAL SONG LOADING - COLD START METADATA RESOLUTION
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Load songs ONCE at startup after all services are initialized.
+  // This ensures ID3 tags are read reliably before any screen displays them.
+  // The loadSongs() method handles cold start stabilization internally.
+  debugPrint('🎵 [STARTUP] Beginning centralized song loading...');
+  await AudioController.instance.loadSongs();
+  debugPrint('🎵 [STARTUP] Centralized song loading complete');
 
   runApp(
     ProviderScope(

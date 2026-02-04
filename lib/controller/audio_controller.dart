@@ -144,6 +144,23 @@ class AudioController {
       }
 
       // ═══════════════════════════════════════════════════════════════════════
+      // COLD START STABILIZATION - CRITICAL FOR REINSTALL METADATA RECOVERY
+      // ═══════════════════════════════════════════════════════════════════════
+      // After reinstall, MediaStore may report files before the filesystem
+      // is fully stable. The ID3 tag library may fail to read tags if we
+      // query too early. This delay allows Android's filesystem to stabilize.
+      if (!_id3Service.isInitialScanComplete) {
+        debugPrint(
+          '🔄 [STARTUP] Cold start detected, waiting for filesystem to stabilize...',
+        );
+        // Longer delay on cold start to ensure files are fully accessible
+        await Future.delayed(const Duration(milliseconds: 800));
+        debugPrint(
+          '🔄 [STARTUP] Filesystem stabilization complete, beginning ID3 scan...',
+        );
+      }
+
+      // ═══════════════════════════════════════════════════════════════════════
       // MEDIASTORE: USED ONLY FOR FILE DISCOVERY - NEVER FOR METADATA
       // ═══════════════════════════════════════════════════════════════════════
       final fetchSongs = await audioQuery.querySongs(
@@ -181,11 +198,23 @@ class AudioController {
         String? customArt;
 
         if (isFromMyApp) {
-          // READ ID3 TAGS - THE ONLY AUTHORITATIVE SOURCE
-          final id3Metadata = await _id3Service.readMetadataFromFile(s.data);
+          // READ ID3 TAGS (or sidecar .meta.json) - THE ONLY AUTHORITATIVE SOURCE
+          var id3Metadata = await _id3Service.readMetadataFromFile(s.data);
+
+          // ═══════════════════════════════════════════════════════════════════════
+          // MIGRATION: If no metadata found, try to create sidecar from filename
+          // ═══════════════════════════════════════════════════════════════════════
+          // This handles existing songs that were downloaded before sidecar support
+          if (id3Metadata == null || !id3Metadata.hasValidMetadata) {
+            final created = await _id3Service.createSidecarFromFilename(s.data);
+            if (created) {
+              // Re-read after creating sidecar
+              id3Metadata = await _id3Service.readMetadataFromFile(s.data);
+            }
+          }
 
           if (id3Metadata != null && id3Metadata.hasValidMetadata) {
-            // ✅ ID3 tags found - use them as the source of truth
+            // ✅ Metadata found - use it as the source of truth
             displayTitle = id3Metadata.displayTitle;
             displayArtist = id3Metadata.displayArtist;
 
@@ -193,11 +222,10 @@ class AudioController {
             customArt = id3Metadata.artworkPath;
 
             debugPrint(
-              '🎵 [ID3] $displayTitle by $displayArtist${customArt != null ? " (artwork: $customArt)" : ""}',
+              '🎵 [META] $displayTitle by $displayArtist${customArt != null ? " (artwork)" : ""}',
             );
           } else {
-            // ⚠️ ID3 tags missing - try database as DISPLAY fallback
-            // This does NOT violate the invariant since we're not writing to files
+            // ⚠️ All metadata sources failed - try database as DISPLAY fallback
             final dbMetadata = await _metadataDb.getMetadataByPath(s.data);
 
             if (dbMetadata != null) {
@@ -207,13 +235,13 @@ class AudioController {
               customArt = dbMetadata.artworkPath;
               debugPrint('📦 [DB] Fallback: $displayTitle by $displayArtist');
             } else {
-              // No database record either - use neutral defaults
+              // No metadata anywhere - use neutral defaults
               displayTitle = 'Unknown Title';
               displayArtist = 'Unknown Artist';
-              debugPrint('⚠️ [ID3] No metadata for: ${path.basename(s.data)}');
+              debugPrint('⚠️ [META] No metadata for: ${path.basename(s.data)}');
             }
 
-            // Still check for sidecar artwork even if ID3 tags are missing
+            // Still check for sidecar artwork even if metadata is missing
             if (customArt == null) {
               final artworkPath = _id3Service.getArtworkPath(s.data);
               if (artworkPath != null && File(artworkPath).existsSync()) {
@@ -245,6 +273,16 @@ class AudioController {
 
       songs.value = loadedSongs;
       await _restoreLikes();
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // MARK INITIAL SCAN COMPLETE
+      // ═══════════════════════════════════════════════════════════════════════
+      // After first successful scan, mark as complete so future reads
+      // don't use cold start retry logic unnecessarily.
+      if (!_id3Service.isInitialScanComplete) {
+        _id3Service.markInitialScanComplete();
+      }
+
       debugPrint('✅ Loaded ${loadedSongs.length} songs');
     } catch (e) {
       debugPrint("Error loading songs: $e");

@@ -482,6 +482,9 @@ class DownloadController {
   //
   // INVARIANT: Metadata is written ONCE at download time and NEVER modified.
   // The YouTube URL is stored in the 'composer' field as logical identity.
+  //
+  // FALLBACK: Since flutter_audio_tagger may fail silently, we also write
+  // a sidecar .meta.json file that contains the same metadata.
   // ═══════════════════════════════════════════════════════════════════════════
   Future<void> _writeTagsToFile(
     String filePath,
@@ -493,6 +496,31 @@ class DownloadController {
     try {
       final tagger = FlutterAudioTagger();
       Uint8List? artworkBytes;
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // STEP 0: WRITE SIDECAR JSON METADATA (REINSTALL-SAFE BACKUP)
+      // ═══════════════════════════════════════════════════════════════════════
+      // This is the critical fix: write metadata to a .meta.json file that
+      // survives app reinstall. ID3 tag writing may fail on some devices.
+      try {
+        final metaJsonPath = filePath.replaceAll(
+          RegExp(r'\.mp3$', caseSensitive: false),
+          '.meta.json',
+        );
+        final metaJson = {
+          'title': metadata.title,
+          'artist': metadata.artist,
+          'album': metadata.album ?? 'LumenLyric',
+          'youtubeUrl': youtubeUrl,
+          'thumbnailUrl': metadata.thumbnailUrl,
+          'duration': metadata.duration,
+          'downloadedAt': DateTime.now().toIso8601String(),
+        };
+        await File(metaJsonPath).writeAsString(jsonEncode(metaJson));
+        debugPrint('✅ [META] Sidecar metadata saved: $metaJsonPath');
+      } catch (e) {
+        debugPrint('⚠️ [META] Failed to save sidecar metadata: $e');
+      }
 
       // ═══════════════════════════════════════════════════════════════════════
       // STEP 1: Download artwork bytes for embedding into ID3 APIC frame

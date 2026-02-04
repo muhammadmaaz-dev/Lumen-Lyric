@@ -195,6 +195,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   }
 
   // --- Existing Suggestions List ---
+  // --- Updated Suggestions List with Highlighted Keyword ---
   Widget _buildSuggestionsList(List<String> suggestions, ThemeData theme) {
     if (suggestions.isEmpty) {
       return Center(
@@ -204,16 +205,74 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         ),
       );
     }
+
+    // Get the current search query
+    final query = _searchController.text;
+
     return ListView.builder(
       itemCount: suggestions.length,
       itemBuilder: (context, index) {
         final suggestion = suggestions[index];
         return ListTile(
           leading: const Icon(Icons.search, color: Colors.grey),
-          title: Text(suggestion, style: theme.textTheme.bodyLarge),
+          // Use RichText to highlight the matching part
+          title: RichText(
+            text: TextSpan(
+              style: theme.textTheme.bodyLarge,
+              children: _getHighlightedText(suggestion, query, theme),
+            ),
+          ),
           onTap: () => _performSearch(suggestion),
         );
       },
     );
+  }
+
+  // --- Helper Function to Highlight Matching Text ---
+  List<TextSpan> _getHighlightedText(
+    String text,
+    String query,
+    ThemeData theme,
+  ) {
+    if (query.isEmpty) {
+      return [TextSpan(text: text)];
+    }
+
+    List<TextSpan> spans = [];
+    String lowerText = text.toLowerCase();
+    String lowerQuery = query.toLowerCase();
+    int start = 0;
+
+    while (true) {
+      // Find the index of the query in the suggestion text
+      int index = lowerText.indexOf(lowerQuery, start);
+
+      // If no match found, add the remaining text and break
+      if (index == -1) {
+        spans.add(TextSpan(text: text.substring(start)));
+        break;
+      }
+
+      // Add the text before the match
+      if (index > start) {
+        spans.add(TextSpan(text: text.substring(start, index)));
+      }
+
+      // Add the matched text with a specific style (e.g., Bold or Primary Color)
+      spans.add(
+        TextSpan(
+          text: text.substring(index, index + query.length),
+          style: theme.textTheme.bodyLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: theme.primaryColor, // Optional: Change color if desired
+          ),
+        ),
+      );
+
+      // Move the start position forward
+      start = index + query.length;
+    }
+
+    return spans;
   }
 }
