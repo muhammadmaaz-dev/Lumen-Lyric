@@ -6,26 +6,12 @@ import 'package:musicapp/models/playlist_model.dart';
 import 'package:musicapp/provider/playlist_provider.dart';
 
 /// A reusable dialog for creating and editing playlists.
-///
-/// Usage:
-/// ```dart
-/// // Create new playlist
-/// final result = await PlaylistDialog.show(context: context);
-///
-/// // Edit existing playlist
-/// final result = await PlaylistDialog.show(
-///   context: context,
-///   initialName: 'My Playlist',
-///   isEditing: true,
-/// );
-/// ```
 class PlaylistDialog extends StatefulWidget {
   final String? initialName;
   final bool isEditing;
 
   const PlaylistDialog({super.key, this.initialName, this.isEditing = false});
 
-  /// Shows the playlist dialog and returns the entered name, or null if cancelled.
   static Future<String?> show({
     required BuildContext context,
     String? initialName,
@@ -54,7 +40,6 @@ class _PlaylistDialogState extends State<PlaylistDialog> {
     _controller = TextEditingController(text: widget.initialName ?? '');
     _focusNode = FocusNode();
 
-    // Auto-focus the text field
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _focusNode.requestFocus();
     });
@@ -95,9 +80,10 @@ class _PlaylistDialogState extends State<PlaylistDialog> {
 
     return Dialog(
       backgroundColor: backgroundColor,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      // ✅ Removed const because .r is calculated at runtime
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(22.r), // ✅ Removed const
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -106,15 +92,14 @@ class _PlaylistDialogState extends State<PlaylistDialog> {
             Text(
               widget.isEditing ? 'Edit Playlist' : 'Create Playlist',
               style: TextStyle(
-                fontSize: 20,
+                fontSize: 18.sp, // ✅ Removed const
                 fontWeight: FontWeight.bold,
                 color: textColor,
               ),
               textAlign: TextAlign.center,
             ),
 
-            const SizedBox(height: 24),
-
+            SizedBox(height: 24.h), // ✅ Removed const
             // Text Field
             TextField(
               controller: _controller,
@@ -128,24 +113,25 @@ class _PlaylistDialogState extends State<PlaylistDialog> {
                 filled: true,
                 fillColor: isDarkTheme ? Colors.grey[900] : Colors.grey[100],
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(12.r),
                   borderSide: BorderSide(color: borderColor!),
                 ),
                 enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(12.r),
                   borderSide: BorderSide(color: borderColor),
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(12.r),
                   borderSide: BorderSide(color: textColor, width: 1.5),
                 ),
                 errorBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(12.r),
                   borderSide: BorderSide(color: errorColor!),
                 ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
+                // ✅ FIXED: Removed 'const' here which caused the build error
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 14.w,
+                  vertical: 12.h,
                 ),
               ),
               onChanged: (_) {
@@ -157,7 +143,7 @@ class _PlaylistDialogState extends State<PlaylistDialog> {
               textInputAction: TextInputAction.done,
             ),
 
-            const SizedBox(height: 24),
+            SizedBox(height: 24.h),
 
             // Buttons Row
             Row(
@@ -168,9 +154,9 @@ class _PlaylistDialogState extends State<PlaylistDialog> {
                     onPressed: () => Navigator.of(context).pop(),
                     style: TextButton.styleFrom(
                       backgroundColor: cancelButtonColor,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      padding: EdgeInsets.symmetric(vertical: 14.h),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(12.r),
                       ),
                     ),
                     child: Text(
@@ -183,7 +169,7 @@ class _PlaylistDialogState extends State<PlaylistDialog> {
                   ),
                 ),
 
-                const SizedBox(width: 12),
+                SizedBox(width: 12.w),
 
                 // Create/Save Button
                 Expanded(
@@ -196,9 +182,9 @@ class _PlaylistDialogState extends State<PlaylistDialog> {
                       foregroundColor: isDarkTheme
                           ? Colors.black
                           : Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      padding: EdgeInsets.symmetric(vertical: 14.h),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(12.r),
                       ),
                       elevation: 0,
                     ),
@@ -248,9 +234,11 @@ class DeletePlaylistDialog extends StatelessWidget {
 
     return Dialog(
       backgroundColor: backgroundColor,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18.r),
+      ), // ✅ Removed const
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(22.r), // ✅ Removed const
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -258,46 +246,45 @@ class DeletePlaylistDialog extends StatelessWidget {
             // Warning Icon
             Icon(
               Icons.warning_amber_rounded,
-              size: 48,
+              size: 44.sp, // ✅ Removed const
               color: Colors.orange[400],
             ),
 
-            const SizedBox(height: 16),
+            SizedBox(height: 16.h),
 
             // Title
             Text(
               'Delete Playlist?',
               style: TextStyle(
-                fontSize: 20,
+                fontSize: 18.sp,
                 fontWeight: FontWeight.bold,
                 color: textColor,
               ),
               textAlign: TextAlign.center,
             ),
 
-            const SizedBox(height: 12),
+            SizedBox(height: 12.h),
 
             // Subtitle
             Text(
               'Are you sure you want to delete "$playlistName"? This action cannot be undone.',
-              style: TextStyle(fontSize: 14, color: subtitleColor),
+              style: TextStyle(fontSize: 12.sp, color: subtitleColor),
               textAlign: TextAlign.center,
             ),
 
-            const SizedBox(height: 24),
+            SizedBox(height: 24.h),
 
             // Buttons Row
             Row(
               children: [
-                // Cancel Button
                 Expanded(
                   child: TextButton(
                     onPressed: () => Navigator.of(context).pop(false),
                     style: TextButton.styleFrom(
                       backgroundColor: cancelButtonColor,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      padding: EdgeInsets.symmetric(vertical: 14.h),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(12.r),
                       ),
                     ),
                     child: Text(
@@ -309,19 +296,16 @@ class DeletePlaylistDialog extends StatelessWidget {
                     ),
                   ),
                 ),
-
-                const SizedBox(width: 12),
-
-                // Delete Button
+                SizedBox(width: 12.w),
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () => Navigator.of(context).pop(true),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red[500],
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      padding: EdgeInsets.symmetric(vertical: 14.h),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(12.r),
                       ),
                       elevation: 0,
                     ),
@@ -340,9 +324,7 @@ class DeletePlaylistDialog extends StatelessWidget {
   }
 }
 
-// ... existing code for PlaylistDialog and DeletePlaylistDialog ...
-
-/// ✅ NEW: Dialog to select an EXISTING playlist only
+/// Dialog to select an EXISTING playlist only
 class PlaylistSelectorDialog extends ConsumerWidget {
   final int songId;
 
@@ -368,9 +350,11 @@ class PlaylistSelectorDialog extends ConsumerWidget {
 
     return Dialog(
       backgroundColor: backgroundColor,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20.r),
+      ), // ✅ Removed const
       child: Padding(
-        padding: EdgeInsets.all(20.r),
+        padding: EdgeInsets.all(20.r), // ✅ Removed const
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -389,7 +373,7 @@ class PlaylistSelectorDialog extends ConsumerWidget {
             // Existing Playlists List
             Flexible(
               child: SizedBox(
-                height: 200.h, // Limit height
+                height: 200.h,
                 child: playlists.isEmpty
                     ? Center(
                         child: Column(
@@ -437,7 +421,6 @@ class PlaylistSelectorDialog extends ConsumerWidget {
                                 return;
                               }
 
-                              // Add song to selected playlist
                               await ref
                                   .read(playlistProvider.notifier)
                                   .addSongToPlaylist(playlist.id, songId);

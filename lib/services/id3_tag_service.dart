@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_audio_tagger/flutter_audio_tagger.dart';
 import 'package:path/path.dart' as path;
+import 'package:musicapp/services/storage_path_service.dart';
 
 /// ═══════════════════════════════════════════════════════════════════════════
 /// ID3 TAG SERVICE - THE SINGLE SOURCE OF TRUTH FOR METADATA
@@ -235,12 +236,17 @@ class Id3TagService {
   /// ─────────────────────────────────────────────────────────────────────────
   /// If ID3 tags cannot be read, check for a .meta.json sidecar file
   /// that was written during download. This survives app reinstall.
+  ///
+  /// STORAGE STRUCTURE: Checks both new (.meta/ folder) and legacy locations
   Future<Id3Metadata?> readMetadataFromSidecar(String filePath) async {
     try {
-      final metaJsonPath = filePath.replaceAll(
-        RegExp(r'\.mp3$', caseSensitive: false),
-        '.meta.json',
-      );
+      // Use StoragePathService to find metadata file (checks new and legacy locations)
+      final storagePaths = StoragePathService.instance;
+      final metaJsonPath = await storagePaths.findMetaForMp3(filePath);
+
+      if (metaJsonPath == null) {
+        return null;
+      }
 
       final metaFile = File(metaJsonPath);
       if (!await metaFile.exists()) {
@@ -290,8 +296,18 @@ class Id3TagService {
   }
 
   /// Get the expected artwork path for a song file
-  /// (artwork is stored as same-name .jpg file next to the .mp3)
+  /// Uses new storage structure: /.artwork/ folder
+  /// Also checks legacy location (same folder as MP3)
   String? getArtworkPath(String mp3FilePath) {
+    if (!mp3FilePath.toLowerCase().endsWith('.mp3')) {
+      return null;
+    }
+    // Return the new .artwork/ folder path
+    return StoragePathService.instance.getArtworkPathForMp3(mp3FilePath);
+  }
+
+  /// Get legacy artwork path (same folder as MP3) for migration
+  String? getLegacyArtworkPath(String mp3FilePath) {
     if (!mp3FilePath.toLowerCase().endsWith('.mp3')) {
       return null;
     }
@@ -302,7 +318,17 @@ class Id3TagService {
   }
 
   /// Get the expected metadata JSON path for a song file
+  /// Uses new storage structure: /.meta/ folder
   String? getMetadataJsonPath(String mp3FilePath) {
+    if (!mp3FilePath.toLowerCase().endsWith('.mp3')) {
+      return null;
+    }
+    // Return the new .meta/ folder path
+    return StoragePathService.instance.getMetaPathForMp3(mp3FilePath);
+  }
+
+  /// Get legacy metadata path (same folder as MP3) for migration
+  String? getLegacyMetadataJsonPath(String mp3FilePath) {
     if (!mp3FilePath.toLowerCase().endsWith('.mp3')) {
       return null;
     }
@@ -312,11 +338,17 @@ class Id3TagService {
     );
   }
 
-  /// Check if artwork file exists for this song
+  /// Check if artwork file exists for this song (new or legacy location)
   Future<bool> hasLocalArtwork(String mp3FilePath) async {
-    final artworkPath = getArtworkPath(mp3FilePath);
-    if (artworkPath == null) return false;
-    return await File(artworkPath).exists();
+    final storagePaths = StoragePathService.instance;
+    final artworkPath = await storagePaths.findArtworkForMp3(mp3FilePath);
+    return artworkPath != null;
+  }
+
+  /// Find artwork path (checks new .artwork/ folder first, then legacy)
+  Future<String?> findArtworkPath(String mp3FilePath) async {
+    final storagePaths = StoragePathService.instance;
+    return await storagePaths.findArtworkForMp3(mp3FilePath);
   }
 
   /// ─────────────────────────────────────────────────────────────────────────

@@ -206,7 +206,7 @@ class _SongPickerScreenState extends ConsumerState<SongPickerScreen> {
                 ),
               ),
 
-            const SizedBox(height: 8),
+            SizedBox(height: 7.h),
 
             // Songs List
             Expanded(
@@ -217,17 +217,17 @@ class _SongPickerScreenState extends ConsumerState<SongPickerScreen> {
                         children: [
                           Icon(
                             Icons.music_off_rounded,
-                            size: 48,
+                            size: 44.sp,
                             color: secondaryTextColor,
                           ),
-                          const SizedBox(height: 12),
+                          SizedBox(height: 10.h),
                           Text(
                             _searchQuery.isEmpty
                                 ? 'All songs are already in the playlist'
                                 : 'No songs found',
                             style: TextStyle(
                               color: secondaryTextColor,
-                              fontSize: 16,
+                              fontSize: 14.sp,
                             ),
                           ),
                         ],
@@ -289,12 +289,12 @@ class _SongPickerScreenState extends ConsumerState<SongPickerScreen> {
     required VoidCallback onTap,
   }) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: EdgeInsets.only(bottom: 7.h),
       child: GestureDetector(
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
         child: Container(
-          padding: const EdgeInsets.all(12),
+          padding: EdgeInsets.all(10.r),
           decoration: BoxDecoration(
             color: isSelected
                 ? (isDarkTheme
@@ -313,8 +313,8 @@ class _SongPickerScreenState extends ConsumerState<SongPickerScreen> {
             children: [
               // Selection checkbox
               Container(
-                width: 24,
-                height: 24,
+                width: 22.w,
+                height: 22.h,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: isSelected
@@ -330,7 +330,7 @@ class _SongPickerScreenState extends ConsumerState<SongPickerScreen> {
                 child: isSelected
                     ? Icon(
                         Icons.check,
-                        size: 16,
+                        size: 14.sp,
                         color: isDarkTheme ? Colors.black : Colors.white,
                       )
                     : null,
@@ -365,7 +365,7 @@ class _SongPickerScreenState extends ConsumerState<SongPickerScreen> {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: textColor,
-                        fontSize: 15,
+                        fontSize: 13.sp,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -374,7 +374,10 @@ class _SongPickerScreenState extends ConsumerState<SongPickerScreen> {
                       '${song.artist} • ${_formatDuration(song.duration)}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: secondaryTextColor, fontSize: 12),
+                      style: TextStyle(
+                        color: secondaryTextColor,
+                        fontSize: 10.sp,
+                      ),
                     ),
                   ],
                 ),
@@ -430,7 +433,7 @@ class _SongPickerScreenState extends ConsumerState<SongPickerScreen> {
       nullArtworkWidget: Icon(
         Icons.music_note,
         color: secondaryTextColor,
-        size: 24,
+        size: 22.sp,
       ),
     );
   }

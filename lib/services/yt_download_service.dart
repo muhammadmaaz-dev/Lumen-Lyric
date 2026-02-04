@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:musicapp/models/download_metadata_model.dart';
+import 'package:musicapp/services/storage_path_service.dart';
 
 class YtDownloadService {
   static const String baseUrl = 'https://yt-mp3-api-mdkk.onrender.com';
@@ -119,11 +120,26 @@ class YtDownloadService {
       final convertResponse = await _dio.post(
         '/download',
         data: {'url': youtubeUrl, 'include_metadata': includeMetadata},
-        options: Options(receiveTimeout: const Duration(minutes: 10)),
+        options: Options(
+          receiveTimeout: const Duration(minutes: 10),
+          validateStatus: (status) => status != null && status < 500,
+        ),
       );
 
       if (convertResponse.statusCode != 200) {
-        throw Exception('Conversion failed: ${convertResponse.statusMessage}');
+        // Extract error message from response
+        String errorMsg = 'Conversion failed';
+        final responseData = convertResponse.data;
+        if (responseData is Map) {
+          errorMsg =
+              responseData['error'] ??
+              responseData['message'] ??
+              responseData['detail'] ??
+              errorMsg;
+        } else if (responseData is String && responseData.isNotEmpty) {
+          errorMsg = responseData;
+        }
+        throw Exception(errorMsg);
       }
 
       final data = convertResponse.data;
@@ -134,33 +150,19 @@ class YtDownloadService {
       // Stage 2: Download
       onStageChange?.call(DownloadStage.downloading);
 
-      // --- Directory Setup ---
-      Directory storageDir;
-      if (Platform.isAndroid) {
-        storageDir = Directory('/storage/emulated/0/Music/LumenLyric');
-        try {
-          if (!await storageDir.exists())
-            await storageDir.create(recursive: true);
-        } catch (e) {
-          // Permission fail hua to App Data folder use karo
-          final appDir = await getApplicationDocumentsDirectory();
-          storageDir = Directory('${appDir.path}/LumenLyric');
-          if (!await storageDir.exists())
-            await storageDir.create(recursive: true);
-        }
-      } else {
-        final dir = await getApplicationDocumentsDirectory();
-        storageDir = Directory('${dir.path}/LumenLyric');
-        if (!await storageDir.exists())
-          await storageDir.create(recursive: true);
-      }
+      // --- Directory Setup (NEW STRUCTURE) ---
+      // MP3 files go into /Songs/ folder only
+      // Artwork goes into /.artwork/ folder
+      final storagePaths = StoragePathService.instance;
+      await storagePaths.initialize();
+      final songsDir = await storagePaths.songsPath;
 
       final songTitle = metadata.title ?? "Unknown Song";
       final safeTitle = _sanitizeFilename(songTitle);
 
-      // MP3 File Path
+      // MP3 File Path - always in /Songs/ folder
       final localFilename = '$safeTitle.mp3';
-      final savePath = '${storageDir.path}/$localFilename';
+      final savePath = '$songsDir/$localFilename';
 
       // Download MP3
       await _dio.download(
@@ -180,16 +182,17 @@ class YtDownloadService {
         throw Exception("Download failed (Empty file received).");
       }
 
-      // --- NEW: Download Image for Offline Use ---
+      // --- Download Image to hidden .artwork/ folder ---
       String? localImagePath;
       if (metadata.thumbnailUrl != null && metadata.thumbnailUrl!.isNotEmpty) {
         try {
+          final artworkDir = await storagePaths.artworkPath;
           final imageFilename = '$safeTitle.jpg';
-          final imagePath = '${storageDir.path}/$imageFilename';
+          final imagePath = '$artworkDir/$imageFilename';
 
           await _dio.download(metadata.thumbnailUrl!, imagePath);
-          localImagePath = imagePath; // Path save karo result mein
-          debugPrint("✅ Image saved: $imagePath");
+          localImagePath = imagePath;
+          debugPrint("✅ Image saved to .artwork/: $imagePath");
         } catch (e) {
           debugPrint("⚠️ Image download failed (Song downloaded): $e");
         }
@@ -223,12 +226,48 @@ class YtDownloadService {
   }
 
   Exception _handleDioError(DioException e) {
-    // ... same error handling logic ...
+    // Extract server error message if available
+    if (e.response != null) {
+      final statusCode = e.response?.statusCode;
+      final responseData = e.response?.data;
+
+      // Try to get error message from response body
+      String? serverMessage;
+      if (responseData is Map) {
+        serverMessage =
+            responseData['error'] ??
+            responseData['message'] ??
+            responseData['detail'];
+      } else if (responseData is String && responseData.isNotEmpty) {
+        serverMessage = responseData;
+      }
+
+      if (statusCode == 400) {
+        return Exception(
+          serverMessage ?? 'Invalid YouTube URL or video unavailable',
+        );
+      } else if (statusCode == 404) {
+        return Exception(serverMessage ?? 'Video not found');
+      } else if (statusCode == 429) {
+        return Exception('Too many requests. Please wait a moment.');
+      } else if (statusCode == 500) {
+        return Exception(serverMessage ?? 'Server error. Try again later.');
+      } else if (statusCode == 503) {
+        return Exception('Server is busy. Please try again.');
+      }
+
+      if (serverMessage != null) {
+        return Exception(serverMessage);
+      }
+    }
+
     if (e.type == DioExceptionType.connectionTimeout ||
         e.type == DioExceptionType.receiveTimeout) {
-      return Exception('Connection timed out.');
+      return Exception('Connection timed out. Please try again.');
+    } else if (e.type == DioExceptionType.connectionError) {
+      return Exception('No internet connection.');
     }
-    return Exception(e.message ?? 'Network error.');
+    return Exception(e.message ?? 'Network error. Please try again.');
   }
 
   String _sanitizeFilename(String filename) {
@@ -252,11 +291,26 @@ class YtDownloadService {
       final convertResponse = await _dio.post(
         '/download',
         data: {'url': youtubeUrl, 'include_metadata': true},
-        options: Options(receiveTimeout: const Duration(minutes: 10)),
+        options: Options(
+          receiveTimeout: const Duration(minutes: 10),
+          validateStatus: (status) => status != null && status < 500,
+        ),
       );
 
       if (convertResponse.statusCode != 200) {
-        throw Exception('Conversion failed: ${convertResponse.statusMessage}');
+        // Extract error message from response
+        String errorMsg = 'Conversion failed';
+        final responseData = convertResponse.data;
+        if (responseData is Map) {
+          errorMsg =
+              responseData['error'] ??
+              responseData['message'] ??
+              responseData['detail'] ??
+              errorMsg;
+        } else if (responseData is String && responseData.isNotEmpty) {
+          errorMsg = responseData;
+        }
+        throw Exception(errorMsg);
       }
 
       final data = convertResponse.data;

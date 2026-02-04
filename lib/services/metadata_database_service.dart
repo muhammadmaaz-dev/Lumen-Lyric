@@ -6,6 +6,7 @@ import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:musicapp/services/storage_permission_service.dart';
+import 'package:musicapp/services/storage_path_service.dart';
 
 /// Persistent metadata model for storing song metadata permanently
 class PersistentSongMetadata {
@@ -330,13 +331,15 @@ class MetadataDatabaseService {
     debugPrint('✅ Metadata saved for: ${metadata.title}');
   }
 
-  /// ✅ Save metadata as a sidecar JSON file next to the song file
+  /// ✅ Save metadata as a sidecar JSON file in the hidden .meta/ folder
   /// This is the most reliable method for surviving reinstallation
+  /// STORAGE STRUCTURE: Metadata goes into /.meta/ hidden folder
   Future<void> _saveSidecarJson(PersistentSongMetadata metadata) async {
     try {
-      // The sidecar file has the same name as the song but with .json extension
-      final songPath = metadata.filePath;
-      final sidecarPath = songPath.replaceAll(RegExp(r'\.[^.]+$'), '.json');
+      // Use StoragePathService to get the correct .meta/ folder path
+      final storagePaths = StoragePathService.instance;
+      await storagePaths.initialize();
+      final sidecarPath = storagePaths.getMetaPathForMp3(metadata.filePath);
 
       final sidecarFile = File(sidecarPath);
       final jsonContent = const JsonEncoder.withIndent(
@@ -344,7 +347,7 @@ class MetadataDatabaseService {
       ).convert(metadata.toMap());
 
       await sidecarFile.writeAsString(jsonContent);
-      debugPrint('📎 Sidecar JSON saved: $sidecarPath');
+      debugPrint('📎 Sidecar JSON saved to .meta/: $sidecarPath');
     } catch (e) {
       debugPrint('⚠️ Could not save sidecar JSON: $e');
     }
@@ -397,12 +400,19 @@ class MetadataDatabaseService {
     return null;
   }
 
-  /// ✅ Load metadata from sidecar JSON file
+  /// ✅ Load metadata from sidecar JSON file (checks new .meta/ folder and legacy location)
   Future<PersistentSongMetadata?> _loadFromSidecarJson(
     String songFilePath,
   ) async {
     try {
-      final sidecarPath = songFilePath.replaceAll(RegExp(r'\.[^.]+$'), '.json');
+      // Use StoragePathService to find the metadata file (checks new and legacy locations)
+      final storagePaths = StoragePathService.instance;
+      final sidecarPath = await storagePaths.findMetaForMp3(songFilePath);
+
+      if (sidecarPath == null) {
+        return null;
+      }
+
       final sidecarFile = File(sidecarPath);
 
       if (!await sidecarFile.exists()) {

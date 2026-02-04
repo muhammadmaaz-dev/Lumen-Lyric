@@ -97,8 +97,8 @@ class _MainNavigationState extends State<MainNavigation> {
                   controller: _playerController,
                   minHeight: _playerMinHeight,
                   maxHeight: MediaQuery.of(context).size.height,
-                  elevation: 0,
-                  backgroundColor: Colors.transparent,
+                  elevation: 8,
+
                   curve: Curves.easeOutQuart,
                   onDismiss: () {
                     // Stop playback and hide miniplayer when dragged down
@@ -321,7 +321,7 @@ class _MainNavigationState extends State<MainNavigation> {
 
                     return LinearProgressIndicator(
                       value: progress.clamp(0.0, 1.0),
-                      minHeight: 2,
+                      minHeight: 1.8.h,
                       backgroundColor: isDarkTheme
                           ? Colors.grey[800]
                           : Colors.grey[300],

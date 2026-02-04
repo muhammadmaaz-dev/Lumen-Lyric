@@ -65,10 +65,21 @@ class _MusicScreenState extends State<MusicScreen> {
         textColor: Colors.white,
       );
     } catch (e) {
+      // Clean up error message
+      String errorMsg = e.toString();
+      if (errorMsg.startsWith('Exception: ')) {
+        errorMsg = errorMsg.substring(11); // Remove 'Exception: '
+      } else if (errorMsg.startsWith('Error: ')) {
+        errorMsg = errorMsg.substring(7);
+      }
+
       Fluttertoast.showToast(
-        msg: 'Error: $e',
+        msg: errorMsg,
+        toastLength: Toast.LENGTH_LONG,
+        gravity: ToastGravity.BOTTOM,
         backgroundColor: Colors.red,
         textColor: Colors.white,
+        fontSize: 14.0,
       );
     }
   }

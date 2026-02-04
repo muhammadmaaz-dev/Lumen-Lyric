@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:musicapp/services/storage_path_service.dart';
 
 /// BackgroundDownloadService handles downloads that continue even when app is closed
 class BackgroundDownloadService {
@@ -98,26 +99,11 @@ class BackgroundDownloadService {
     FlutterDownloader.registerCallback(downloadCallback);
   }
 
-  /// Get download directory
+  /// Get download directory (Songs/ folder for MP3 files)
   Future<String> getDownloadDirectory() async {
-    Directory? directory;
-
-    if (Platform.isAndroid) {
-      // Try Music folder first
-      directory = Directory('/storage/emulated/0/Music/LumenLyric');
-      if (!await directory.exists()) {
-        await directory.create(recursive: true);
-      }
-    } else {
-      // iOS/others: use app documents directory
-      directory = await getApplicationDocumentsDirectory();
-      directory = Directory('${directory.path}/LumenLyric');
-      if (!await directory.exists()) {
-        await directory.create(recursive: true);
-      }
-    }
-
-    return directory.path;
+    final storagePaths = StoragePathService.instance;
+    await storagePaths.initialize();
+    return await storagePaths.songsPath;
   }
 
   /// Start a background download

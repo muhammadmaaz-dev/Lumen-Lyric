@@ -293,7 +293,7 @@ class _LikedSongsScreenState extends State<LikedSongsScreen> {
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.2),
-              blurRadius: 10,
+              blurRadius: 9.r,
               offset: const Offset(0, -2),
             ),
           ],
@@ -396,7 +396,7 @@ class _LikedSongsScreenState extends State<LikedSongsScreen> {
 
                     return LinearProgressIndicator(
                       value: progress.clamp(0.0, 1.0),
-                      minHeight: 2,
+                      minHeight: 1.8.h,
                       backgroundColor: isDarkTheme
                           ? Colors.grey[800]
                           : Colors.grey[300],

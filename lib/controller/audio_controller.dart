@@ -5,6 +5,8 @@ import 'package:just_audio_background/just_audio_background.dart';
 import 'package:musicapp/models/local_song_model.dart';
 import 'package:musicapp/services/id3_tag_service.dart'; // ✅ ID3 Tag Reading - SINGLE SOURCE OF TRUTH
 import 'package:musicapp/services/metadata_database_service.dart'; // ✅ Database fallback for display
+import 'package:musicapp/services/storage_path_service.dart'; // ✅ Centralized Storage Paths
+import 'package:musicapp/services/song_cache_service.dart'; // ✅ Fast startup cache
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:flutter_audio_tagger/flutter_audio_tagger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -34,9 +36,17 @@ class AudioController {
       Id3TagService.instance; // SINGLE SOURCE OF TRUTH
   final MetadataDatabaseService _metadataDb =
       MetadataDatabaseService.instance; // Fallback for display only
+  final SongCacheService _cacheService =
+      SongCacheService.instance; // Fast startup cache
 
   final ValueNotifier<List<LocalSongModel>> songs =
       ValueNotifier<List<LocalSongModel>>([]);
+
+  // ✅ Loading state for UI feedback
+  final ValueNotifier<bool> isLoadingSongs = ValueNotifier<bool>(false);
+  final ValueNotifier<bool> isBackgroundScanRunning = ValueNotifier<bool>(
+    false,
+  );
 
   final ValueNotifier<List<LocalSongModel>> playbackQueue =
       ValueNotifier<List<LocalSongModel>>([]);
@@ -111,15 +121,122 @@ class AudioController {
       debugPrint("🔍 Scanning file: $path");
       await audioQuery.scanMedia(path);
       await Future.delayed(const Duration(seconds: 1));
-      await loadSongs();
+      // Invalidate cache when new media is added
+      _cacheService.invalidateCache();
+      await loadSongsFull();
     } catch (e) {
       debugPrint("❌ Error scanning media: $e");
     }
   }
 
-  Future<void> loadSongs() async {
+  // ═══════════════════════════════════════════════════════════════════════════
+  // FAST STARTUP - LOAD FROM CACHE INSTANTLY
+  // ═══════════════════════════════════════════════════════════════════════════
+  /// Load songs from cache for instant UI display.
+  /// Returns true if cache was available, false if full scan needed.
+  Future<bool> loadSongsFromCache() async {
+    try {
+      isLoadingSongs.value = true;
+
+      final cachedSongs = await _cacheService.loadFromCache();
+      if (cachedSongs != null && cachedSongs.isNotEmpty) {
+        songs.value = cachedSongs;
+        await _restoreLikes();
+        debugPrint('⚡ [FAST] Loaded ${cachedSongs.length} songs from cache');
+        isLoadingSongs.value = false;
+        return true;
+      }
+
+      isLoadingSongs.value = false;
+      return false;
+    } catch (e) {
+      debugPrint('⚠️ [CACHE] Error loading from cache: $e');
+      isLoadingSongs.value = false;
+      return false;
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // BACKGROUND SCAN - FULL MEDIASTORE + METADATA RESOLUTION
+  // ═══════════════════════════════════════════════════════════════════════════
+  /// Run full MediaStore scan in background without blocking UI.
+  /// Updates song list when complete and saves to cache.
+  Future<void> loadSongsInBackground() async {
+    if (_isFetching) return;
+
+    isBackgroundScanRunning.value = true;
+    debugPrint('🔄 [BACKGROUND] Starting MediaStore scan...');
+
+    // Run the full scan
+    await loadSongsFull();
+
+    // Save to cache for next startup
+    if (songs.value.isNotEmpty) {
+      await _cacheService.saveToCache(songs.value);
+    }
+
+    isBackgroundScanRunning.value = false;
+    debugPrint('✅ [BACKGROUND] Scan complete, cache updated');
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // LAZY METADATA RESOLUTION - ON-DEMAND FOR VISIBLE SONGS
+  // ═══════════════════════════════════════════════════════════════════════════
+  /// Resolve metadata for a specific song (called when song becomes visible).
+  /// Returns updated song model with resolved metadata and artwork.
+  Future<LocalSongModel> resolveMetadataForSong(LocalSongModel song) async {
+    // Skip if not a LumenLyric file or already has good metadata
+    if (!song.isDownloaded) return song;
+    if (song.title != 'Unknown Title' && song.artworkUrl != null) return song;
+
+    try {
+      final id3Metadata = await _id3Service.readMetadataFromFile(song.uri);
+
+      if (id3Metadata != null && id3Metadata.hasValidMetadata) {
+        return song.copyWith(
+          title: id3Metadata.displayTitle,
+          artist: id3Metadata.displayArtist,
+          artworkUrl: id3Metadata.artworkPath,
+        );
+      }
+
+      // Try database fallback
+      final dbMetadata = await _metadataDb.getMetadataByPath(song.uri);
+      if (dbMetadata != null) {
+        return song.copyWith(
+          title: dbMetadata.title,
+          artist: dbMetadata.artist,
+          artworkUrl: dbMetadata.artworkPath,
+        );
+      }
+    } catch (e) {
+      debugPrint('⚠️ [LAZY] Error resolving metadata: $e');
+    }
+
+    return song;
+  }
+
+  /// Resolve artwork only for a song (lighter than full metadata)
+  Future<String?> resolveArtworkForSong(LocalSongModel song) async {
+    if (song.artworkUrl != null) return song.artworkUrl;
+    if (!song.isDownloaded) return null;
+
+    try {
+      return await _id3Service.findArtworkPath(song.uri);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // LEGACY SUPPORT - FULL LOAD (for refresh, new downloads, etc.)
+  // ═══════════════════════════════════════════════════════════════════════════
+  /// Full song loading with MediaStore scan and metadata resolution.
+  /// Use loadSongsFromCache() + loadSongsInBackground() for fast startup.
+  Future<void> loadSongsFull() async {
     if (_isFetching) return;
     _isFetching = true;
+    isLoadingSongs.value = true;
 
     try {
       bool hasPermission = false;
@@ -140,24 +257,8 @@ class AudioController {
       if (!hasPermission) {
         debugPrint("❌ Permission Denied. Skipping song load.");
         _isFetching = false;
+        isLoadingSongs.value = false;
         return;
-      }
-
-      // ═══════════════════════════════════════════════════════════════════════
-      // COLD START STABILIZATION - CRITICAL FOR REINSTALL METADATA RECOVERY
-      // ═══════════════════════════════════════════════════════════════════════
-      // After reinstall, MediaStore may report files before the filesystem
-      // is fully stable. The ID3 tag library may fail to read tags if we
-      // query too early. This delay allows Android's filesystem to stabilize.
-      if (!_id3Service.isInitialScanComplete) {
-        debugPrint(
-          '🔄 [STARTUP] Cold start detected, waiting for filesystem to stabilize...',
-        );
-        // Longer delay on cold start to ensure files are fully accessible
-        await Future.delayed(const Duration(milliseconds: 800));
-        debugPrint(
-          '🔄 [STARTUP] Filesystem stabilization complete, beginning ID3 scan...',
-        );
       }
 
       // ═══════════════════════════════════════════════════════════════════════
@@ -181,79 +282,30 @@ class AudioController {
         final bool isFromMyApp = _id3Service.isLumenLyricFile(s.data);
         final String songUri = s.uri ?? s.data;
 
-        // ═══════════════════════════════════════════════════════════════════════
-        // METADATA RESOLUTION - ID3 TAGS ARE THE SINGLE SOURCE OF TRUTH
-        // ═══════════════════════════════════════════════════════════════════════
-        //
-        // INVARIANTS:
-        // 1. Every MP3 is an independent, self-describing object
-        // 2. ID3 tags embedded in MP3 are the ONLY source of truth
-        // 3. This code NEVER rewrites metadata - it only READS
-        // 4. No filename, MediaStore ID, list index, or download order is identity
-        // 5. If ID3 tags are missing, check database fallback for display only
-        // ═══════════════════════════════════════════════════════════════════════
-
-        String displayTitle;
-        String displayArtist;
+        // For fast loading: use MediaStore title initially, resolve lazily
+        String displayTitle = s.title;
+        String displayArtist = s.artist ?? 'Unknown Artist';
+        if (displayArtist == '<unknown>') displayArtist = 'Unknown Artist';
         String? customArt;
 
         if (isFromMyApp) {
-          // READ ID3 TAGS (or sidecar .meta.json) - THE ONLY AUTHORITATIVE SOURCE
-          var id3Metadata = await _id3Service.readMetadataFromFile(s.data);
-
-          // ═══════════════════════════════════════════════════════════════════════
-          // MIGRATION: If no metadata found, try to create sidecar from filename
-          // ═══════════════════════════════════════════════════════════════════════
-          // This handles existing songs that were downloaded before sidecar support
-          if (id3Metadata == null || !id3Metadata.hasValidMetadata) {
-            final created = await _id3Service.createSidecarFromFilename(s.data);
-            if (created) {
-              // Re-read after creating sidecar
-              id3Metadata = await _id3Service.readMetadataFromFile(s.data);
-            }
-          }
+          // For LumenLyric files, try quick metadata resolution
+          // Full ID3 parsing happens lazily when song is visible
+          final id3Metadata = await _id3Service.readMetadataFromFile(s.data);
 
           if (id3Metadata != null && id3Metadata.hasValidMetadata) {
-            // ✅ Metadata found - use it as the source of truth
             displayTitle = id3Metadata.displayTitle;
             displayArtist = id3Metadata.displayArtist;
-
-            // ✅ Use artwork from ID3 metadata (includes sidecar check)
             customArt = id3Metadata.artworkPath;
-
-            debugPrint(
-              '🎵 [META] $displayTitle by $displayArtist${customArt != null ? " (artwork)" : ""}',
-            );
           } else {
-            // ⚠️ All metadata sources failed - try database as DISPLAY fallback
+            // Quick fallback to database
             final dbMetadata = await _metadataDb.getMetadataByPath(s.data);
-
             if (dbMetadata != null) {
-              // Use database metadata for display
               displayTitle = dbMetadata.title;
               displayArtist = dbMetadata.artist;
               customArt = dbMetadata.artworkPath;
-              debugPrint('📦 [DB] Fallback: $displayTitle by $displayArtist');
-            } else {
-              // No metadata anywhere - use neutral defaults
-              displayTitle = 'Unknown Title';
-              displayArtist = 'Unknown Artist';
-              debugPrint('⚠️ [META] No metadata for: ${path.basename(s.data)}');
-            }
-
-            // Still check for sidecar artwork even if metadata is missing
-            if (customArt == null) {
-              final artworkPath = _id3Service.getArtworkPath(s.data);
-              if (artworkPath != null && File(artworkPath).existsSync()) {
-                customArt = artworkPath;
-              }
             }
           }
-        } else {
-          // Non-LumenLyric files: use MediaStore data (system manages these)
-          displayTitle = s.title;
-          displayArtist = s.artist ?? 'Unknown Artist';
-          if (displayArtist == '<unknown>') displayArtist = 'Unknown Artist';
         }
 
         loadedSongs.add(
@@ -274,11 +326,7 @@ class AudioController {
       songs.value = loadedSongs;
       await _restoreLikes();
 
-      // ═══════════════════════════════════════════════════════════════════════
-      // MARK INITIAL SCAN COMPLETE
-      // ═══════════════════════════════════════════════════════════════════════
-      // After first successful scan, mark as complete so future reads
-      // don't use cold start retry logic unnecessarily.
+      // Mark initial scan complete
       if (!_id3Service.isInitialScanComplete) {
         _id3Service.markInitialScanComplete();
       }
@@ -288,7 +336,13 @@ class AudioController {
       debugPrint("Error loading songs: $e");
     } finally {
       _isFetching = false;
+      isLoadingSongs.value = false;
     }
+  }
+
+  /// Alias for backward compatibility
+  Future<void> loadSongs() async {
+    await loadSongsFull();
   }
 
   Uri _buildUri(String uri) {

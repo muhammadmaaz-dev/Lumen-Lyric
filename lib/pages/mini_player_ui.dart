@@ -160,7 +160,7 @@ class MiniPlayerUI extends ConsumerWidget {
 
               return LinearProgressIndicator(
                 value: progress,
-                minHeight: 2,
+                minHeight: 1.8.h,
                 backgroundColor: progressBgColor,
                 color: progressColor,
               );

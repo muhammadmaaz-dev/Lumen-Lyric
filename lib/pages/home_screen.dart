@@ -130,12 +130,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               scrolledUnderElevation: 0,
               surfaceTintColor: Colors.transparent,
               automaticallyImplyLeading: false,
-              titleSpacing: 20,
+              titleSpacing: 18.w,
               title: Text(
                 "Home",
                 style: TextStyle(
                   color: theme.textTheme.headlineLarge?.color,
-                  fontSize: 26,
+                  fontSize: 24.sp,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -146,7 +146,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     icon: Icon(
                       Icons.search,
                       color: theme.iconTheme.color,
-                      size: 24,
+                      size: 22.sp,
                     ),
                     onPressed: () {
                       Navigator.push(
@@ -218,7 +218,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget _buildSectionTitle(String title, {String? actionText}) {
     final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20.0),
+      padding: EdgeInsets.symmetric(horizontal: 18.w),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -227,7 +227,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             style: TextStyle(
               color: theme.textTheme.headlineMedium?.color,
               fontWeight: FontWeight.bold,
-              fontSize: 22,
+              fontSize: 20.sp,
               letterSpacing: 1.2,
             ),
           ),
@@ -237,7 +237,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               style: TextStyle(
                 color: theme.textTheme.bodyMedium?.color,
                 fontWeight: FontWeight.w500,
-                fontSize: 15,
+                fontSize: 13.sp,
                 decoration: TextDecoration.underline,
               ),
             ),
@@ -418,10 +418,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     child: Container(
                       decoration: BoxDecoration(
                         color: theme.cardColor,
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(10.r),
                       ),
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(10.r),
                         child: Image.network(
                           song.imageUrl,
                           fit: BoxFit.cover,
@@ -464,12 +464,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final theme = Theme.of(context);
     if (artists.isEmpty) return const SizedBox.shrink();
     return SizedBox(
-      height: 110,
+      height: 99.h,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 20),
+        padding: EdgeInsets.symmetric(horizontal: 18.w),
         itemCount: artists.length,
-        separatorBuilder: (context, index) => const SizedBox(width: 18),
+        separatorBuilder: (context, index) => SizedBox(width: 16.w),
         itemBuilder: (context, index) {
           final artist = artists[index];
           return Column(
@@ -487,15 +487,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   );
                 },
                 child: CircleAvatar(
-                  radius: 32,
+                  radius: 30.r,
                   backgroundImage: NetworkImage(artist.imageUrl),
                   backgroundColor: theme.cardColor,
                   onBackgroundImageError: (_, __) {},
                 ),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 7.h),
               SizedBox(
-                width: 70,
+                width: 65.w,
                 child: Text(
                   artist.name,
                   textAlign: TextAlign.center,
@@ -504,7 +504,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   style: TextStyle(
                     color: theme.textTheme.bodyLarge?.color,
                     fontWeight: FontWeight.bold,
-                    fontSize: 13,
+                    fontSize: 11.sp,
                   ),
                 ),
               ),

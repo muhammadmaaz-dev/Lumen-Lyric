@@ -380,7 +380,7 @@ class _FullPlayerState extends ConsumerState<FullPlayer> {
                                     ),
                                   ),
                                   Padding(
-                                    padding: const EdgeInsets.all(12),
+                                    padding: EdgeInsets.all(10.r),
                                     child: Consumer(
                                       builder: (context, ref, child) {
                                         final lyricsAsync = ref.watch(
@@ -401,7 +401,7 @@ class _FullPlayerState extends ConsumerState<FullPlayer> {
                                       },
                                     ),
                                   ),
-                                  const SizedBox(height: 50),
+                                  SizedBox(height: 45.h),
                                 ],
                               ),
                             ),

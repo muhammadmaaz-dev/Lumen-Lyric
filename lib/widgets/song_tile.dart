@@ -168,11 +168,11 @@ class SongTile extends StatelessWidget {
         nullArtworkWidget: Icon(
           Icons.music_note,
           color: placeholderColor,
-          size: 30,
+          size: 28.sp,
         ),
       );
     }
-    return Icon(Icons.music_note, color: placeholderColor, size: 30);
+    return Icon(Icons.music_note, color: placeholderColor, size: 28.sp);
   }
 }
 

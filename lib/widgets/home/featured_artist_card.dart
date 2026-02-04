@@ -108,11 +108,7 @@ class FeaturedArtistCard extends StatelessWidget {
                   shape: BoxShape.circle,
                   color: Colors.black,
                 ),
-                child: const Icon(
-                  Icons.play_arrow,
-                  color: Colors.white,
-                  size: 20,
-                ),
+                child: Icon(Icons.play_arrow, color: Colors.white, size: 18.sp),
               ),
           ],
         ),

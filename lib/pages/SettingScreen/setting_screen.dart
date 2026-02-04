@@ -10,6 +10,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:musicapp/utils/slide_route.dart';
 import 'package:musicapp/widgets/setting_tile.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
 // 1. Changed to ConsumerWidget to access providers
 class SettingScreen extends ConsumerWidget {
@@ -169,7 +170,7 @@ class SettingScreen extends ConsumerWidget {
                               textColor: textColor,
                             ),
                             Divider(
-                              height: 1,
+                              height: 0.9.h,
                               color: dividerColor,
                               indent: 10,
                               endIndent: 10,
@@ -189,7 +190,7 @@ class SettingScreen extends ConsumerWidget {
                               textColor: textColor,
                             ),
                             Divider(
-                              height: 1,
+                              height: 0.9.h,
                               color: dividerColor,
                               indent: 10,
                               endIndent: 10,
@@ -234,12 +235,14 @@ class SettingScreen extends ConsumerWidget {
                             SettingsTile(
                               icon: Icons.key_outlined,
                               title: 'Change Password',
-                              onTap: () {},
+                              onTap: () {
+                                Fluttertoast.showToast(msg: "Not Available");
+                              },
                               isDarkTheme: isDarkTheme,
                               textColor: textColor,
                             ),
                             Divider(
-                              height: 1,
+                              height: 0.9.h,
                               color: dividerColor,
                               indent: 10,
                               endIndent: 10,
@@ -247,7 +250,10 @@ class SettingScreen extends ConsumerWidget {
                             SettingsTile(
                               icon: Icons.person_outline,
                               title: 'Linked Account',
-                              onTap: () {},
+                              onTap: () {
+                                Fluttertoast.showToast(msg: "Not Available");
+                              },
+
                               isDarkTheme: isDarkTheme,
                               isLast: true,
                               textColor: textColor,
@@ -266,37 +272,23 @@ class SettingScreen extends ConsumerWidget {
                           color: textColor,
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      SizedBox(height: 10.h),
                       Container(
                         decoration: BoxDecoration(
                           color: cardColor,
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(14.r),
                         ),
                         child: Column(
                           children: [
                             SettingsTile(
-                              icon: Icons.sign_language_sharp,
-                              title: 'Suggest Feature',
+                              icon: Icons.feedback,
+                              title: 'Feedback',
                               onTap: () {},
                               isDarkTheme: isDarkTheme,
                               textColor: textColor,
                             ),
                             Divider(
-                              height: 1,
-                              color: dividerColor,
-                              indent: 10,
-                              endIndent: 10,
-                            ),
-                            SettingsTile(
-                              icon: Icons.bug_report_outlined,
-                              title: 'Report a Bug',
-                              onTap: () {},
-                              isDarkTheme: isDarkTheme,
-                              isLast: true,
-                              textColor: textColor,
-                            ),
-                            Divider(
-                              height: 1,
+                              height: 0.9.h,
                               color: dividerColor,
                               indent: 10,
                               endIndent: 10,
@@ -326,17 +318,19 @@ class SettingScreen extends ConsumerWidget {
                         ),
                       ),
 
-                      const SizedBox(height: 40),
+                      SizedBox(height: 36.h),
 
                       Center(
                         child: ElevatedButton(
-                          onPressed: () {},
+                          onPressed: () {
+                            Fluttertoast.showToast(msg: "Not Available");
+                          },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: cardColor,
                             foregroundColor: textColor,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 80,
-                              vertical: 16,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 72.w,
+                              vertical: 14.h,
                             ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(30),
@@ -346,7 +340,7 @@ class SettingScreen extends ConsumerWidget {
                           child: Text(
                             'Logout',
                             style: TextStyle(
-                              fontSize: 18,
+                              fontSize: 16.sp,
                               fontWeight: FontWeight.bold,
                               color: textColor,
                             ),
@@ -354,7 +348,7 @@ class SettingScreen extends ConsumerWidget {
                         ),
                       ),
 
-                      const SizedBox(height: 20),
+                      SizedBox(height: 18.h),
                     ],
                   ),
                 ),

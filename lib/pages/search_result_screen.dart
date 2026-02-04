@@ -104,7 +104,7 @@ class _SearchResultScreenState extends ConsumerState<SearchResultScreen>
         return ListTile(
           contentPadding: EdgeInsets.zero,
           leading: ClipRRect(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(7.r),
             child: CachedNetworkImage(
               imageUrl: song.imageUrl,
               width: 50.h,
@@ -207,7 +207,7 @@ class _SearchResultScreenState extends ConsumerState<SearchResultScreen>
         children: [
           Icon(
             Icons.sentiment_dissatisfied,
-            size: 60,
+            size: 54.sp,
             color: theme.disabledColor,
           ),
           SizedBox(height: 10.h),

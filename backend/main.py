@@ -155,6 +155,11 @@ def download_audio(request: DownloadRequest):
                 'preferredcodec': 'mp3',
                 'preferredquality': '192',
             }],
+            'ignoreerrors': False,
+            'no_warnings': False,
+            'age_limit': None,
+            'retries': 3,
+            'fragment_retries': 3,
         })
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -167,9 +172,14 @@ def download_audio(request: DownloadRequest):
                 break
 
         if not mp3_file:
-            raise HTTPException(status_code=500, detail="MP3 not created")
+            raise HTTPException(status_code=500, detail="MP3 not created - conversion failed")
 
-        logger.info(f"✅ Download complete: {os.path.basename(mp3_file)}")
+        # Check if file is empty
+        if os.path.getsize(mp3_file) == 0:
+            shutil.rmtree(download_path, ignore_errors=True)
+            raise HTTPException(status_code=500, detail="Download failed - video may be unavailable or age-restricted")
+
+        logger.info(f"✅ Download complete: {os.path.basename(mp3_file)} ({os.path.getsize(mp3_file)} bytes)")
 
         return {
             "success": True,

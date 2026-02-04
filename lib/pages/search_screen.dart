@@ -151,7 +151,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 leading: const Icon(Icons.history, color: Colors.grey),
                 title: Text(term, style: theme.textTheme.bodyLarge),
                 trailing: IconButton(
-                  icon: const Icon(Icons.close, size: 18, color: Colors.grey),
+                  icon: Icon(Icons.close, size: 16.sp, color: Colors.grey),
                   onPressed: () =>
                       ref.read(searchProvider.notifier).removeFromHistory(term),
                 ),
@@ -182,7 +182,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     ),
                     side: BorderSide.none,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: BorderRadius.circular(18.r),
                     ),
                     onPressed: () => _performSearch(term),
                   ),

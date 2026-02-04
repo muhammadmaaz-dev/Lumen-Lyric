@@ -206,7 +206,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                           ),
 
                         // Extra space for MiniPlayer
-                        const SliverToBoxAdapter(child: SizedBox(height: 80)),
+                        SliverToBoxAdapter(child: SizedBox(height: 72.h)),
                       ],
                     );
                   },

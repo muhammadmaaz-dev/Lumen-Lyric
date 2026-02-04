@@ -8,6 +8,7 @@ import 'package:musicapp/models/download_metadata_model.dart';
 import 'package:musicapp/services/yt_download_service.dart';
 import 'package:musicapp/services/background_download_service.dart';
 import 'package:musicapp/services/metadata_database_service.dart'; // ✅ Permanent Metadata Storage
+import 'package:musicapp/services/storage_path_service.dart'; // ✅ Centralized Storage Paths
 import 'package:musicapp/controller/audio_controller.dart';
 import 'package:uuid/uuid.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -276,6 +277,22 @@ class DownloadController {
 
   /// Add download to queue directly
   Future<void> addToQueue(String youtubeUrl) async {
+    // Check queue limit (max 3 active tasks)
+    final activeCount = downloadQueue.value
+        .where(
+          (t) =>
+              t.status == DownloadStatus.pending ||
+              t.status == DownloadStatus.fetchingMetadata ||
+              t.status == DownloadStatus.converting ||
+              t.status == DownloadStatus.downloading,
+        )
+        .length;
+
+    if (activeCount >= 3) {
+      // Throw clean string for toast
+      throw Exception("Can't add more than 3 songs to queue");
+    }
+
     if (!isValidUrl(youtubeUrl)) {
       throw Exception('Invalid YouTube URL');
     }
@@ -539,15 +556,13 @@ class DownloadController {
             );
 
             // ═══════════════════════════════════════════════════════════════════
-            // STEP 1b: Also save artwork as sidecar .jpg file (backup for reading)
-            // ═══════════════════════════════════════════════════════════════════
+            // STEP 1b: Save artwork to hidden .artwork/ folder
+            // ═════════════════════════════════════════════════════════════════════
             try {
-              final artworkPath = filePath.replaceAll(
-                RegExp(r'\.mp3$', caseSensitive: false),
-                '.jpg',
-              );
+              final storagePaths = StoragePathService.instance;
+              final artworkPath = storagePaths.getArtworkPathForMp3(filePath);
               await File(artworkPath).writeAsBytes(artworkBytes);
-              debugPrint("✅ [ID3] Artwork also saved as sidecar: $artworkPath");
+              debugPrint("✅ [ID3] Artwork saved to .artwork/: $artworkPath");
             } catch (e) {
               debugPrint("⚠️ [ID3] Failed to save sidecar artwork: $e");
             }

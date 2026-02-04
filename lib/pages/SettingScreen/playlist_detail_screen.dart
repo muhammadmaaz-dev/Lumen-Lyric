@@ -205,16 +205,16 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                       ],
                     ),
 
-                    const SizedBox(height: 20),
+                    SizedBox(height: 18.h),
 
                     Padding(
-                      padding: const EdgeInsets.all(18),
+                      padding: EdgeInsets.all(16.r),
                       child: Row(
                         children: [
                           // Playlist thumbnail
                           Container(
-                            width: 100,
-                            height: 100,
+                            width: 90.w,
+                            height: 90.h,
                             decoration: BoxDecoration(
                               color: cardColor,
                               borderRadius: BorderRadius.circular(16),
@@ -222,7 +222,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                             child: Center(
                               child: Icon(
                                 Icons.queue_music_rounded,
-                                size: 40,
+                                size: 36.sp,
                                 color: iconColor,
                               ),
                             ),
@@ -237,7 +237,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                                   playlist.name,
                                   style: TextStyle(
                                     color: textColor,
-                                    fontSize: 22,
+                                    fontSize: 20.sp,
                                     fontWeight: FontWeight.bold,
                                   ),
                                   maxLines: 2,
@@ -248,7 +248,7 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                                   '${playlist.songCount} Songs',
                                   style: TextStyle(
                                     color: iconColor,
-                                    fontSize: 14,
+                                    fontSize: 12.sp,
                                   ),
                                 ),
                                 const SizedBox(height: 12),
