@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -14,9 +15,21 @@ class StoragePermissionService {
 
   bool _hasRequestedPermission = false;
   bool _hasFullStorageAccess = false;
+  int? _cachedSdkVersion;
 
   /// Check if we have permission to access external storage
   bool get hasFullStorageAccess => _hasFullStorageAccess;
+
+  /// Get Android SDK version (returns 0 for non-Android platforms)
+  Future<int> get androidSdkVersion async {
+    if (!Platform.isAndroid) return 0;
+    if (_cachedSdkVersion != null) return _cachedSdkVersion!;
+
+    final deviceInfo = DeviceInfoPlugin();
+    final androidInfo = await deviceInfo.androidInfo;
+    _cachedSdkVersion = androidInfo.version.sdkInt;
+    return _cachedSdkVersion!;
+  }
 
   /// Initialize and check current permission status
   Future<void> initialize() async {

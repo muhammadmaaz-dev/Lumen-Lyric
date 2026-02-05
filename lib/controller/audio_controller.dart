@@ -6,6 +6,7 @@ import 'package:musicapp/models/local_song_model.dart';
 import 'package:musicapp/services/id3_tag_service.dart'; // ✅ ID3 Tag Reading - SINGLE SOURCE OF TRUTH
 import 'package:musicapp/services/metadata_database_service.dart'; // ✅ Database fallback for display
 import 'package:musicapp/services/storage_path_service.dart'; // ✅ Centralized Storage Paths
+import 'package:musicapp/services/storage_permission_service.dart'; // ✅ Version-aware permissions
 import 'package:musicapp/services/song_cache_service.dart'; // ✅ Fast startup cache
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:flutter_audio_tagger/flutter_audio_tagger.dart';
@@ -107,25 +108,82 @@ class AudioController {
     });
   }
 
-  Future<void> scanMedia(String path) async {
+  Future<void> scanMedia(String filePath) async {
     try {
-      debugPrint("Scanning file: $path");
-      await audioQuery.scanMedia(path);
-    } catch (e) {
-      debugPrint("Error scanning media: $e");
-    }
-  }
+      debugPrint("🔍 [SCAN] Scanning file: $filePath");
 
-  Future<void> scanNewMedia(String path) async {
-    try {
-      debugPrint("🔍 Scanning file: $path");
-      await audioQuery.scanMedia(path);
-      await Future.delayed(const Duration(seconds: 1));
-      // Invalidate cache when new media is added
+      // Verify file exists
+      final file = File(filePath);
+      if (!await file.exists()) {
+        debugPrint("⚠️ [SCAN] File does not exist: $filePath");
+        return;
+      }
+
+      final fileSize = await file.length();
+      debugPrint("📁 [SCAN] File size: $fileSize bytes");
+
+      // Try to scan via MediaStore
+      try {
+        await audioQuery.scanMedia(filePath);
+        debugPrint("✅ [SCAN] MediaStore scan requested");
+      } catch (e) {
+        debugPrint("⚠️ [SCAN] MediaStore scan failed: $e");
+        // Continue anyway - file system will pick it up
+      }
+
+      // Wait a bit for MediaStore to index
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      // Invalidate cache and reload
       _cacheService.invalidateCache();
       await loadSongsFull();
     } catch (e) {
-      debugPrint("❌ Error scanning media: $e");
+      debugPrint("❌ [SCAN] Error scanning media: $e");
+    }
+  }
+
+  Future<void> scanNewMedia(String filePath) async {
+    try {
+      debugPrint("🎵 [SCAN] New media downloaded: $filePath");
+
+      // Verify file exists and is valid
+      final file = File(filePath);
+      if (!await file.exists()) {
+        debugPrint("⚠️ [SCAN] Downloaded file not found: $filePath");
+        return;
+      }
+
+      final fileSize = await file.length();
+      if (fileSize < 1000) {
+        debugPrint(
+          "⚠️ [SCAN] File too small, might be corrupted: $fileSize bytes",
+        );
+        return;
+      }
+
+      debugPrint("✅ [SCAN] File verified: $fileSize bytes");
+
+      // Request MediaStore to scan the file
+      try {
+        await audioQuery.scanMedia(filePath);
+        debugPrint("✅ [SCAN] MediaStore notified");
+      } catch (e) {
+        debugPrint("⚠️ [SCAN] MediaStore notification failed: $e");
+        // This is okay on Android 10 - file system discovery will work
+      }
+
+      // Give system time to process
+      await Future.delayed(const Duration(milliseconds: 300));
+
+      // Invalidate cache since we have a new song
+      _cacheService.invalidateCache();
+
+      // Reload songs (file system discovery will find it even if MediaStore doesn't)
+      await loadSongsFull();
+
+      debugPrint("✅ [SCAN] Song list refreshed");
+    } catch (e) {
+      debugPrint("❌ [SCAN] Error scanning new media: $e");
     }
   }
 
@@ -236,107 +294,393 @@ class AudioController {
   Future<void> loadSongsFull() async {
     if (_isFetching) return;
     _isFetching = true;
-    isLoadingSongs.value = true;
+    isLoadingSongs.value = true; // Loading start
 
     try {
-      bool hasPermission = false;
-      if (await Permission.audio.isGranted ||
-          await Permission.storage.isGranted) {
-        hasPermission = true;
-      } else {
-        Map<Permission, PermissionStatus> statuses = await [
-          Permission.audio,
-          Permission.storage,
-        ].request();
-        if (statuses[Permission.audio] == PermissionStatus.granted ||
-            statuses[Permission.storage] == PermissionStatus.granted) {
-          hasPermission = true;
-        }
-      }
-
-      if (!hasPermission) {
-        debugPrint("❌ Permission Denied. Skipping song load.");
+      if (!await _checkPermission()) {
+        debugPrint('❌ [LOAD] Permission denied');
         _isFetching = false;
         isLoadingSongs.value = false;
         return;
       }
 
-      // ═══════════════════════════════════════════════════════════════════════
-      // MEDIASTORE: USED ONLY FOR FILE DISCOVERY - NEVER FOR METADATA
-      // ═══════════════════════════════════════════════════════════════════════
-      final fetchSongs = await audioQuery.querySongs(
-        sortType: null,
-        orderType: OrderType.ASC_OR_SMALLER,
-        uriType: UriType.EXTERNAL,
-        ignoreCase: true,
-      );
-
       final prefs = await SharedPreferences.getInstance();
       final blockedIds = prefs.getStringList('blocked_song_ids') ?? [];
 
-      final loadedSongs = <LocalSongModel>[];
+      List<LocalSongModel> initialSongs = [];
+      Set<String> loadedPaths = {};
 
-      for (final s in fetchSongs) {
-        if (blockedIds.contains(s.id.toString())) continue;
+      // ═══════════════════════════════════════════════════════════════════════
+      // STEP 1: LOAD FROM FILE SYSTEM FIRST (MOST RELIABLE ON ALL ANDROID VERSIONS)
+      // ═══════════════════════════════════════════════════════════════════════
+      // This is critical for Android 10-12 where MediaStore may not index files
+      debugPrint('🔍 [LOAD] Step 1: Scanning file system...');
+      final directFiles = await _fetchFileSystemSongs();
 
-        final bool isFromMyApp = _id3Service.isLumenLyricFile(s.data);
-        final String songUri = s.uri ?? s.data;
+      for (final file in directFiles) {
+        if (!loadedPaths.contains(file.path)) {
+          int tempId = file.path.hashCode;
+          if (tempId > 0)
+            tempId = -tempId; // Use negative IDs for file system songs
 
-        // For fast loading: use MediaStore title initially, resolve lazily
-        String displayTitle = s.title;
-        String displayArtist = s.artist ?? 'Unknown Artist';
-        if (displayArtist == '<unknown>') displayArtist = 'Unknown Artist';
-        String? customArt;
+          initialSongs.add(
+            LocalSongModel(
+              id: tempId,
+              title: path.basenameWithoutExtension(file.path),
+              artist: "LumenLyric",
+              uri: file.path,
+              duration: 0,
+              albumArt: "",
+              isDownloaded: true,
+              isLiked: false,
+            ),
+          );
+          loadedPaths.add(file.path);
+        }
+      }
 
-        if (isFromMyApp) {
-          // For LumenLyric files, try quick metadata resolution
-          // Full ID3 parsing happens lazily when song is visible
-          final id3Metadata = await _id3Service.readMetadataFromFile(s.data);
+      debugPrint(
+        '✅ [LOAD] Found ${initialSongs.length} songs from file system',
+      );
 
+      // ═══════════════════════════════════════════════════════════════════════
+      // STEP 2: ALSO CHECK MEDIASTORE (FOR OTHER MUSIC ON DEVICE)
+      // ═══════════════════════════════════════════════════════════════════════
+      debugPrint('🔍 [LOAD] Step 2: Querying MediaStore...');
+      try {
+        final systemSongs = await audioQuery.querySongs(
+          sortType: null,
+          orderType: OrderType.ASC_OR_SMALLER,
+          uriType: UriType.EXTERNAL,
+          ignoreCase: true,
+        );
+
+        for (final s in systemSongs) {
+          if (blockedIds.contains(s.id.toString())) continue;
+          if (loadedPaths.contains(s.data)) continue; // Skip duplicates
+
+          initialSongs.add(
+            LocalSongModel(
+              id: s.id,
+              title: s.title,
+              artist: s.artist ?? "Unknown Artist",
+              uri: s.data,
+              duration: s.duration ?? 0,
+              albumArt: s.album ?? "",
+              isDownloaded: _id3Service.isLumenLyricFile(s.data),
+              isLiked: false,
+            ),
+          );
+          loadedPaths.add(s.data);
+        }
+
+        debugPrint(
+          '✅ [LOAD] Total songs after MediaStore: ${initialSongs.length}',
+        );
+      } catch (e) {
+        debugPrint('⚠️ [LOAD] MediaStore query failed: $e');
+        // Continue with file system results only
+      }
+
+      // ✅ UI UPDATE: List FORAN show kar dein (0 Delay)
+      songs.value = initialSongs;
+      await _restoreLikes();
+      isLoadingSongs.value = false; // Loading khatam! User khush.
+      _isFetching = false;
+
+      // 4. Ab Background mein Metadata Load karein (Images/Tags)
+      _updateMetadataInBackground(initialSongs);
+    } catch (e) {
+      debugPrint("❌ [LOAD] Error loading songs: $e");
+      _isFetching = false;
+      isLoadingSongs.value = false;
+    }
+  }
+
+  Future<void> _updateMetadataInBackground(
+    List<LocalSongModel> currentSongs,
+  ) async {
+    List<LocalSongModel> updatedList = List.from(currentSongs);
+    bool listChanged = false;
+    int processedCount = 0;
+
+    debugPrint(
+      '🔄 [METADATA] Starting background metadata update for ${currentSongs.length} songs',
+    );
+    final startTime = DateTime.now();
+
+    // Process songs in parallel batches for faster loading
+    const batchSize = 5; // Process 5 songs at a time
+
+    for (int i = 0; i < updatedList.length; i += batchSize) {
+      final batchEnd = (i + batchSize).clamp(0, updatedList.length);
+      final batch = <Future<MapEntry<int, LocalSongModel>>>[];
+
+      for (int j = i; j < batchEnd; j++) {
+        final song = updatedList[j];
+
+        // Only process downloaded songs (LumenLyric files)
+        if (song.isDownloaded) {
+          batch.add(
+            _processSongModelFast(
+              id: song.id,
+              title: song.title,
+              artist: song.artist,
+              data: song.uri,
+              duration: song.duration,
+              album: song.albumArt,
+            ).then((processed) => MapEntry(j, processed)),
+          );
+        }
+      }
+
+      if (batch.isNotEmpty) {
+        // Wait for batch to complete
+        final results = await Future.wait(batch);
+
+        for (final entry in results) {
+          final j = entry.key;
+          final processed = entry.value;
+          final song = updatedList[j];
+
+          // Check if metadata actually changed
+          if (processed.title != song.title ||
+              processed.artworkUrl != song.artworkUrl ||
+              processed.artist != song.artist) {
+            updatedList[j] = processed;
+            listChanged = true;
+            processedCount++;
+          }
+        }
+
+        // Update UI every batch
+        if (listChanged) {
+          songs.value = List.from(updatedList);
+          listChanged = false;
+        }
+
+        // Small break to keep UI responsive (reduced from 50ms)
+        await Future.delayed(const Duration(milliseconds: 10));
+      }
+    }
+
+    // Final update
+    if (listChanged) {
+      songs.value = updatedList;
+    }
+
+    final duration = DateTime.now().difference(startTime);
+    debugPrint(
+      '✅ [METADATA] Completed in ${duration.inMilliseconds}ms, updated $processedCount songs',
+    );
+
+    // Mark initial scan complete for ID3 service
+    _id3Service.markInitialScanComplete();
+  }
+
+  /// Fast version of _processSongModel that uses database first
+  Future<LocalSongModel> _processSongModelFast({
+    required int id,
+    required String title,
+    String? artist,
+    required String data,
+    int? duration,
+    String? album,
+  }) async {
+    final bool isFromMyApp = _id3Service.isLumenLyricFile(data);
+    String displayTitle = title;
+    String displayArtist = artist ?? 'Unknown Artist';
+    if (displayArtist == '<unknown>') displayArtist = 'Unknown Artist';
+    String? customArt;
+    int? resolvedDuration = duration;
+
+    if (isFromMyApp) {
+      // Priority 1: Database Metadata (FASTEST - no file I/O)
+      final dbMetadata = await _metadataDb.getMetadataByPath(data);
+      if (dbMetadata != null) {
+        displayTitle = dbMetadata.title;
+        displayArtist = dbMetadata.artist;
+        customArt = dbMetadata.artworkPath;
+
+        // ✅ Use duration from database if available (fixes Android <13 issue)
+        if (dbMetadata.duration != null && dbMetadata.duration! > 0) {
+          resolvedDuration = dbMetadata.duration;
+        }
+
+        // If artwork path exists, verify file still exists
+        if (customArt != null && !await File(customArt).exists()) {
+          customArt = null;
+        }
+      }
+      // Priority 2: Sidecar JSON (fast file read)
+      else {
+        final sidecarMeta = await _id3Service.readMetadataFromSidecar(data);
+        if (sidecarMeta != null && sidecarMeta.hasValidMetadata) {
+          displayTitle = sidecarMeta.displayTitle;
+          displayArtist = sidecarMeta.displayArtist;
+          customArt = sidecarMeta.artworkPath;
+        }
+        // Priority 3: ID3 Tags (slower - reads from MP3 file)
+        else {
+          final id3Metadata = await _id3Service.readMetadataFromFile(data);
           if (id3Metadata != null && id3Metadata.hasValidMetadata) {
             displayTitle = id3Metadata.displayTitle;
             displayArtist = id3Metadata.displayArtist;
             customArt = id3Metadata.artworkPath;
-          } else {
-            // Quick fallback to database
-            final dbMetadata = await _metadataDb.getMetadataByPath(s.data);
-            if (dbMetadata != null) {
-              displayTitle = dbMetadata.title;
-              displayArtist = dbMetadata.artist;
-              customArt = dbMetadata.artworkPath;
+          }
+        }
+      }
+
+      // If no artwork found in metadata, check artwork folder directly
+      if (customArt == null) {
+        customArt = await _id3Service.findArtworkPath(data);
+      }
+    }
+
+    return LocalSongModel(
+      id: id,
+      artist: displayArtist,
+      title: displayTitle,
+      uri: data,
+      albumArt: album ?? "",
+      duration: resolvedDuration ?? 0,
+      isDownloaded: isFromMyApp,
+      isLiked: false,
+      artworkUrl: customArt,
+    );
+  }
+
+  Future<List<File>> _fetchFileSystemSongs() async {
+    List<File> audioFiles = [];
+    try {
+      final songsPath = await StoragePathService.instance.songsPath;
+      final dir = Directory(songsPath);
+
+      debugPrint('🔍 [FILESYSTEM] Scanning directory: $songsPath');
+
+      if (await dir.exists()) {
+        final files = dir.listSync();
+        for (var file in files) {
+          if (file is File && file.path.toLowerCase().endsWith('.mp3')) {
+            // Verify file is readable and has content
+            try {
+              final fileLength = await file.length();
+              if (fileLength > 0) {
+                audioFiles.add(file);
+                debugPrint(
+                  '🎵 [FILESYSTEM] Found: ${path.basename(file.path)} (${fileLength} bytes)',
+                );
+              }
+            } catch (e) {
+              debugPrint('⚠️ [FILESYSTEM] Cannot read file: ${file.path}');
             }
           }
         }
-
-        loadedSongs.add(
-          LocalSongModel(
-            id: s.id,
-            artist: displayArtist,
-            title: displayTitle,
-            uri: songUri,
-            albumArt: s.album ?? "",
-            duration: s.duration ?? 0,
-            isDownloaded: isFromMyApp,
-            isLiked: false,
-            artworkUrl: customArt,
-          ),
+      } else {
+        debugPrint(
+          '⚠️ [FILESYSTEM] Songs directory does not exist: $songsPath',
         );
+        // Try to create it
+        await dir.create(recursive: true);
       }
 
-      songs.value = loadedSongs;
-      await _restoreLikes();
-
-      // Mark initial scan complete
-      if (!_id3Service.isInitialScanComplete) {
-        _id3Service.markInitialScanComplete();
+      // Also check legacy location (root LumenLyric folder)
+      final basePath = await StoragePathService.instance.basePath;
+      final baseDir = Directory(basePath);
+      if (await baseDir.exists()) {
+        final baseFiles = baseDir.listSync();
+        for (var file in baseFiles) {
+          if (file is File && file.path.toLowerCase().endsWith('.mp3')) {
+            // Don't add duplicates
+            if (!audioFiles.any((f) => f.path == file.path)) {
+              try {
+                final fileLength = await file.length();
+                if (fileLength > 0) {
+                  audioFiles.add(file);
+                  debugPrint(
+                    '🎵 [FILESYSTEM] Found (legacy): ${path.basename(file.path)}',
+                  );
+                }
+              } catch (e) {
+                // Ignore unreadable files
+              }
+            }
+          }
+        }
       }
 
-      debugPrint('✅ Loaded ${loadedSongs.length} songs');
+      debugPrint('✅ [FILESYSTEM] Found ${audioFiles.length} audio files');
     } catch (e) {
-      debugPrint("Error loading songs: $e");
-    } finally {
-      _isFetching = false;
-      isLoadingSongs.value = false;
+      debugPrint("❌ [FILESYSTEM] Error: $e");
+    }
+    return audioFiles;
+  }
+
+  // Helper: Process Metadata for both System and File songs
+  Future<LocalSongModel> _processSongModel({
+    required int id,
+    required String title,
+    String? artist,
+    required String data,
+    int? duration,
+    String? album,
+  }) async {
+    final bool isFromMyApp = _id3Service.isLumenLyricFile(data);
+    String displayTitle = title;
+    String displayArtist = artist ?? 'Unknown Artist';
+    if (displayArtist == '<unknown>') displayArtist = 'Unknown Artist';
+    String? customArt;
+
+    if (isFromMyApp) {
+      // Priority 1: Sidecar/DB Metadata (Fastest)
+      final dbMetadata = await _metadataDb.getMetadataByPath(data);
+      if (dbMetadata != null) {
+        displayTitle = dbMetadata.title;
+        displayArtist = dbMetadata.artist;
+        customArt = dbMetadata.artworkPath;
+      }
+      // Priority 2: ID3 Tags (If DB missing)
+      else {
+        final id3Metadata = await _id3Service.readMetadataFromFile(data);
+        if (id3Metadata != null && id3Metadata.hasValidMetadata) {
+          displayTitle = id3Metadata.displayTitle;
+          displayArtist = id3Metadata.displayArtist;
+          customArt = id3Metadata.artworkPath;
+        }
+      }
+    }
+
+    return LocalSongModel(
+      id: id,
+      artist: displayArtist,
+      title: displayTitle,
+      uri: data,
+      albumArt: album ?? "",
+      duration: duration ?? 0,
+      isDownloaded: isFromMyApp,
+      isLiked: false,
+      artworkUrl: customArt,
+    );
+  }
+
+  Future<bool> _checkPermission() async {
+    // Check Android version to determine which permissions to request
+    final sdk = await StoragePermissionService.instance.androidSdkVersion;
+
+    if (sdk >= 33) {
+      // Android 13+ - Need audio permission
+      if (await Permission.audio.isGranted) {
+        return true;
+      }
+      final status = await Permission.audio.request();
+      return status.isGranted;
+    } else {
+      // Android 12 and below - Need storage permission
+      if (await Permission.storage.isGranted) {
+        return true;
+      }
+      final status = await Permission.storage.request();
+      return status.isGranted;
     }
   }
 
@@ -355,6 +699,9 @@ class AudioController {
   // ✅ Helper to create AudioSource with Notification Data
   AudioSource _createAudioSource(LocalSongModel song) {
     Uri audioUri = _buildUri(song.uri);
+    debugPrint('🎵 [AUDIO] Creating source for: ${song.title}');
+    debugPrint('🎵 [AUDIO] URI: ${song.uri} -> $audioUri');
+
     Uri? artworkUri;
     if (song.artworkUrl != null && song.artworkUrl!.isNotEmpty) {
       if (song.artworkUrl!.startsWith('http')) {
@@ -362,6 +709,7 @@ class AudioController {
       } else {
         artworkUri = Uri.file(song.artworkUrl!);
       }
+      debugPrint('🎨 [AUDIO] Artwork: $artworkUri');
     }
 
     return AudioSource.uri(
