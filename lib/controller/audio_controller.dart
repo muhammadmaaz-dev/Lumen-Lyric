@@ -389,7 +389,7 @@ class AudioController {
       _isFetching = false;
 
       // 4. Ab Background mein Metadata Load karein (Images/Tags)
-      _updateMetadataInBackground(initialSongs);
+      _updateMetadataInBackground(songs.value);
     } catch (e) {
       debugPrint("❌ [LOAD] Error loading songs: $e");
       _isFetching = false;
@@ -429,6 +429,7 @@ class AudioController {
               data: song.uri,
               duration: song.duration,
               album: song.albumArt,
+              isLiked: song.isLiked,
             ).then((processed) => MapEntry(j, processed)),
           );
         }
@@ -486,6 +487,7 @@ class AudioController {
     required String data,
     int? duration,
     String? album,
+    required bool isLiked,
   }) async {
     final bool isFromMyApp = _id3Service.isLumenLyricFile(data);
     String displayTitle = title;
@@ -545,7 +547,7 @@ class AudioController {
       albumArt: album ?? "",
       duration: resolvedDuration ?? 0,
       isDownloaded: isFromMyApp,
-      isLiked: false,
+      isLiked: isLiked,
       artworkUrl: customArt,
     );
   }
@@ -727,35 +729,62 @@ class AudioController {
   Future<void> toggleLike(int songId) async {
     final currentList = songs.value;
     final index = currentList.indexWhere((s) => s.id == songId);
+
     if (index != -1) {
       final newList = List<LocalSongModel>.from(currentList);
-      final newStatus = !newList[index].isLiked;
+      final newStatus = !newList[index].isLiked; // Toggle status
+
       newList[index] = newList[index].copyWith(isLiked: newStatus);
       songs.value = newList;
+
       await _saveLikesToPrefs();
     }
   }
 
   Future<void> _saveLikesToPrefs() async {
     final prefs = await SharedPreferences.getInstance();
-    final likedIds = songs.value
+
+    final likedPaths = songs.value
         .where((s) => s.isLiked)
-        .map((s) => s.id.toString())
+        .map((s) => s.uri)
         .toList();
-    await prefs.setStringList('liked_songs', likedIds);
+
+    await prefs.setStringList('liked_song_paths', likedPaths);
   }
 
   Future<void> _restoreLikes() async {
     final prefs = await SharedPreferences.getInstance();
-    final likedIds = prefs.getStringList('liked_songs') ?? [];
-    if (likedIds.isNotEmpty && songs.value.isNotEmpty) {
+
+    // Nayi key 'liked_song_paths' se load karo
+    final likedPaths = prefs.getStringList('liked_song_paths') ?? [];
+
+    // Purani key 'liked_songs' ka backup check (Migration ke liye)
+    final legacyIds = prefs.getStringList('liked_songs') ?? [];
+
+    if (songs.value.isNotEmpty) {
       final newList = List<LocalSongModel>.from(songs.value);
+      bool changed = false;
+
       for (int i = 0; i < newList.length; i++) {
-        if (likedIds.contains(newList[i].id.toString())) {
-          newList[i] = newList[i].copyWith(isLiked: true);
+        final song = newList[i];
+
+        // Check 1: Agar Path match ho jaye (New Logic)
+        if (likedPaths.contains(song.uri)) {
+          newList[i] = song.copyWith(isLiked: true);
+          changed = true;
+        }
+        // Check 2: Agar purana ID match ho jaye (Legacy Logic - sirf System songs ke liye)
+        else if (legacyIds.contains(song.id.toString())) {
+          newList[i] = song.copyWith(isLiked: true);
+          changed = true;
+          // Purane like ko naye system mein convert karne ke liye save trigger karein
+          Future.delayed(Duration(seconds: 1), _saveLikesToPrefs);
         }
       }
-      songs.value = newList;
+
+      if (changed) {
+        songs.value = newList;
+      }
     }
   }
 
