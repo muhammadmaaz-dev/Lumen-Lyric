@@ -55,6 +55,7 @@ dependencies:
   
   # ✅ For getting device info (Android SDK version)
   device_info_plus: ^11.2.0
+  flutter_lyric: ^2.0.4+6
 
 dev_dependencies:
   flutter_test:
@@ -75,7 +76,6 @@ flutter:
 
   assets:
     - assets/images/6.jpg
-    - assets/icon/google.png
     - assets/logo/lines.png
     - assets/logo/logo.png
     - assets/animation/Astornaut-Music.json

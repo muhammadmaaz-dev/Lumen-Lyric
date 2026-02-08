@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:musicapp/models/download_metadata_model.dart';
 import 'package:musicapp/services/storage_path_service.dart';
@@ -127,7 +129,6 @@ class YtDownloadService {
       );
 
       if (convertResponse.statusCode != 200) {
-        // Extract error message from response
         String errorMsg = 'Conversion failed';
         final responseData = convertResponse.data;
         if (responseData is Map) {
@@ -150,9 +151,6 @@ class YtDownloadService {
       // Stage 2: Download
       onStageChange?.call(DownloadStage.downloading);
 
-      // --- Directory Setup (NEW STRUCTURE) ---
-      // MP3 files go into /Songs/ folder only
-      // Artwork goes into /.artwork/ folder
       final storagePaths = StoragePathService.instance;
       await storagePaths.initialize();
       final songsDir = await storagePaths.songsPath;
@@ -160,7 +158,7 @@ class YtDownloadService {
       final songTitle = metadata.title ?? "Unknown Song";
       final safeTitle = _sanitizeFilename(songTitle);
 
-      // MP3 File Path - always in /Songs/ folder
+      // MP3 File Path
       final localFilename = '$safeTitle.mp3';
       final savePath = '$songsDir/$localFilename';
 
@@ -182,7 +180,7 @@ class YtDownloadService {
         throw Exception("Download failed (Empty file received).");
       }
 
-      // --- Download Image to hidden .artwork/ folder ---
+      // --- Download Image ---
       String? localImagePath;
       if (metadata.thumbnailUrl != null && metadata.thumbnailUrl!.isNotEmpty) {
         try {
@@ -192,23 +190,33 @@ class YtDownloadService {
 
           await _dio.download(metadata.thumbnailUrl!, imagePath);
           localImagePath = imagePath;
-          debugPrint("✅ Image saved to .artwork/: $imagePath");
+          debugPrint("✅ Image saved: $imagePath");
         } catch (e) {
-          debugPrint("⚠️ Image download failed (Song downloaded): $e");
+          debugPrint("⚠️ Image download failed: $e");
         }
       }
 
-      // Cleanup
+      // --- 🎵 FETCH LYRICS (Fire & Forget) ---
+      // Hum await nahi kar rahe taake UI block na ho
+      double durationSeconds = 0.0;
+      if (metadata.duration != null) {
+        durationSeconds = double.tryParse(metadata.duration.toString()) ?? 0.0;
+      }
+
+      await _fetchAndSaveLyrics(songTitle, savePath, durationSeconds);
+
+      // Cleanup Server File
       try {
         await _dio.delete('/cleanup/$downloadId');
       } catch (_) {}
 
+      // Stage: Completed (Sirf ek baar call karo)
       onStageChange?.call(DownloadStage.completed);
 
       return DownloadResult(
         success: true,
         filePath: savePath,
-        localImagePath: localImagePath, // ✅ Added here
+        localImagePath: localImagePath,
         metadata: metadata,
       );
     } on DioException catch (e) {
@@ -343,6 +351,53 @@ class YtDownloadService {
       await _dio.delete('/cleanup/$downloadId');
     } catch (_) {
       // Ignore cleanup errors
+    }
+  }
+
+  // --- FINAL LYRICS FETCHING (ORIGINAL ONLY) ---
+  // --- LYRICS FETCHING LOGIC ---
+  Future<void> _fetchAndSaveLyrics(
+    String rawTitle,
+    String savePath,
+    double durationSeconds,
+  ) async {
+    try {
+      // 1. Clean Title (Remove brackets, etc.)
+      String cleanTitle = rawTitle
+          .replaceAll(RegExp(r"\(.*?\)|\[.*?\]"), "")
+          .replaceAll(RegExp(r"[^a-zA-Z0-9\s]"), "")
+          .replaceAll(RegExp(r"\s+"), " ")
+          .trim();
+
+      debugPrint("🔍 Searching Lyrics for: $cleanTitle");
+
+      // 2. Call Free API
+      final url = Uri.parse('https://lrclib.net/api/search?q=$cleanTitle');
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final List data = jsonDecode(response.body);
+        if (data.isNotEmpty) {
+          // 3. Find Best Match (Duration check)
+          var bestMatch = data.firstWhere((track) {
+            final trackDuration = track['duration'];
+            return (trackDuration - durationSeconds).abs() < 5;
+          }, orElse: () => data.first);
+
+          String? finalLyrics =
+              bestMatch['syncedLyrics'] ?? bestMatch['plainLyrics'];
+
+          // 4. Save .lrc File
+          if (finalLyrics != null && finalLyrics.isNotEmpty) {
+            final lrcPath = savePath.replaceAll('.mp3', '.lrc');
+            final file = File(lrcPath);
+            await file.writeAsString(finalLyrics);
+            debugPrint("✅ Lyrics Saved: $lrcPath");
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint("❌ Lyrics Error: $e");
     }
   }
 }

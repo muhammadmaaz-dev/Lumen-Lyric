@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
@@ -44,18 +45,22 @@ class _FullPlayerState extends ConsumerState<FullPlayer> {
 
   void toggleSheet() {
     if (isExpanded) {
+      // Collapse to minimum
       _sheetController.animateTo(
-        0.0,
+        0.1,
         duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
+        curve: Curves.easeOut,
       );
     } else {
+      // Expand directly to 80%
       _sheetController.animateTo(
-        0.7,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
+        0.8,
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.easeOutCubic,
       );
     }
+
+    isExpanded = !isExpanded;
   }
 
   void _minimizePlayer() {
@@ -293,122 +298,162 @@ class _FullPlayerState extends ConsumerState<FullPlayer> {
                 ),
               ),
 
-              // ********** LYRICS SHEET **********
+              // ********** FINAL SMART LYRICS SHEET **********
               DraggableScrollableSheet(
                 controller: _sheetController,
                 initialChildSize: 0.1,
                 minChildSize: 0.1,
-                maxChildSize: 0.8,
-                builder:
-                    (BuildContext context, ScrollController scrollController) {
-                      return ClipRRect(
-                        borderRadius: BorderRadius.vertical(
-                          top: Radius.circular(26.r),
-                        ),
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: (containerColor).withOpacity(0.6),
-                              borderRadius: BorderRadius.vertical(
-                                top: Radius.circular(26.r),
-                              ),
-                              border: Border(
-                                top: BorderSide(
-                                  color: isDarkTheme
-                                      ? Colors.white.withOpacity(0.2)
-                                      : Colors.black.withOpacity(0.2),
-                                  width: 1.5,
-                                ),
-                              ),
-                            ),
-                            child: SingleChildScrollView(
-                              controller: scrollController,
-                              child: Column(
-                                children: [
-                                  Padding(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 21.w,
-                                      vertical: 14.h,
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Row(
-                                          children: [
-                                            Icon(
-                                              Icons.music_note_outlined,
-                                              color: subTextColor,
-                                              size: 26.sp,
-                                            ),
-                                            SizedBox(width: 9.w),
-                                            Text(
-                                              "Lyrics",
-                                              style: TextStyle(
-                                                fontSize: 18.sp,
-                                                fontWeight: FontWeight.w600,
-                                                color: textColor,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        IconButton(
-                                          icon: Container(
-                                            padding: EdgeInsets.all(4.r),
-                                            decoration: BoxDecoration(
-                                              color: isDarkTheme
-                                                  ? Colors.white.withOpacity(
-                                                      0.1,
-                                                    )
-                                                  : Colors.black.withOpacity(
-                                                      0.1,
-                                                    ),
-                                              shape: BoxShape.circle,
-                                            ),
-                                            child: Icon(
-                                              isExpanded
-                                                  ? Icons.keyboard_arrow_down
-                                                  : Icons.keyboard_arrow_up,
-                                              color: textColor,
-                                              size: 30,
-                                            ),
-                                          ),
-                                          onPressed: toggleSheet,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  Padding(
-                                    padding: EdgeInsets.all(10.r),
-                                    child: Consumer(
-                                      builder: (context, ref, child) {
-                                        final lyricsAsync = ref.watch(
-                                          lyricsProvider,
-                                        );
-                                        return Text(
-                                          lyricsAsync.value ??
-                                              "No Lyrics Found",
-                                          style: TextStyle(
-                                            fontSize: 22,
-                                            fontWeight: FontWeight.bold,
-                                            fontFamily: "Metropolis",
-                                            height: 1.5,
-                                            color: textColor,
-                                          ),
-                                          textAlign: TextAlign.center,
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                  SizedBox(height: 45.h),
-                                ],
-                              ),
+                maxChildSize: 0.9,
+                builder: (BuildContext context, ScrollController scrollController) {
+                  return ClipRRect(
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(26.r),
+                    ),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: (containerColor).withOpacity(0.6),
+                          borderRadius: BorderRadius.vertical(
+                            top: Radius.circular(26.r),
+                          ),
+                          border: Border(
+                            top: BorderSide(
+                              color: isDarkTheme
+                                  ? Colors.white.withOpacity(0.2)
+                                  : Colors.black.withOpacity(0.2),
+                              width: 1.5,
                             ),
                           ),
                         ),
-                      );
-                    },
+                        // Container ke decoration ke baad 'child:' mein ye lagayen:
+                        child: Column(
+                          children: [
+                            // 1. HEADER
+                            Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 21.w,
+                                vertical: 14.h,
+                              ),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.music_note_outlined,
+                                        color: subTextColor,
+                                        size: 26.sp,
+                                      ),
+                                      SizedBox(width: 9.w),
+                                      Text(
+                                        "Lyrics",
+                                        style: TextStyle(
+                                          fontSize: 18.sp,
+                                          fontWeight: FontWeight.w600,
+                                          color: textColor,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  IconButton(
+                                    icon: Container(
+                                      padding: EdgeInsets.all(4.r),
+                                      decoration: BoxDecoration(
+                                        color: isDarkTheme
+                                            ? Colors.white.withOpacity(0.1)
+                                            : Colors.black.withOpacity(0.1),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Icon(
+                                        isExpanded
+                                            ? Icons.keyboard_arrow_down
+                                            : Icons.keyboard_arrow_up,
+                                        color: textColor,
+                                        size: 30,
+                                      ),
+                                    ),
+                                    onPressed: toggleSheet,
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            // 2. LYRICS AREA (Smart Logic)
+                            Expanded(
+                              child: ValueListenableBuilder<String?>(
+                                valueListenable:
+                                    AudioController.instance.currentLrcContent,
+                                builder: (context, lrcContent, child) {
+                                  // Check: Kya Lyrics mein Time Stamps [00:12] hain?
+                                  bool isSynced =
+                                      lrcContent != null &&
+                                      lrcContent.contains(
+                                        RegExp(r'\[\d{2}:\d{2}'),
+                                      );
+
+                                  // CASE A: SYNCED LYRICS (Highlighting ON)
+                                  if (isSynced) {
+                                    return SyncedLyricsWidget(
+                                      key: ValueKey(
+                                        'synced_lyrics_${lrcContent.hashCode}',
+                                      ),
+                                      lrcContent: lrcContent!,
+                                      scrollController: scrollController,
+                                      highlightColor: isDarkTheme
+                                          ? Colors.white
+                                          : Colors.amber,
+                                      defaultColor: subTextColor ?? Colors.grey,
+                                      textColor: textColor,
+                                      isDarkTheme: isDarkTheme,
+                                    );
+                                  }
+                                  // CASE B: PLAIN TEXT (Old Style)
+                                  else {
+                                    return ValueListenableBuilder<String>(
+                                      valueListenable: AudioController
+                                          .instance
+                                          .currentLyrics,
+                                      builder: (context, plainLyrics, _) {
+                                        // Agar lrc file thi par plain thi, ya tags the
+                                        String textToShow =
+                                            lrcContent ?? plainLyrics;
+
+                                        return SingleChildScrollView(
+                                          controller: scrollController,
+                                          physics:
+                                              const BouncingScrollPhysics(),
+                                          padding: EdgeInsets.fromLTRB(
+                                            20.r,
+                                            0,
+                                            20.r,
+                                            40.r,
+                                          ),
+                                          child: Text(
+                                            textToShow,
+                                            style: TextStyle(
+                                              fontSize: 18.sp,
+                                              fontWeight: FontWeight.bold,
+                                              fontFamily: "Metropolis",
+                                              height: 1.6,
+                                              color: textColor,
+                                            ),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        );
+                                      },
+                                    );
+                                  }
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
             ],
           ),
@@ -656,5 +701,248 @@ class _PlayerProgressBarState extends ConsumerState<PlayerProgressBar> {
     final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
     final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
     return "$m:$s";
+  }
+}
+
+/// Parsed LRC line: timestamp in ms + text
+class _LrcLine {
+  final int timeMs;
+  final String text;
+  const _LrcLine(this.timeMs, this.text);
+}
+
+/// Custom synced lyrics widget with real-time line highlighting & auto-scroll.
+class SyncedLyricsWidget extends StatefulWidget {
+  final String lrcContent;
+  final ScrollController scrollController;
+  final Color highlightColor;
+  final Color defaultColor;
+  final Color textColor;
+  final bool isDarkTheme;
+
+  const SyncedLyricsWidget({
+    Key? key,
+    required this.lrcContent,
+    required this.scrollController,
+    required this.highlightColor,
+    required this.defaultColor,
+    required this.textColor,
+    required this.isDarkTheme,
+  }) : super(key: key);
+
+  @override
+  State<SyncedLyricsWidget> createState() => _SyncedLyricsWidgetState();
+}
+
+class _SyncedLyricsWidgetState extends State<SyncedLyricsWidget> {
+  List<_LrcLine> _lines = [];
+  int _currentLineIndex = -1;
+  StreamSubscription<Duration>? _positionSub;
+
+  // GlobalKeys for each lyric line to enable auto-scroll
+  final Map<int, GlobalKey> _lineKeys = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _lines = _parseLrc(widget.lrcContent);
+    _initLineKeys();
+    _startListening();
+  }
+
+  void _initLineKeys() {
+    _lineKeys.clear();
+    for (int i = 0; i < _lines.length; i++) {
+      _lineKeys[i] = GlobalKey();
+    }
+  }
+
+  void _startListening() {
+    _positionSub?.cancel();
+    _positionSub = AudioController.instance.audioPlayer.positionStream.listen(
+      _onPositionChanged,
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant SyncedLyricsWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.lrcContent != widget.lrcContent) {
+      setState(() {
+        _lines = _parseLrc(widget.lrcContent);
+        _currentLineIndex = -1;
+        _initLineKeys();
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _positionSub?.cancel();
+    super.dispose();
+  }
+
+  /// Parse LRC content into sorted list of timestamped lines
+  List<_LrcLine> _parseLrc(String lrc) {
+    // Supports multiple formats: [mm:ss], [mm:ss.xx], [mm:ss.xxx], [m:ss.xx]
+    final regex = RegExp(r'\[(\d{1,2}):(\d{2})(?:[.:](\d{1,3}))?\]\s*(.*)');
+    final List<_LrcLine> result = [];
+
+    for (final line in lrc.split('\n')) {
+      final trimmed = line.trim();
+      if (trimmed.isEmpty) continue;
+
+      // Try to match timestamp
+      final match = regex.firstMatch(trimmed);
+      if (match != null) {
+        final min = int.tryParse(match.group(1) ?? '') ?? 0;
+        final sec = int.tryParse(match.group(2) ?? '') ?? 0;
+        final msStr = match.group(3);
+        int ms = 0;
+        if (msStr != null && msStr.isNotEmpty) {
+          final msVal = int.tryParse(msStr) ?? 0;
+          if (msStr.length == 1) {
+            ms = msVal * 100;
+          } else if (msStr.length == 2) {
+            ms = msVal * 10;
+          } else {
+            ms = msVal;
+          }
+        }
+        final totalMs = min * 60000 + sec * 1000 + ms;
+        final text = match.group(4)?.trim() ?? '';
+        if (text.isNotEmpty) {
+          result.add(_LrcLine(totalMs, text));
+        }
+      }
+    }
+    result.sort((a, b) => a.timeMs.compareTo(b.timeMs));
+    return result;
+  }
+
+  /// Find which line should be highlighted at the given position
+  void _onPositionChanged(Duration position) {
+    if (_lines.isEmpty || !mounted) return;
+
+    final posMs = position.inMilliseconds;
+    int newIndex = -1;
+
+    // Find the last line whose timestamp <= current position
+    for (int i = _lines.length - 1; i >= 0; i--) {
+      if (posMs >= _lines[i].timeMs) {
+        newIndex = i;
+        break;
+      }
+    }
+
+    if (newIndex != _currentLineIndex) {
+      setState(() {
+        _currentLineIndex = newIndex;
+      });
+      _scrollToLine(newIndex);
+    }
+  }
+
+  void _scrollToLine(int index) {
+    if (index < 0 || !_lineKeys.containsKey(index)) return;
+    final key = _lineKeys[index];
+    if (key?.currentContext == null) return;
+
+    // Use Scrollable.ensureVisible which works with the sheet's scrollController
+    Scrollable.ensureVisible(
+      key!.currentContext!,
+      alignment: 0.35, // keep active line ~35% from top
+      duration: const Duration(milliseconds: 350),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_lines.isEmpty) {
+      return Center(
+        child: Text(
+          "No Lyrics",
+          style: TextStyle(color: widget.textColor, fontSize: 18.sp),
+        ),
+      );
+    }
+
+    // Use the sheet's scrollController so drag-to-expand works
+    return ListView.builder(
+      controller: widget.scrollController,
+      physics: const BouncingScrollPhysics(),
+      padding: EdgeInsets.only(
+        top: 20.h,
+        bottom: 100.h,
+        left: 16.w,
+        right: 16.w,
+      ),
+      itemCount: _lines.length,
+      itemBuilder: (context, index) {
+        final isActive = index == _currentLineIndex;
+        final isPrevious = index == _currentLineIndex - 1;
+        final isNext = index == _currentLineIndex + 1;
+
+        // Determine opacity based on proximity to active line
+        double opacity;
+        if (isActive) {
+          opacity = 1.0;
+        } else if (isPrevious || isNext) {
+          opacity = 0.7;
+        } else {
+          opacity = 0.5;
+        }
+
+        return GestureDetector(
+          key: _lineKeys[index],
+          behavior: HitTestBehavior.opaque,
+          onTap: () {
+            // Seek to this line's timestamp when tapped
+            AudioController.instance.audioPlayer.seek(
+              Duration(milliseconds: _lines[index].timeMs),
+            );
+          },
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOutCubic,
+            margin: EdgeInsets.symmetric(vertical: isActive ? 8.h : 4.h),
+            padding: EdgeInsets.symmetric(
+              vertical: isActive ? 14.h : 8.h,
+              horizontal: 12.w,
+            ),
+            decoration: isActive
+                ? BoxDecoration(
+                    color: widget.highlightColor.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(12.r),
+                  )
+                : null,
+            child: AnimatedScale(
+              scale: isActive ? 1.05 : 1.0,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOutCubic,
+              child: AnimatedOpacity(
+                opacity: opacity,
+                duration: const Duration(milliseconds: 300),
+                child: Text(
+                  _lines[index].text,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: isActive ? 22.sp : 16.sp,
+                    fontWeight: isActive ? FontWeight.w700 : FontWeight.w400,
+                    fontFamily: "Metropolis",
+                    color: isActive
+                        ? widget.highlightColor
+                        : widget.defaultColor,
+                    height: 1.5,
+                    letterSpacing: isActive ? 0.5 : 0,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 }

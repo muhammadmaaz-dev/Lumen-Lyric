@@ -56,6 +56,7 @@ class AudioController {
 
   final ValueNotifier<int> currentIndex = ValueNotifier<int>(-1);
   final ValueNotifier<bool> isPlaying = ValueNotifier<bool>(false);
+  final ValueNotifier<String?> currentLrcContent = ValueNotifier<String?>(null);
   final ValueNotifier<String> currentLyrics = ValueNotifier<String>(
     "No Lyrics",
   );
@@ -888,16 +889,30 @@ class AudioController {
   }
 
   Future<void> _fetchLyrics(String path) async {
-    currentLyrics.value = "Loading Lyrics...";
+    currentLyrics.value = "Loading...";
+    currentLrcContent.value = null; // Reset synced lyrics
+
     if (path.startsWith("content://")) {
       currentLyrics.value = "Cannot read lyrics from Content URI";
       return;
     }
-    if (path.toLowerCase().endsWith(".opus")) {
-      currentLyrics.value = "Lyrics not supported for .opus files";
-      return;
-    }
+
     try {
+      // 1. Priority: Check for sidecar .lrc file
+      // Example: Song.mp3 -> Song.lrc
+      final lrcFile = File(
+        path.replaceAll(RegExp(r'\.mp3$', caseSensitive: false), '.lrc'),
+      );
+
+      if (await lrcFile.exists()) {
+        final content = await lrcFile.readAsString();
+        currentLrcContent.value = content; // ✅ UI ko synced lyrics milengi
+        currentLyrics.value = "Synced Lyrics Available";
+        debugPrint("✅ Loaded .lrc file: ${lrcFile.path}");
+        return;
+      }
+
+      // 2. Fallback: Embedded Tags
       final tag = await _tagger.getAllTags(path);
       if (tag != null && tag.lyrics != null && tag.lyrics!.isNotEmpty) {
         currentLyrics.value = tag.lyrics!;
@@ -905,6 +920,7 @@ class AudioController {
         currentLyrics.value = "No Lyrics Found";
       }
     } catch (e) {
+      debugPrint("Lyrics Error: $e");
       currentLyrics.value = "No Lyrics Available";
     }
   }
