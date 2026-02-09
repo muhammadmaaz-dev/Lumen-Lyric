@@ -21,8 +21,7 @@ class FavoritesNotifier extends StateNotifier<List<int>> {
         state = savedList.map((id) => int.parse(id)).toList();
       }
     } catch (e) {
-      // Agar koi error aye to ignore karo ya log karo
-      print("Error loading favorites: $e");
+      // Error loading favorites
     }
   }
 

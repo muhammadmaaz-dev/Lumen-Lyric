@@ -49,8 +49,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('🔄 LibraryScreen rebuilt');
-
     final isDarkTheme = Theme.of(context).brightness == Brightness.dark;
     final backgroundColor = isDarkTheme
         ? const Color(0xff000000)
@@ -61,9 +59,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
       backgroundColor: backgroundColor,
       body: Column(
         children: [
-          // ---------------------------------------------------------
-          // 1. FIXED SEARCH BAR ONLY (Ye Scroll Nahi Hoga)
-          // ---------------------------------------------------------
           SafeArea(
             bottom: false,
             child: Padding(
@@ -91,15 +86,12 @@ class _LibraryScreenState extends State<LibraryScreen> {
                       });
                     },
                   ),
-                  SizedBox(height: 10.h), // Thora gap search bar ke neeche
+                  SizedBox(height: 10.h),
                 ],
               ),
             ),
           ),
 
-          // ---------------------------------------------------------
-          // 2. SCROLLABLE AREA (Filter Buttons + List)
-          // ---------------------------------------------------------
           Expanded(
             child: ValueListenableBuilder<int>(
               valueListenable: AudioController.instance.currentIndex,
@@ -111,7 +103,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
                     return CustomScrollView(
                       slivers: [
-                        // ✅ Filter Row (Ab ye ScrollView ka hissa hai, isliye scroll hoga)
                         SliverToBoxAdapter(
                           child: Padding(
                             padding: EdgeInsets.symmetric(

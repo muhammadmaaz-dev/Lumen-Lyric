@@ -5,7 +5,6 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:musicapp/models/playlist_model.dart';
 import 'package:musicapp/provider/playlist_provider.dart';
 
-/// A reusable dialog for creating and editing playlists.
 class PlaylistDialog extends StatefulWidget {
   final String? initialName;
   final bool isEditing;
@@ -92,7 +91,7 @@ class _PlaylistDialogState extends State<PlaylistDialog> {
             Text(
               widget.isEditing ? 'Edit Playlist' : 'Create Playlist',
               style: TextStyle(
-                fontSize: 18.sp, // ✅ Removed const
+                fontSize: 18.sp,
                 fontWeight: FontWeight.bold,
                 color: textColor,
               ),
@@ -246,7 +245,7 @@ class DeletePlaylistDialog extends StatelessWidget {
             // Warning Icon
             Icon(
               Icons.warning_amber_rounded,
-              size: 44.sp, // ✅ Removed const
+              size: 44.sp,
               color: Colors.orange[400],
             ),
 

@@ -76,7 +76,6 @@ class ArtistDetailSkeleton extends StatelessWidget {
                 ],
               ),
               SizedBox(height: 36.h),
-              // "Popular Tracks" Header
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: 24.0.w),
                 child: Row(
@@ -96,11 +95,10 @@ class ArtistDetailSkeleton extends StatelessWidget {
                 ),
               ),
               SizedBox(height: 12.h),
-              // Tracks List
               ListView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                itemCount: 8, // Fake items
+                itemCount: 8,
                 itemBuilder: (context, index) {
                   return Padding(
                     padding: EdgeInsets.symmetric(

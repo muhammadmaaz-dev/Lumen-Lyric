@@ -13,11 +13,10 @@ class SongPickerScreen extends ConsumerStatefulWidget {
 
   const SongPickerScreen({super.key, required this.playlistId});
 
-  // Helper method to show this screen comfortably
   static Future<List<int>?> show(BuildContext context, String playlistId) {
     return showCupertinoModalBottomSheet<List<int>>(
       context: context,
-      backgroundColor: Colors.transparent, // Let the Scaffold handle color
+      backgroundColor: Colors.transparent,
       builder: (context) => SongPickerScreen(playlistId: playlistId),
     );
   }
@@ -41,13 +40,11 @@ class _SongPickerScreenState extends ConsumerState<SongPickerScreen> {
     final allSongs = AudioController.instance.songs.value;
     final playlist = ref.read(playlistByIdProvider(widget.playlistId));
 
-    // Filter out songs already in the playlist
     final existingSongIds = playlist?.songIds.toSet() ?? {};
     var availableSongs = allSongs
         .where((song) => !existingSongIds.contains(song.id))
         .toList();
 
-    // Apply search filter
     if (_searchQuery.isNotEmpty) {
       availableSongs = availableSongs.where((song) {
         return song.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
@@ -99,7 +96,6 @@ class _SongPickerScreenState extends ConsumerState<SongPickerScreen> {
       color: backgroundColor,
       child: Scaffold(
         backgroundColor: backgroundColor,
-        // Using a Scaffold AppBar ensures it stays pinned at the top while scrolling
         appBar: AppBar(
           backgroundColor: backgroundColor,
           elevation: 0,
@@ -134,7 +130,6 @@ class _SongPickerScreenState extends ConsumerState<SongPickerScreen> {
         ),
         body: Column(
           children: [
-            // Search Bar
             Padding(
               padding: EdgeInsets.all(14.r),
               child: TextField(
@@ -163,7 +158,6 @@ class _SongPickerScreenState extends ConsumerState<SongPickerScreen> {
               ),
             ),
 
-            // Selected count indicator
             if (_selectedSongIds.isNotEmpty)
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: 14.w),
@@ -208,7 +202,6 @@ class _SongPickerScreenState extends ConsumerState<SongPickerScreen> {
 
             SizedBox(height: 7.h),
 
-            // Songs List
             Expanded(
               child: filteredSongs.isEmpty
                   ? Center(
@@ -234,9 +227,7 @@ class _SongPickerScreenState extends ConsumerState<SongPickerScreen> {
                       ),
                     )
                   : ListView.builder(
-                      // IMPORTANT: Links scrolling to the Bottom Sheet drag gestures
                       controller: ModalScrollController.of(context),
-                      // Add padding at bottom to avoid FAB covering last item
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
                       itemCount: filteredSongs.length,
                       itemBuilder: (context, index) {

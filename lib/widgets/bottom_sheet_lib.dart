@@ -115,8 +115,6 @@ class NetworkSongOptionsWidget extends ConsumerWidget {
             ),
             onTap: () {
               Navigator.pop(context);
-              // Constructing URL from ID if it's just an ID, otherwise use as is if it looks like URL?
-              // Assuming ID.
               final url = "https://youtube.com/watch?v=$songId";
               ref.read(downloadControllerProvider).addToQueue(url);
               Fluttertoast.showToast(msg: "Download started...");
@@ -240,7 +238,6 @@ class SongOptionsWidget extends ConsumerWidget {
                 ),
               ),
 
-              // 2. Song Header
               Row(
                 children: [
                   // ✅ Updated Artwork Logic
@@ -300,7 +297,6 @@ class SongOptionsWidget extends ConsumerWidget {
               const Divider(color: Colors.white12, thickness: 1),
               SizedBox(height: 18.h),
 
-              // 3. Action Buttons
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
@@ -375,21 +371,16 @@ class SongOptionsWidget extends ConsumerWidget {
     );
   }
 
-  // ✅✅✅ NEW ARTWORK LOGIC FOR OPTIONS MENU ✅✅✅
   Widget _buildArtwork(LocalSongModel song) {
-    // 1. Check Live Song Object first (Best source)
     if (song.artworkUrl != null && song.artworkUrl!.isNotEmpty) {
       return _buildImageFromPath(song.artworkUrl!);
     }
-    // 2. Check Constructor Param (Backup)
     if (imageUrl != null && imageUrl!.isNotEmpty) {
       return _buildImageFromPath(imageUrl!);
     }
-    // 3. Fallback to Local ID
     return _buildLocalArtwork();
   }
 
-  /// Helper to load image from either network URL or local file path
   Widget _buildImageFromPath(String path) {
     if (path.startsWith('http://') || path.startsWith('https://')) {
       return Image.network(
@@ -398,7 +389,6 @@ class SongOptionsWidget extends ConsumerWidget {
         errorBuilder: (_, __, ___) => _buildLocalArtwork(),
       );
     } else {
-      // Local file path
       final file = File(path);
       if (file.existsSync()) {
         return Image.file(

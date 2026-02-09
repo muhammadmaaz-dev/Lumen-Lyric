@@ -45,7 +45,6 @@ class HomeSkeleton extends StatelessWidget {
                   ),
                   SizedBox(height: 24.h),
 
-                  // --- Trending Section Skeleton ---
                   _buildSectionTitleSkeleton(shimmerItemColor),
                   SizedBox(height: 12.h),
                   Column(
@@ -57,7 +56,6 @@ class HomeSkeleton extends StatelessWidget {
 
                   SizedBox(height: 28.h),
 
-                  // --- Featured Section Skeleton ---
                   _buildSectionTitleSkeleton(shimmerItemColor),
                   SizedBox(height: 16.h),
                   SizedBox(
@@ -97,7 +95,6 @@ class HomeSkeleton extends StatelessWidget {
 
                   SizedBox(height: 28.h),
 
-                  // --- Artists Section Skeleton ---
                   _buildSectionTitleSkeleton(shimmerItemColor),
                   SizedBox(height: 16.h),
                   SizedBox(

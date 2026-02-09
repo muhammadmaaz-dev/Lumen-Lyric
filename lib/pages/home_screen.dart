@@ -13,7 +13,6 @@ import 'package:musicapp/utils/slide_route.dart';
 import 'package:musicapp/widgets/home_skelton.dart'; // Spelling check karlena (skeleton/skelton)
 import 'package:musicapp/widgets/bottom_sheet_lib.dart';
 
-// CHANGE 1: ConsumerStatefulWidget use karenge
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
@@ -25,14 +24,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    // Screen open hote hi data fetch ki request bhejo.
-    // Provider khud decide karega ke data lana hai ya purana dikhana hai.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(homeProvider.notifier).fetchHomeData();
     });
   }
 
-  // --- NAVIGATION LOGIC SAME RAHEGI ---
   void _handleSongTap(BuildContext context, SongModel song) {
     Navigator.push(
       context,
@@ -61,7 +57,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // CHANGE 2: Data ab Provider se aayega
     final homeState = ref.watch(homeProvider);
     final theme = Theme.of(context);
 
@@ -97,10 +92,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   textAlign: TextAlign.center,
                 ),
                 SizedBox(height: 32.h),
-
-                // Button to Go to Library
-                SizedBox(height: 16.h),
-                // Retry Button
                 TextButton(
                   onPressed: () {
                     ref.read(homeProvider.notifier).fetchHomeData();
@@ -163,7 +154,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         child: homeState.isLoading
             ? const HomeSkeleton()
             : RefreshIndicator(
-                // CHANGE 3: Refresh logic ab Provider ke paas hai
                 onRefresh: () async {
                   await ref.read(homeProvider.notifier).refresh();
                 },
@@ -181,27 +171,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         // Trending Now
                         _buildSectionTitle('Trending Now'),
                         SizedBox(height: 12.h),
-                        _buildTrendingList(
-                          context,
-                          homeState.trending,
-                        ), // Data from State
+                        _buildTrendingList(context, homeState.trending),
 
                         SizedBox(height: 28.h),
 
-                        // Featured
                         _buildSectionTitle('Featured Songs'),
                         SizedBox(height: 16.h),
-                        _buildFeaturedTracks(
-                          context,
-                          homeState.featured,
-                        ), // Data from State
-                        // Popular Artists
+                        _buildFeaturedTracks(context, homeState.featured),
                         _buildSectionTitle('Popular Artist'),
                         SizedBox(height: 16.h),
-                        _buildPopularArtists(
-                          context,
-                          homeState.artists,
-                        ), // Data from State
+                        _buildPopularArtists(context, homeState.artists),
 
                         SizedBox(height: 60.h),
                       ],
@@ -212,8 +191,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ),
     );
   }
-
-  // --- WIDGET BUILDERS (Same as before, no changes needed below) ---
 
   Widget _buildSectionTitle(String title, {String? actionText}) {
     final theme = Theme.of(context);

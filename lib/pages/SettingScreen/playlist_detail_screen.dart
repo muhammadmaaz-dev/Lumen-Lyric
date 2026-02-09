@@ -67,8 +67,6 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
 
   // UPDATED: Now calls the static show method for the Bottom Sheet
   Future<void> _addSongs() async {
-    // This calls the static method we created in the previous step
-    // which handles the showCupertinoModalBottomSheet logic
     final selectedSongIds = await SongPickerScreen.show(
       context,
       widget.playlistId,
@@ -120,10 +118,8 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
   }
 
   void _playSong(LocalSongModel song, List<LocalSongModel> playlistSongs) {
-    // Find the song index within the playlist
     final index = playlistSongs.indexWhere((s) => s.id == song.id);
     if (index != -1) {
-      // Play from playlist queue - only playlist songs will play in sequence
       controller.playFromPlaylist(playlistSongs, index);
     }
   }
@@ -211,7 +207,6 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                       padding: EdgeInsets.all(16.r),
                       child: Row(
                         children: [
-                          // Playlist thumbnail
                           Container(
                             width: 90.w,
                             height: 90.h,
@@ -228,7 +223,6 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                             ),
                           ),
                           const SizedBox(width: 16),
-                          // Playlist info
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -252,7 +246,6 @@ class _PlaylistDetailScreenState extends ConsumerState<PlaylistDetailScreen> {
                                   ),
                                 ),
                                 const SizedBox(height: 12),
-                                // Action buttons
                                 Row(
                                   children: [
                                     _buildActionButton(

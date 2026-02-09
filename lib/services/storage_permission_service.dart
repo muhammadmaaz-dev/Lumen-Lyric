@@ -3,10 +3,6 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-/// Service to handle storage permissions for metadata persistence
-///
-/// On Android 11+ (API 30+), apps need MANAGE_EXTERNAL_STORAGE permission
-/// to write files that survive app reinstallation.
 class StoragePermissionService {
   static final StoragePermissionService instance =
       StoragePermissionService._internal();
@@ -42,23 +38,17 @@ class StoragePermissionService {
     await _checkPermissions();
   }
 
-  /// Check all relevant storage permissions
   Future<void> _checkPermissions() async {
     if (!Platform.isAndroid) {
       _hasFullStorageAccess = true;
       return;
     }
 
-    // Check storage permission
     final storageStatus = await Permission.storage.status;
     final manageStorageStatus = await Permission.manageExternalStorage.status;
 
     _hasFullStorageAccess =
         storageStatus.isGranted || manageStorageStatus.isGranted;
-
-    debugPrint('📁 Storage Permission: ${storageStatus.name}');
-    debugPrint('📁 Manage External Storage: ${manageStorageStatus.name}');
-    debugPrint('📁 Has Full Access: $_hasFullStorageAccess');
   }
 
   /// Request storage permissions
@@ -76,24 +66,15 @@ class StoragePermissionService {
 
     if (storageStatus.isGranted) {
       _hasFullStorageAccess = true;
-      debugPrint('✅ Storage permission granted');
       return true;
     }
 
-    // On Android 11+, need MANAGE_EXTERNAL_STORAGE for full access
     var manageStatus = await Permission.manageExternalStorage.status;
     if (!manageStatus.isGranted) {
       manageStatus = await Permission.manageExternalStorage.request();
     }
 
     _hasFullStorageAccess = manageStatus.isGranted;
-
-    if (_hasFullStorageAccess) {
-      debugPrint('✅ Manage external storage permission granted');
-    } else {
-      debugPrint('⚠️ Storage permissions not fully granted');
-    }
-
     return _hasFullStorageAccess;
   }
 

@@ -10,8 +10,6 @@ class CustomTextField extends StatelessWidget {
   final bool isDarkTheme;
   final TextEditingController? controller;
   final ValueChanged<String>? onChanged;
-
-  // 👇 CHANGE: String ki jagah ValueChanged<String>? karein
   final ValueChanged<String>? onSubmitted;
 
   const CustomTextField({
@@ -24,7 +22,7 @@ class CustomTextField extends StatelessWidget {
     required this.isDarkTheme,
     this.controller,
     this.onChanged,
-    this.onSubmitted, // ✅ Constructor sahi hai
+    this.onSubmitted,
   });
 
   @override
@@ -44,7 +42,7 @@ class CustomTextField extends StatelessWidget {
       child: TextField(
         controller: controller,
         onChanged: onChanged,
-        onSubmitted: onSubmitted, // ✅ Yahan pass karna zaroori hai
+        onSubmitted: onSubmitted,
         style: TextStyle(color: textColor),
         decoration: InputDecoration(
           fillColor: cardColor,

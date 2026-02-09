@@ -1,28 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:musicapp/models/local_song_model.dart';
 import 'package:musicapp/services/storage_path_service.dart';
 
-/// ═══════════════════════════════════════════════════════════════════════════
-/// SONG CACHE SERVICE - FAST STARTUP WITH LAZY LOADING
-/// ═══════════════════════════════════════════════════════════════════════════
-///
-/// PURPOSE: Enable instant app launch regardless of song count.
-///
-/// ARCHITECTURE:
-/// 1. On startup, load from JSON cache (O(1) relative to song count)
-/// 2. Show UI immediately with cached data
-/// 3. Run full MediaStore scan in background
-/// 4. Resolve metadata lazily when songs become visible
-/// 5. Update cache periodically
-///
-/// CACHE STRUCTURE:
-/// - Stores minimal song info: id, uri, title, artist, isDownloaded
-/// - Does NOT store artwork (loaded on-demand)
-/// - Does NOT resolve ID3 tags at cache time
-/// ═══════════════════════════════════════════════════════════════════════════
 class SongCacheService {
   static final SongCacheService instance = SongCacheService._internal();
   factory SongCacheService() => instance;
@@ -48,7 +29,6 @@ class SongCacheService {
         if (timestamp != null) {
           final age = DateTime.now().difference(timestamp);
           if (age > _cacheExpiry) {
-            debugPrint('📦 [CACHE] Cache expired (${age.inHours}h old)');
             return null;
           }
         }
@@ -56,7 +36,6 @@ class SongCacheService {
 
       final cacheJson = prefs.getString(_cacheKey);
       if (cacheJson == null || cacheJson.isEmpty) {
-        debugPrint('📦 [CACHE] No cache found');
         return null;
       }
 
@@ -65,12 +44,8 @@ class SongCacheService {
           .map((e) => CachedSongEntry.fromJson(e as Map<String, dynamic>))
           .toList();
 
-      debugPrint('📦 [CACHE] Loaded ${_memoryCache!.length} songs from cache');
-
-      // Convert to LocalSongModel with pending metadata flag
       return _memoryCache!.map((entry) => entry.toLocalSongModel()).toList();
     } catch (e) {
-      debugPrint('⚠️ [CACHE] Error loading cache: $e');
       return null;
     }
   }
@@ -91,10 +66,8 @@ class SongCacheService {
         _cacheTimestampKey,
         DateTime.now().toIso8601String(),
       );
-
-      debugPrint('📦 [CACHE] Saved ${songs.length} songs to cache');
     } catch (e) {
-      debugPrint('⚠️ [CACHE] Error saving cache: $e');
+      // Error saving cache
     }
   }
 
@@ -105,9 +78,8 @@ class SongCacheService {
       await prefs.remove(_cacheKey);
       await prefs.remove(_cacheTimestampKey);
       _memoryCache = null;
-      debugPrint('📦 [CACHE] Cache cleared');
     } catch (e) {
-      debugPrint('⚠️ [CACHE] Error clearing cache: $e');
+      // Error clearing cache
     }
   }
 
@@ -122,10 +94,8 @@ class SongCacheService {
     return cacheJson != null && cacheJson.isNotEmpty;
   }
 
-  /// Invalidate cache when songs are added/removed
   void invalidateCache() {
     _memoryCache = null;
-    debugPrint('📦 [CACHE] Cache invalidated');
   }
 }
 

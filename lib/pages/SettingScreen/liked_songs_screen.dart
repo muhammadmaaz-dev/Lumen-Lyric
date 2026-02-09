@@ -27,7 +27,6 @@ class _LikedSongsScreenState extends State<LikedSongsScreen> {
   @override
   void initState() {
     super.initState();
-    // Ensure songs are loaded
     if (controller.songs.value.isEmpty) {
       controller.loadSongs();
     }
@@ -39,12 +38,9 @@ class _LikedSongsScreenState extends State<LikedSongsScreen> {
     super.dispose();
   }
 
-  /// Filter liked songs based on search query
   List<LocalSongModel> _getFilteredLikedSongs(List<LocalSongModel> allSongs) {
-    // First filter only liked songs
     final likedSongs = allSongs.where((song) => song.isLiked == true).toList();
 
-    // Then filter by search query if not empty
     if (_searchQuery.isEmpty) {
       return likedSongs;
     }
@@ -72,32 +68,26 @@ class _LikedSongsScreenState extends State<LikedSongsScreen> {
         children: [
           Column(
             children: [
-              // Custom App Bar
               _buildAppBar(textColor, backgroundColor),
 
-              // Songs List
               Expanded(
                 child: ValueListenableBuilder<List<LocalSongModel>>(
                   valueListenable: controller.songs,
                   builder: (context, allSongs, _) {
                     final likedSongs = _getFilteredLikedSongs(allSongs);
 
-                    // Empty state
                     if (likedSongs.isEmpty) {
                       return _buildEmptyState(textColor, isDarkTheme);
                     }
 
-                    // Songs list
                     return CustomScrollView(
                       slivers: [
-                        // Search bar section
                         SliverToBoxAdapter(
                           child: Padding(
                             padding: EdgeInsets.symmetric(horizontal: 15.w),
                             child: Column(
                               children: [
                                 SizedBox(height: 14.h),
-                                // Search Bar
                                 CustomTextField(
                                   hintText: 'Search liked songs',
                                   prefixIcon: Icons.search,
@@ -110,7 +100,6 @@ class _LikedSongsScreenState extends State<LikedSongsScreen> {
                                   },
                                 ),
                                 SizedBox(height: 14.h),
-                                // Songs count row
                                 Row(
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
@@ -133,7 +122,7 @@ class _LikedSongsScreenState extends State<LikedSongsScreen> {
                                         ),
                                       ],
                                     ),
-                                    // Play all button
+
                                     if (likedSongs.isNotEmpty)
                                       _buildPlayAllButton(
                                         allSongs,
@@ -155,8 +144,7 @@ class _LikedSongsScreenState extends State<LikedSongsScreen> {
                             return ValueListenableBuilder<List<LocalSongModel>>(
                               valueListenable: AudioController.instance.songs,
                               builder: (context, allSongs, _) {
-                                return // Songs List
-                                SliverPadding(
+                                return SliverPadding(
                                   padding: EdgeInsets.symmetric(
                                     horizontal: 15.w,
                                   ),
@@ -182,7 +170,6 @@ class _LikedSongsScreenState extends State<LikedSongsScreen> {
                                         isPlaying: isPlaying,
                                         imageUrl: song.artworkUrl,
                                         onTap: () {
-                                          // Play from liked songs queue only
                                           controller.playFromPlaylist(
                                             likedSongs,
                                             index,
@@ -215,7 +202,6 @@ class _LikedSongsScreenState extends State<LikedSongsScreen> {
                           },
                         ),
 
-                        // Extra space at bottom for MiniPlayer
                         SliverToBoxAdapter(child: SizedBox(height: 88.h)),
                       ],
                     );

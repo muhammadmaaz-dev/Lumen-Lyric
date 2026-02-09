@@ -24,8 +24,6 @@ class ProfileHeader extends StatelessWidget {
             radius: 52.r,
             backgroundColor: Colors.white,
             backgroundImage: AssetImage(avatarPath),
-            // For network:
-            // backgroundImage: NetworkImage(avatarPath),
           ),
         ),
         SizedBox(height: 12.h),

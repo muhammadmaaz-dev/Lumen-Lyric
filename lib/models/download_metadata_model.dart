@@ -2,8 +2,8 @@ class DownloadMetadataModel {
   final String? title;
   final String? artist;
   final String? album;
-  final String? duration; // Changed to String to handle both formats safely
-  final String? thumbnailUrl; // ✅ Renamed from 'thumbnail' to match Service
+  final String? duration;
+  final String? thumbnailUrl;
   final String? description;
   final List<String>? tags;
   final String? channel;
@@ -26,9 +26,7 @@ class DownloadMetadataModel {
       title: json['title'] as String?,
       artist: json['artist'] as String?,
       album: json['album'] as String?,
-      // Safely handle duration whether it comes as int or String
       duration: json['duration']?.toString(),
-      // Handle both keys just in case
       thumbnailUrl:
           json['thumbnail'] as String? ?? json['thumbnail_url'] as String?,
       description: json['description'] as String?,
@@ -44,7 +42,7 @@ class DownloadMetadataModel {
       'artist': artist,
       'album': album,
       'duration': duration,
-      'thumbnail': thumbnailUrl, // Saving as 'thumbnail' for consistency
+      'thumbnail': thumbnailUrl,
       'description': description,
       'tags': tags,
       'channel': channel,
@@ -60,7 +58,7 @@ class DownloadTaskModel {
   final DownloadStatus status;
   final double progress;
   final String? filePath;
-  final String? localImagePath; // ✅ Added to store offline image path
+  final String? localImagePath;
   final String? errorMessage;
   final DateTime createdAt;
 

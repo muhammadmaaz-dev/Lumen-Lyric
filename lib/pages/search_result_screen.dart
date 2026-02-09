@@ -30,7 +30,6 @@ class _SearchResultScreenState extends ConsumerState<SearchResultScreen>
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
 
-    // Screen open hote hi search trigger karo
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(searchProvider.notifier).search(widget.searchQuery);
     });
@@ -51,7 +50,6 @@ class _SearchResultScreenState extends ConsumerState<SearchResultScreen>
         ),
         title: GestureDetector(
           onTap: () {
-            // Wapis search input par jao agar user tap kare
             Navigator.pop(context);
           },
           child: Container(
@@ -82,10 +80,8 @@ class _SearchResultScreenState extends ConsumerState<SearchResultScreen>
           : TabBarView(
               controller: _tabController,
               children: [
-                // --- SONGS TAB ---
                 _buildSongsList(searchState.songs, theme),
 
-                // --- ARTISTS TAB ---
                 _buildArtistsList(searchState.artists, theme),
               ],
             ),

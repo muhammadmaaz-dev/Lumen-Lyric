@@ -17,7 +17,7 @@ class _OnboardingPagesState extends State<OnboardingPages> {
   int _currentPage = 0;
 
   final List<OnboardingData> _pages = [
-    OnboardingData(
+    const OnboardingData(
       title: 'Discover Your Sound',
       features: [
         FeatureItem(
@@ -28,7 +28,7 @@ class _OnboardingPagesState extends State<OnboardingPages> {
         FeatureItem(icon: Icons.playlist_play, text: 'Create playlists'),
       ],
     ),
-    OnboardingData(
+    const OnboardingData(
       title: 'Listen Anywhere',
       features: [
         FeatureItem(
@@ -39,7 +39,7 @@ class _OnboardingPagesState extends State<OnboardingPages> {
         FeatureItem(icon: Icons.shuffle, text: 'Shuffle & repeat'),
       ],
     ),
-    OnboardingData(
+    const OnboardingData(
       title: 'Music That Matches You',
       features: [
         FeatureItem(icon: Icons.cloud_off_outlined, text: 'Offline listening'),
@@ -220,12 +220,12 @@ class OnboardingData {
   final String title;
   final List<FeatureItem> features;
 
-  OnboardingData({required this.title, required this.features});
+  const OnboardingData({required this.title, required this.features});
 }
 
 class FeatureItem {
   final IconData icon;
   final String text;
 
-  FeatureItem({required this.icon, required this.text});
+  const FeatureItem({required this.icon, required this.text});
 }

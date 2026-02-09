@@ -8,7 +8,6 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:musicapp/services/storage_path_service.dart';
 
-/// BackgroundDownloadService handles downloads that continue even when app is closed
 class BackgroundDownloadService {
   static final BackgroundDownloadService instance =
       BackgroundDownloadService._internal();
@@ -30,13 +29,9 @@ class BackgroundDownloadService {
   Future<void> initialize() async {
     if (_initialized) return;
 
-    await FlutterDownloader.initialize(
-      debug: true, // Set to false in production
-      ignoreSsl: true, // If your server uses self-signed certificates
-    );
+    await FlutterDownloader.initialize(debug: true, ignoreSsl: true);
 
     _initialized = true;
-    debugPrint('✅ FlutterDownloader initialized');
   }
 
   /// Setup port for receiving download updates in UI
@@ -50,7 +45,6 @@ class BackgroundDownloadService {
     );
 
     if (!success) {
-      debugPrint('⚠️ Port registration failed, trying to rebind...');
       _unbindBackgroundIsolate();
       _port = ReceivePort();
       IsolateNameServer.registerPortWithName(_port!.sendPort, _portName);
@@ -61,20 +55,12 @@ class BackgroundDownloadService {
       final int status = data[1];
       final int progress = data[2];
 
-      debugPrint(
-        '📥 Download Update - TaskId: $taskId, Status: $status, Progress: $progress%',
-      );
-
-      // Notify listeners
       onProgressUpdate?.call(taskId, status, progress);
 
-      // Handle completion
       if (status == DownloadTaskStatus.complete.index) {
         _handleDownloadComplete(taskId);
       }
     });
-
-    debugPrint('✅ Background isolate bound');
   }
 
   void _unbindBackgroundIsolate() {
@@ -138,10 +124,8 @@ class BackgroundDownloadService {
         await _savePendingMetadata();
       }
 
-      debugPrint('✅ Download enqueued: $taskId');
       return taskId;
     } catch (e) {
-      debugPrint('❌ Error enqueuing download: $e');
       return null;
     }
   }
@@ -166,13 +150,9 @@ class BackgroundDownloadService {
     return sanitized;
   }
 
-  /// Handle download completion - trigger post-processing
   Future<void> _handleDownloadComplete(String taskId) async {
-    debugPrint('🎉 Download complete: $taskId');
-
     final metadata = _pendingMetadata[taskId];
     if (metadata != null) {
-      // Store completed download for later metadata writing
       await _addToCompletedQueue(taskId, metadata);
       _pendingMetadata.remove(taskId);
       await _savePendingMetadata();

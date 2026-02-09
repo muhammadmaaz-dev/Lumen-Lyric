@@ -59,7 +59,6 @@ class _NameInputScreenState extends State<NameInputScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SizedBox(height: 16.h),
-              // Back Button
               _buildBackButton(context),
               SizedBox(height: 32.h),
               // Title
@@ -73,13 +72,11 @@ class _NameInputScreenState extends State<NameInputScreen> {
                 ),
               ),
               SizedBox(height: 12.h),
-              // Subtitle
               Text(
                 'This name will appear on your profile',
                 style: TextStyle(fontSize: 14.sp, color: Colors.grey[500]),
               ),
               SizedBox(height: 32.h),
-              // Text Field
               _buildNameTextField(),
               const Spacer(),
               // Continue Button

@@ -79,10 +79,8 @@ class _SongMetadataScreenState extends ConsumerState<SongMetadataScreen> {
     final String label = video?.author ?? 'YouTube';
     final String url = video?.url ?? '';
 
-    // ✅ Download Status Check Logic
     final downloadTask = ref.watch(downloadTaskByUrlProvider(url));
 
-    // Check if active (not completed, not failed, and exists)
     final bool isDownloading =
         downloadTask != null &&
         downloadTask.status != DownloadStatus.completed &&
@@ -246,7 +244,6 @@ class _SongMetadataScreenState extends ConsumerState<SongMetadataScreen> {
                     ),
                     SizedBox(width: 14.w),
 
-                    // ✅ DOWNLOAD BUTTON / PROGRESS INDICATOR
                     Container(
                       width: 55.w,
                       height: 55.h,
@@ -262,13 +259,13 @@ class _SongMetadataScreenState extends ConsumerState<SongMetadataScreen> {
                               alignment: Alignment.center,
                               children: [
                                 CircularProgressIndicator(
-                                  value: progress, // Show actual progress
+                                  value: progress,
                                   color: theme.primaryColor,
                                   strokeWidth: 3.w,
                                 ),
                                 if (progress > 0)
                                   Text(
-                                    "${(progress * 100).toInt()}", // Show %
+                                    "${(progress * 100).toInt()}",
                                     style: TextStyle(
                                       fontSize: 8.sp,
                                       color: theme.textTheme.bodySmall?.color,
@@ -283,7 +280,6 @@ class _SongMetadataScreenState extends ConsumerState<SongMetadataScreen> {
                                 size: 24.sp,
                               ),
                               onPressed: () {
-                                // Start Download
                                 ref
                                     .read(downloadControllerProvider)
                                     .addToQueue(url);

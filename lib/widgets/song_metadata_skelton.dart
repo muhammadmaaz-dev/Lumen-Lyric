@@ -20,7 +20,7 @@ class SongMetadataSkeleton extends StatelessWidget {
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: theme.appBarTheme.backgroundColor,
-        leading: Icon(Icons.arrow_back, color: iconColor), // Disabled look
+        leading: Icon(Icons.arrow_back, color: iconColor),
         elevation: 0,
       ),
       body: SafeArea(

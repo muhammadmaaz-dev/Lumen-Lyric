@@ -77,21 +77,10 @@ class DownloadController {
     final storedVersion = prefs.getInt('metadata_version') ?? 0;
 
     if (storedVersion < _metadataVersion) {
-      debugPrint(
-        '🧹 Clearing corrupted metadata from version $storedVersion -> $_metadataVersion',
-      );
-
-      // Clear the corrupted metadata database
       await _metadataDb.initialize();
       await _metadataDb.clearAllMetadata();
-
-      // Clear legacy SharedPreferences metadata
       await prefs.remove('recent_downloads');
-
-      // Save new version
       await prefs.setInt('metadata_version', _metadataVersion);
-
-      debugPrint('✅ Metadata cleanup complete');
     }
   }
 
@@ -198,8 +187,6 @@ class DownloadController {
       // Scan media
       await AudioController.instance.scanNewMedia(filePath);
       await AudioController.instance.loadSongs();
-
-      debugPrint("✅ Background Download Complete: $filePath");
     }
   }
 
@@ -233,10 +220,7 @@ class DownloadController {
           );
         }
 
-        // Scan media
         await AudioController.instance.scanNewMedia(filePath);
-
-        debugPrint("✅ Processed background download: $filePath");
       }
     }
 
@@ -325,13 +309,8 @@ class DownloadController {
       final task = downloadQueue.value[taskIndex];
 
       try {
-        debugPrint("📥 Starting download for: ${task.youtubeUrl}");
-
-        // Use the reliable direct download method
-        // This downloads within the app and shows real progress
         await _directDownload(task);
       } catch (e) {
-        debugPrint("❌ Download failed: $e");
         _updateTask(
           task.id,
           status: DownloadStatus.failed,
@@ -401,8 +380,6 @@ class DownloadController {
         downloadQueue.value.firstWhere((t) => t.id == task.id),
       );
 
-      debugPrint("✅ Download Complete: ${result.filePath}");
-
       await AudioController.instance.scanNewMedia(result.filePath!);
       await AudioController.instance.loadSongs();
     } else {
@@ -443,11 +420,11 @@ class DownloadController {
           } else {
             durationMs = int.tryParse(durationStr);
             if (durationMs != null && durationMs < 100000) {
-              durationMs = durationMs * 1000; // Convert seconds to ms
+              durationMs = durationMs * 1000;
             }
           }
         } catch (e) {
-          debugPrint('⚠️ Could not parse duration: ${metadata.duration}');
+          // Duration parse error ignored
         }
       }
 
@@ -465,9 +442,8 @@ class DownloadController {
       );
 
       await _metadataDb.saveMetadata(persistentMeta);
-      debugPrint('✅ Metadata saved permanently for: ${persistentMeta.title}');
     } catch (e) {
-      debugPrint('❌ Error saving permanent metadata: $e');
+      // Metadata save error ignored
     }
   }
 
@@ -534,174 +510,103 @@ class DownloadController {
           'downloadedAt': DateTime.now().toIso8601String(),
         };
         await File(metaJsonPath).writeAsString(jsonEncode(metaJson));
-        debugPrint('✅ [META] Sidecar metadata saved: $metaJsonPath');
       } catch (e) {
-        debugPrint('⚠️ [META] Failed to save sidecar metadata: $e');
-      }
+        // Sidecar metadata save error ignored
 
-      // ═══════════════════════════════════════════════════════════════════════
-      // STEP 1: Download artwork bytes for embedding into ID3 APIC frame
-      // ═══════════════════════════════════════════════════════════════════════
-      if (metadata.thumbnailUrl != null && metadata.thumbnailUrl!.isNotEmpty) {
-        try {
-          final dio = Dio();
-          final response = await dio.get(
-            metadata.thumbnailUrl!,
-            options: Options(responseType: ResponseType.bytes),
-          );
-          if (response.statusCode == 200) {
-            artworkBytes = Uint8List.fromList(response.data);
-            debugPrint(
-              "✅ [ID3] Artwork downloaded: ${artworkBytes.length} bytes",
-            );
-
-            // ═══════════════════════════════════════════════════════════════════
-            // STEP 1b: Save artwork to hidden .artwork/ folder
-            // ═════════════════════════════════════════════════════════════════════
-            try {
-              final storagePaths = StoragePathService.instance;
-              final artworkPath = storagePaths.getArtworkPathForMp3(filePath);
-              await File(artworkPath).writeAsBytes(artworkBytes);
-              debugPrint("✅ [ID3] Artwork saved to .artwork/: $artworkPath");
-            } catch (e) {
-              debugPrint("⚠️ [ID3] Failed to save sidecar artwork: $e");
-            }
-          }
-        } catch (e) {
-          debugPrint("⚠️ Artwork download failed: $e");
-        }
-      }
-
-      // ═══════════════════════════════════════════════════════════════════════
-      // STEP 2: Create ID3v2 Tags object with ALL metadata
-      // ═══════════════════════════════════════════════════════════════════════
-      // IMPORTANT: 'composer' field stores the YouTube URL as LOGICAL IDENTITY
-      // This allows us to identify the song's source even after file operations
-      //
-      // ID3 Frames being written:
-      // - TIT2 → Title
-      // - TPE1 → Artist
-      // - TALB → Album
-      // - TYER → Year
-      // - TCOM → Composer (stores YouTube URL as logical identity)
-      // - APIC → Embedded artwork (cover image bytes)
-      // ═══════════════════════════════════════════════════════════════════════
-      final tags = Tag(
-        title: metadata.title,
-        artist: metadata.artist,
-        album: metadata.album ?? "LumenLyric",
-        year: DateTime.now().year.toString(),
-        composer: youtubeUrl, // ✅ LOGICAL IDENTITY - YouTube URL stored here
-        artwork: artworkBytes, // ✅ EMBEDDED ARTWORK - stored in APIC frame
-      );
-
-      // ═══════════════════════════════════════════════════════════════════════
-      // STEP 3: Write Tags to MP3 file (creates 'filename_edited.mp3')
-      // ═══════════════════════════════════════════════════════════════════════
-      debugPrint("📝 [ID3] Writing tags to: $filePath");
-      debugPrint("📝 [ID3] Title: ${metadata.title}");
-      debugPrint("📝 [ID3] Artist: ${metadata.artist}");
-      debugPrint("📝 [ID3] Album: ${metadata.album ?? 'LumenLyric'}");
-      if (youtubeUrl != null) {
-        debugPrint("📝 [ID3] YouTube URL (composer): $youtubeUrl");
-      }
-      if (artworkBytes != null) {
-        debugPrint("📝 [ID3] Artwork: ${artworkBytes.length} bytes embedded");
-      }
-
-      // Write tags to the file
-      await tagger.editTags(tags, filePath);
-
-      // Wait for file system to complete write
-      await Future.delayed(const Duration(milliseconds: 800));
-
-      // ─────────────────────────────────────────────────────────────────────────
-      // FILE SWAP LOGIC - Replace original with tagged version
-      // flutter_audio_tagger creates a new file with _edited suffix
-      // ─────────────────────────────────────────────────────────────────────────
-      String editedPath;
-
-      if (filePath.toLowerCase().endsWith(".mp3")) {
-        editedPath = "${filePath.substring(0, filePath.length - 4)}_edited.mp3";
-      } else if (filePath.toLowerCase().endsWith(".m4a")) {
-        editedPath = "${filePath.substring(0, filePath.length - 4)}_edited.m4a";
-      } else {
-        editedPath = "${filePath}_edited";
-      }
-
-      File originalFile = File(filePath);
-      File editedFile = File(editedPath);
-
-      debugPrint("🔍 [ID3] Checking for edited file at: $editedPath");
-      debugPrint("🔍 [ID3] Edited file exists: ${await editedFile.exists()}");
-
-      if (await editedFile.exists()) {
-        try {
-          debugPrint("🔄 Swapping files...");
-          // First copy edited file to a temp location
-          final tempPath = "${filePath}.temp";
-          await editedFile.copy(tempPath);
-
-          // Delete original
-          if (await originalFile.exists()) {
-            await originalFile.delete();
-          }
-
-          // Rename temp to original path
-          await File(tempPath).rename(filePath);
-
-          // Delete the edited file if it still exists
-          if (await editedFile.exists()) {
-            await editedFile.delete();
-          }
-
-          debugPrint("✅ [ID3] Tags saved permanently to: $filePath");
-
-          // Verify the tags were written
-          final verifyTags = await tagger.getAllTags(filePath);
-          if (verifyTags != null) {
-            debugPrint(
-              "✅ [ID3] Verified - Title: ${verifyTags.title}, Artist: ${verifyTags.artist}",
-            );
-          } else {
-            debugPrint("⚠️ [ID3] Warning: Could not verify tags after write");
-          }
-        } catch (e) {
-          debugPrint("❌ Error swapping files: $e");
-          // Try alternative: just copy the edited file over
+        // ═══════════════════════════════════════════════════════════════════════
+        // STEP 1: Download artwork bytes for embedding into ID3 APIC frame
+        // ═══════════════════════════════════════════════════════════════════════
+        if (metadata.thumbnailUrl != null &&
+            metadata.thumbnailUrl!.isNotEmpty) {
           try {
-            await editedFile.copy(filePath);
-            await editedFile.delete();
-            debugPrint("✅ [ID3] Tags saved via copy fallback");
-          } catch (e2) {
-            debugPrint("❌ Copy fallback also failed: $e2");
+            final dio = Dio();
+            final response = await dio.get(
+              metadata.thumbnailUrl!,
+              options: Options(responseType: ResponseType.bytes),
+            );
+            if (response.statusCode == 200) {
+              artworkBytes = Uint8List.fromList(response.data);
+
+              try {
+                final storagePaths = StoragePathService.instance;
+                final artworkPath = storagePaths.getArtworkPathForMp3(filePath);
+                await File(artworkPath).writeAsBytes(artworkBytes);
+              } catch (e) {
+                // Sidecar artwork save error ignored
+              }
+            }
+          } catch (e) {
+            // Artwork download error ignored
           }
         }
-      } else {
-        debugPrint(
-          "⚠️ [ID3] Edited file not found at: $editedPath - trying direct write",
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // STEP 2: Create ID3v2 Tags object with ALL metadata
+        // ═══════════════════════════════════════════════════════════════════════
+        // IMPORTANT: 'composer' field stores the YouTube URL as LOGICAL IDENTITY
+        // This allows us to identify the song's source even after file operations
+        //
+        // ID3 Frames being written:
+        // - TIT2 → Title
+        // - TPE1 → Artist
+        // - TALB → Album
+        // - TYER → Year
+        // - TCOM → Composer (stores YouTube URL as logical identity)
+        // - APIC → Embedded artwork (cover image bytes)
+        // ═══════════════════════════════════════════════════════════════════════
+        final tags = Tag(
+          title: metadata.title,
+          artist: metadata.artist,
+          album: metadata.album ?? "LumenLyric",
+          year: DateTime.now().year.toString(),
+          composer: youtubeUrl, // ✅ LOGICAL IDENTITY - YouTube URL stored here
+          artwork: artworkBytes, // ✅ EMBEDDED ARTWORK - stored in APIC frame
         );
 
-        // Try writing tags again with a different approach
-        // Some versions of the library might write directly to the file
-        try {
-          // Check if the original file now has tags
-          final checkTags = await tagger.getAllTags(filePath);
-          if (checkTags != null &&
-              checkTags.title != null &&
-              checkTags.title!.isNotEmpty) {
-            debugPrint(
-              "✅ [ID3] Tags written directly - Title: ${checkTags.title}",
-            );
-          } else {
-            debugPrint("⚠️ [ID3] Tags not found in original file either");
+        await tagger.editTags(tags, filePath);
+        await Future.delayed(const Duration(milliseconds: 800));
+
+        String editedPath;
+
+        if (filePath.toLowerCase().endsWith(".mp3")) {
+          editedPath =
+              "${filePath.substring(0, filePath.length - 4)}_edited.mp3";
+        } else if (filePath.toLowerCase().endsWith(".m4a")) {
+          editedPath =
+              "${filePath.substring(0, filePath.length - 4)}_edited.m4a";
+        } else {
+          editedPath = "${filePath}_edited";
+        }
+
+        File originalFile = File(filePath);
+        File editedFile = File(editedPath);
+
+        if (await editedFile.exists()) {
+          try {
+            final tempPath = "${filePath}.temp";
+            await editedFile.copy(tempPath);
+
+            if (await originalFile.exists()) {
+              await originalFile.delete();
+            }
+
+            await File(tempPath).rename(filePath);
+
+            if (await editedFile.exists()) {
+              await editedFile.delete();
+            }
+          } catch (e) {
+            try {
+              await editedFile.copy(filePath);
+              await editedFile.delete();
+            } catch (e2) {
+              // Copy fallback failed
+            }
           }
-        } catch (e) {
-          debugPrint("❌ Error checking tags: $e");
         }
       }
     } catch (e) {
-      debugPrint("❌ Error writing ID3 Tags: $e");
+      // ID3 tag write error ignored
     }
   }
 

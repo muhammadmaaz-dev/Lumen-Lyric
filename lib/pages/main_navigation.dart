@@ -33,18 +33,13 @@ class _MainNavigationState extends State<MainNavigation> {
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('🔄 MainNavigation rebuilt');
-
-    // Use Theme.of(context) instead of watching provider
     final isDarkTheme = Theme.of(context).brightness == Brightness.dark;
 
-    final bottomNavColor = isDarkTheme
-        ? const Color.fromARGB(255, 0, 0, 0)
-        : const Color.fromARGB(255, 255, 255, 255);
+    const bottomNavColor = Color.fromARGB(255, 0, 0, 0);
+    const lightBottomNavColor = Color.fromARGB(255, 255, 255, 255);
     final selectedColor = isDarkTheme ? Colors.white : Colors.black;
-    final barColor = isDarkTheme
-        ? const Color.fromARGB(255, 155, 155, 155)
-        : const Color.fromARGB(255, 117, 117, 117);
+    const barColor = Color.fromARGB(255, 155, 155, 155);
+    const lightBarColor = Color.fromARGB(255, 117, 117, 117);
     final miniPlayerBgColor = isDarkTheme
         ? Colors.grey.shade900
         : Colors.grey.shade100;
@@ -141,9 +136,12 @@ class _MainNavigationState extends State<MainNavigation> {
         bottomNavigationBar: _playerPercentage > 0.2
             ? null
             : Container(
-                //height: 60.h,
                 decoration: BoxDecoration(
-                  border: Border(top: BorderSide(color: barColor)),
+                  border: Border(
+                    top: BorderSide(
+                      color: isDarkTheme ? barColor : lightBarColor,
+                    ),
+                  ),
                 ),
                 child: Theme(
                   data: Theme.of(context).copyWith(
@@ -153,7 +151,9 @@ class _MainNavigationState extends State<MainNavigation> {
                   child: BottomNavigationBar(
                     type: BottomNavigationBarType.fixed,
                     selectedItemColor: selectedColor,
-                    backgroundColor: bottomNavColor,
+                    backgroundColor: isDarkTheme
+                        ? bottomNavColor
+                        : lightBottomNavColor,
                     currentIndex: _selectedIndex,
                     showSelectedLabels: false,
                     showUnselectedLabels: false,

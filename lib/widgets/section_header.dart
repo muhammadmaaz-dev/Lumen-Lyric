@@ -23,8 +23,7 @@ class SectionHeader extends StatelessWidget {
         Text(
           title,
           style: TextStyle(
-            fontSize:
-                16.sp, // Adjusted to match MusicScreen, HomeScreen uses 22
+            fontSize: 16.sp,
             fontWeight: FontWeight.bold,
             color: textColor,
           ),

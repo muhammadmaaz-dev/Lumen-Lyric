@@ -125,15 +125,17 @@ class MiniPlayerUI extends ConsumerWidget {
                                       : Icons.play_circle,
                                   key: ValueKey(isPlaying),
                                   color: iconColor,
-                                  size: 40.sp,
+                                  size: 40,
                                 )
                                 .animate(key: ValueKey(isPlaying))
-                                .fadeIn(duration: 300.ms)
+                                .fadeIn(
+                                  duration: const Duration(milliseconds: 300),
+                                )
                                 .scale(
-                                  duration: 400.ms,
+                                  duration: const Duration(milliseconds: 400),
                                   begin: const Offset(0.5, 0.5),
                                   end: const Offset(1.0, 1.0),
-                                  curve: Curves.elasticOut, // BOUNCE EFFECT
+                                  curve: Curves.elasticOut,
                                 ),
                         onPressed: controller.tooglePlayPause,
                       );

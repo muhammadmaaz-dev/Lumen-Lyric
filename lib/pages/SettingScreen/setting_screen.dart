@@ -12,16 +12,13 @@ import 'package:musicapp/widgets/setting_tile.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
-// 1. Changed to ConsumerWidget to access providers
 class SettingScreen extends ConsumerWidget {
   const SettingScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // 2. Fetch the SharedPreferences instance
     final prefs = ref.watch(sharedPreferencesProvider);
     final profileImage = ref.watch(profileImageProvider);
-    // 3. Get the name saved during onboarding (Key: 'user_name')
     final userName = prefs.getString('user_name') ?? 'Guest';
 
     final isDarkTheme = Theme.of(context).brightness == Brightness.dark;
@@ -92,7 +89,6 @@ class SettingScreen extends ConsumerWidget {
                               ),
                             ),
                             SizedBox(height: 14.h),
-                            // 4. Use the variable 'userName' here
                             Text(
                               userName,
                               style: TextStyle(
@@ -297,17 +293,17 @@ class SettingScreen extends ConsumerWidget {
                               icon: Icons.adb_outlined,
                               title: 'About App',
                               onTap: () async {
-                                // 1. URL define karein
                                 final Uri url = Uri.parse(
-                                  'https://github.com/muhammadmaaz-dev/Lumen-Lyric',
+                                  'https://github.com/muhammadmaaz-dev/lumenlyric',
                                 );
 
-                                // 2. Browser mein open karein
                                 if (!await launchUrl(
                                   url,
                                   mode: LaunchMode.externalApplication,
                                 )) {
-                                  debugPrint('Could not launch $url');
+                                  Fluttertoast.showToast(
+                                    msg: 'Could not launch URL',
+                                  );
                                 }
                               },
                               isDarkTheme: isDarkTheme,
@@ -361,7 +357,6 @@ class SettingScreen extends ConsumerWidget {
   }
 }
 
-// _DarkModeToggle remains unchanged
 class _DarkModeToggle extends ConsumerStatefulWidget {
   final bool isDarkTheme;
 

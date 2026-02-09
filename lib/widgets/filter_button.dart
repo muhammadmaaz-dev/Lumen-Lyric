@@ -17,7 +17,6 @@ class FilterButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Button Colors
     final activeBtnColor = isDarkTheme
         ? const Color.fromARGB(255, 255, 255, 255)
         : const Color(0xff000000);

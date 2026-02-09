@@ -9,17 +9,13 @@ class SearchResultSkelton extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // --- FIX: High Contrast Colors ---
-    // Light Mode: Thora dark grey (300 -> 400) taake white pe dikhe
-    // Dark Mode: Thora light grey (900 -> 800) taake black pe dikhe
     final baseColor = isDark ? Colors.grey[800]! : Colors.grey[400]!;
     final highlightColor = isDark ? Colors.grey[600]! : Colors.grey[100]!;
 
-    // Container color bus opaque hona chahiye (Color matter nahi karta shimmer uske upar draw hoga)
     final containerColor = Colors.black;
 
     return Container(
-      color: Theme.of(context).scaffoldBackgroundColor, // Background match kiya
+      color: Theme.of(context).scaffoldBackgroundColor,
       child: Shimmer.fromColors(
         baseColor: baseColor,
         highlightColor: highlightColor,
@@ -36,7 +32,6 @@ class SearchResultSkelton extends StatelessWidget {
   Widget _buildListItem(Color color) {
     return Row(
       children: [
-        // Image Box
         Container(
           width: 50.h,
           height: 50.h,
@@ -46,12 +41,10 @@ class SearchResultSkelton extends StatelessWidget {
           ),
         ),
         SizedBox(width: 16.w),
-        // Text Lines
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Title Line
               Container(
                 width: 140.w,
                 height: 16.h,
@@ -61,7 +54,6 @@ class SearchResultSkelton extends StatelessWidget {
                 ),
               ),
               SizedBox(height: 8.h),
-              // Subtitle Line
               Container(
                 width: 80.w,
                 height: 12.h,

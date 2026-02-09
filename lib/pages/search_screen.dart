@@ -16,7 +16,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   final TextEditingController _searchController = TextEditingController();
 
   void _onChanged(String value) {
-    // setState isliye taake UI rebuild ho aur 'isQueryEmpty' update ho
     setState(() {});
     ref.read(searchProvider.notifier).fetchSuggestions(value);
   }
@@ -25,7 +24,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     if (query.trim().isEmpty) return;
     ref.read(searchProvider.notifier).clearSuggestions();
 
-    // Save current query to controller if triggered by tap
     if (_searchController.text != query) {
       _searchController.text = query;
     }
@@ -121,7 +119,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. Recent Searches (Show only if history exists)
           if (history.isNotEmpty) ...[
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -161,7 +158,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             SizedBox(height: 20.h),
           ],
 
-          // 2. Viral Suggestions
           Text(
             "Try Searching",
             style: theme.textTheme.titleMedium?.copyWith(
@@ -194,8 +190,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     );
   }
 
-  // --- Existing Suggestions List ---
-  // --- Updated Suggestions List with Highlighted Keyword ---
   Widget _buildSuggestionsList(List<String> suggestions, ThemeData theme) {
     if (suggestions.isEmpty) {
       return Center(
@@ -228,7 +222,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     );
   }
 
-  // --- Helper Function to Highlight Matching Text ---
   List<TextSpan> _getHighlightedText(
     String text,
     String query,
@@ -244,21 +237,17 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     int start = 0;
 
     while (true) {
-      // Find the index of the query in the suggestion text
       int index = lowerText.indexOf(lowerQuery, start);
 
-      // If no match found, add the remaining text and break
       if (index == -1) {
         spans.add(TextSpan(text: text.substring(start)));
         break;
       }
 
-      // Add the text before the match
       if (index > start) {
         spans.add(TextSpan(text: text.substring(start, index)));
       }
 
-      // Add the matched text with a specific style (e.g., Bold or Primary Color)
       spans.add(
         TextSpan(
           text: text.substring(index, index + query.length),

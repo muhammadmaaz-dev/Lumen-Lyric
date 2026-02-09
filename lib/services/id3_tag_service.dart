@@ -36,11 +36,9 @@ class Id3TagService {
   int _coldStartRetryCount = 0;
   static const int _maxColdStartRetries = 3;
 
-  /// Mark initial scan as complete - called after first loadSongs() finishes
   void markInitialScanComplete() {
     _initialScanComplete = true;
     _coldStartRetryCount = 0;
-    debugPrint('✅ [ID3] Initial scan marked complete');
   }
 
   /// Check if initial scan is complete
@@ -70,17 +68,11 @@ class Id3TagService {
       return id3Metadata;
     }
 
-    // Fallback: Try reading from sidecar .meta.json file
-    // This is critical for reinstall recovery since ID3 writing may have failed
     final sidecarMetadata = await readMetadataFromSidecar(filePath);
     if (sidecarMetadata != null && sidecarMetadata.hasValidMetadata) {
-      debugPrint(
-        '📦 [FALLBACK] Using sidecar metadata for: ${path.basename(filePath)}',
-      );
       return sidecarMetadata;
     }
 
-    // Both failed - return null
     return null;
   }
 
@@ -95,15 +87,11 @@ class Id3TagService {
       // ═══════════════════════════════════════════════════════════════════════
       final file = File(filePath);
       if (!await file.exists()) {
-        debugPrint('⚠️ [ID3] File does not exist: $filePath');
         return null;
       }
 
-      // Verify file is readable and has content
       final fileLength = await file.length();
       if (fileLength < 128) {
-        // MP3 files must have at least 128 bytes (ID3v1 minimum)
-        debugPrint('⚠️ [ID3] File too small to contain ID3 tags: $filePath');
         return null;
       }
 
@@ -121,13 +109,12 @@ class Id3TagService {
       // COLD START: Force a file read to ensure filesystem is ready
       // ═══════════════════════════════════════════════════════════════════════
       if (!_initialScanComplete && retryCount == 0) {
-        // Read first few bytes to "warm up" the file handle
         try {
           final raf = await file.open(mode: FileMode.read);
           await raf.read(10);
           await raf.close();
         } catch (e) {
-          debugPrint('⚠️ [ID3] File warmup failed: $e');
+          // File warmup failed
         }
       }
 
@@ -137,18 +124,11 @@ class Id3TagService {
       final tags = await _tagger.getAllTags(filePath);
 
       if (tags == null) {
-        // On cold start, retry after increasing delays
         if (!_initialScanComplete && retryCount < _maxColdStartRetries) {
           final delay = Duration(milliseconds: 200 * (retryCount + 1));
-          debugPrint(
-            '⚠️ [ID3] Read returned null (attempt ${retryCount + 1}), retrying in ${delay.inMilliseconds}ms: ${path.basename(filePath)}',
-          );
           await Future.delayed(delay);
           return _readMetadataWithRetry(filePath, retryCount: retryCount + 1);
         }
-        debugPrint(
-          'ℹ️ [ID3] No tags found after ${retryCount + 1} attempts: ${path.basename(filePath)}',
-        );
         return null;
       }
 
@@ -158,15 +138,11 @@ class Id3TagService {
       final cleanedTitle = _cleanTagValue(tags.title);
       final cleanedArtist = _cleanTagValue(tags.artist);
 
-      // If we got empty/null values on cold start, retry with increasing delays
       if (!_initialScanComplete &&
           retryCount < _maxColdStartRetries &&
           cleanedTitle == null &&
           cleanedArtist == null) {
         final delay = Duration(milliseconds: 250 * (retryCount + 1));
-        debugPrint(
-          '⚠️ [ID3] Empty metadata (attempt ${retryCount + 1}), retrying in ${delay.inMilliseconds}ms: ${path.basename(filePath)}',
-        );
         await Future.delayed(delay);
         return _readMetadataWithRetry(filePath, retryCount: retryCount + 1);
       }
@@ -177,23 +153,14 @@ class Id3TagService {
       Uint8List? embeddedArtwork;
       if (tags.artwork != null && tags.artwork!.isNotEmpty) {
         embeddedArtwork = Uint8List.fromList(tags.artwork!);
-        debugPrint(
-          '✅ [ID3] Embedded artwork found: ${embeddedArtwork.length} bytes',
-        );
       }
 
-      // Also check for sidecar .jpg file as fallback
       String? sidecarArtworkPath;
       final artworkPath = getArtworkPath(filePath);
       if (artworkPath != null && await File(artworkPath).exists()) {
         sidecarArtworkPath = artworkPath;
-        debugPrint('✅ [ID3] Sidecar artwork found: $artworkPath');
       }
 
-      // ═══════════════════════════════════════════════════════════════════════
-      // STEP 5: BUILD METADATA OBJECT WITH VALIDATED VALUES
-      // ═══════════════════════════════════════════════════════════════════════
-      // NOTE: We store YouTube URL in the 'composer' field as logical identity
       final metadata = Id3Metadata(
         title: cleanedTitle,
         artist: cleanedArtist,
@@ -210,23 +177,13 @@ class Id3TagService {
         fileName: path.basename(filePath),
       );
 
-      debugPrint(
-        '✅ [ID3] Read: "${metadata.displayTitle}" by "${metadata.displayArtist}"${retryCount > 0 ? " (attempt ${retryCount + 1})" : ""}',
-      );
       return metadata;
     } catch (e) {
-      // On exception during cold start, retry with increasing delays
       if (!_initialScanComplete && retryCount < _maxColdStartRetries) {
         final delay = Duration(milliseconds: 200 * (retryCount + 1));
-        debugPrint(
-          '⚠️ [ID3] Read failed (attempt ${retryCount + 1}), retrying in ${delay.inMilliseconds}ms: ${path.basename(filePath)} - $e',
-        );
         await Future.delayed(delay);
         return _readMetadataWithRetry(filePath, retryCount: retryCount + 1);
       }
-      debugPrint(
-        '❌ [ID3] Error reading $filePath after ${retryCount + 1} attempts: $e',
-      );
       return null;
     }
   }
@@ -270,8 +227,6 @@ class Id3TagService {
         sidecarArtworkPath = artworkPath;
       }
 
-      debugPrint('✅ [META] Read from sidecar: "$title" by "$artist"');
-
       return Id3Metadata(
         title: title,
         artist: artist,
@@ -285,7 +240,6 @@ class Id3TagService {
         fileName: path.basename(filePath),
       );
     } catch (e) {
-      debugPrint('⚠️ [META] Error reading sidecar for $filePath: $e');
       return null;
     }
   }
@@ -428,16 +382,12 @@ class Id3TagService {
       };
 
       await File(metaJsonPath).writeAsString(jsonEncode(metaJson));
-      debugPrint('✅ [MIGRATE] Created sidecar for: $title by $artist');
       return true;
     } catch (e) {
-      debugPrint('⚠️ [MIGRATE] Failed to create sidecar for $filePath: $e');
       return false;
     }
   }
 
-  /// Clean tag value: trim, handle null/empty, remove placeholder values
-  /// CRITICAL: Empty strings are treated as invalid metadata
   String? _cleanTagValue(String? value) {
     if (value == null) return null;
     final cleaned = value.trim();

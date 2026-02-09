@@ -1,6 +1,5 @@
 import 'dart:math';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:flutter/foundation.dart'; // For debugPrint
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:musicapp/models/artist_model.dart';
@@ -115,7 +114,6 @@ class HomeNotifier extends StateNotifier<HomeState> {
         return;
       }
     } catch (e) {
-      debugPrint("Connectivity check failed: $e");
       // Proceed to fetch if check fails
     }
 
@@ -171,7 +169,6 @@ class HomeNotifier extends StateNotifier<HomeState> {
         isLoading: false,
       );
     } catch (e) {
-      debugPrint("Fetch data error: $e");
       state = state.copyWith(isLoading: false);
     }
   }

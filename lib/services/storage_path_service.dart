@@ -59,17 +59,10 @@ class StoragePathService {
       _metaPath = '$_basePath/$_metaFolderName';
       _cachePath = '$_basePath/$_cacheFolderName';
 
-      // Create all directories
       await _ensureDirectoriesExist();
 
       _initialized = true;
-      debugPrint('✅ [STORAGE] Initialized with structure:');
-      debugPrint('   📁 Songs: $_songsPath');
-      debugPrint('   🎨 Artwork: $_artworkPath');
-      debugPrint('   📄 Meta: $_metaPath');
-      debugPrint('   📦 Cache: $_cachePath');
     } catch (e) {
-      debugPrint('❌ [STORAGE] Initialization failed: $e');
       // Fallback to app directory
       final appDir = await getApplicationDocumentsDirectory();
       _basePath = '${appDir.path}/$_baseFolderName';
@@ -94,7 +87,6 @@ class StoragePathService {
     for (final dir in directories) {
       if (!await dir.exists()) {
         await dir.create(recursive: true);
-        debugPrint('📁 [STORAGE] Created: ${dir.path}');
       }
     }
   }
@@ -301,7 +293,6 @@ class StoragePathService {
             if (!await File(newPath).exists()) {
               await entity.rename(newPath);
               result.movedMp3s++;
-              debugPrint('📦 [MIGRATE] MP3: $fileName → Songs/');
             } else {
               // File already exists in destination, delete the legacy copy
               await entity.delete();
@@ -315,7 +306,6 @@ class StoragePathService {
             if (!await File(newPath).exists()) {
               await entity.rename(newPath);
               result.movedArtwork++;
-              debugPrint('🎨 [MIGRATE] Artwork: $fileName → .artwork/');
             } else {
               await entity.delete();
               result.skippedDuplicates++;
@@ -327,7 +317,6 @@ class StoragePathService {
             if (!await File(newPath).exists()) {
               await entity.rename(newPath);
               result.movedMeta++;
-              debugPrint('📄 [MIGRATE] Meta: $fileName → .meta/');
             } else {
               await entity.delete();
               result.skippedDuplicates++;

@@ -16,7 +16,6 @@ class WelcomeScreen extends StatelessWidget {
           child: Column(
             children: [
               const Spacer(flex: 2),
-              // Logo - Vinyl/Record Icon
               _buildLogo(),
               SizedBox(height: 32.h),
               // App Name
@@ -30,7 +29,6 @@ class WelcomeScreen extends StatelessWidget {
                 ),
               ),
               SizedBox(height: 16.h),
-              // Tagline
               Text(
                 'Your Music. Your Space',
                 style: TextStyle(
@@ -40,13 +38,11 @@ class WelcomeScreen extends StatelessWidget {
                 ),
               ),
               SizedBox(height: 8.h),
-              // Subtitle
               Text(
                 'Listen without noise. Just sound',
                 style: TextStyle(fontSize: 14.sp, color: Colors.grey[500]),
               ),
               const Spacer(flex: 3),
-              // Get Started Button
               _buildGetStartedButton(context),
               SizedBox(height: 40.h),
             ],

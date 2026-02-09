@@ -51,24 +51,20 @@ class _MusicScreenState extends State<MusicScreen> {
     }
 
     try {
-      // Direct Queue Add
       await _downloadController.addToQueue(url);
 
-      // Cleanup UI
       _urlController.clear();
       FocusScope.of(context).unfocus();
 
-      // Feedback
       Fluttertoast.showToast(
         msg: 'Added to download queue...',
         backgroundColor: const Color(0xFF1DB954),
         textColor: Colors.white,
       );
     } catch (e) {
-      // Clean up error message
       String errorMsg = e.toString();
       if (errorMsg.startsWith('Exception: ')) {
-        errorMsg = errorMsg.substring(11); // Remove 'Exception: '
+        errorMsg = errorMsg.substring(11);
       } else if (errorMsg.startsWith('Error: ')) {
         errorMsg = errorMsg.substring(7);
       }
@@ -84,7 +80,6 @@ class _MusicScreenState extends State<MusicScreen> {
     }
   }
 
-  // ✅ SMART BUTTON LOGIC (2-in-1)
   Future<void> _handleSmartConvert() async {
     final currentText = _urlController.text.trim();
 
@@ -95,12 +90,10 @@ class _MusicScreenState extends State<MusicScreen> {
           clipboardData!.text!.trim().isNotEmpty) {
         final pastedUrl = clipboardData.text!.trim();
 
-        // UI Update karein taake user ko link nazar aaye
         setState(() {
           _urlController.text = pastedUrl;
         });
 
-        // Process karein
         _processUrl(pastedUrl);
       } else {
         Fluttertoast.showToast(
@@ -110,14 +103,12 @@ class _MusicScreenState extends State<MusicScreen> {
         );
       }
     } else {
-      // Case 2: Agar text hai -> Direct Download
       _processUrl(currentText);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('🔄 MusicScreen rebuilt');
     final isDarkTheme = Theme.of(context).brightness == Brightness.dark;
     final backgroundColor = isDarkTheme
         ? const Color(0xff000000)

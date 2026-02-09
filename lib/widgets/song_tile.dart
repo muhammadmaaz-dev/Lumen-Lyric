@@ -11,13 +11,9 @@ class SongTile extends StatelessWidget {
   final int? songId;
   final String? imageUrl;
   final VoidCallback? onTap;
-
-  // ✅ Supports BOTH callbacks now to prevent errors
-  final VoidCallback? onMenuTap; // For BottomSheet (Library/Liked Screens)
-  final List<PopupMenuEntry<String>>?
-  menuItems; // For PopupMenu (Playlist Screen)
-  final void Function(String)? onMenuItemSelected; // For PopupMenu Selection
-
+  final VoidCallback? onMenuTap;
+  final List<PopupMenuEntry<String>>? menuItems;
+  final void Function(String)? onMenuItemSelected;
   final bool isDarkTheme;
   final bool isPlaying;
 
@@ -103,7 +99,6 @@ class SongTile extends StatelessWidget {
                 ),
               ),
 
-              // ✅ LOGIC: Choose between PopupMenu (Playlist) OR IconButton (Library)
               _buildMenuButton(titleColor),
             ],
           ),
@@ -113,7 +108,6 @@ class SongTile extends StatelessWidget {
   }
 
   Widget _buildMenuButton(Color iconColor) {
-    // 1. If menuItems are provided, use PopupMenuButton (Fixes positioning issue)
     if (menuItems != null && menuItems!.isNotEmpty) {
       return PopupMenuButton<String>(
         icon: Icon(Icons.more_vert, color: iconColor),
@@ -124,7 +118,6 @@ class SongTile extends StatelessWidget {
       );
     }
 
-    // 2. Otherwise use standard IconButton (Fixes "error on other screens")
     return IconButton(
       onPressed: onMenuTap,
       icon: Icon(Icons.more_vert, color: iconColor),
@@ -133,7 +126,6 @@ class SongTile extends StatelessWidget {
 
   Widget _buildArtwork(Color? placeholderColor) {
     if (imageUrl != null && imageUrl!.isNotEmpty) {
-      // Check if it's a local file path or network URL
       if (imageUrl!.startsWith('http://') || imageUrl!.startsWith('https://')) {
         return Image.network(
           imageUrl!,
@@ -143,7 +135,6 @@ class SongTile extends StatelessWidget {
           },
         );
       } else {
-        // Local file path
         final file = File(imageUrl!);
         if (file.existsSync()) {
           return Image.file(

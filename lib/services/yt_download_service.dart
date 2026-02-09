@@ -42,35 +42,25 @@ class YtDownloadService {
     }
   }
 
-  /// Wake up server (Render.com free tier can take 50+ seconds to cold start)
   Future<bool> wakeUpServer() async {
-    debugPrint('🔄 Waking up server...');
-
-    // Try up to 5 times with longer timeouts for cold start
     for (int attempt = 1; attempt <= 5; attempt++) {
       try {
-        debugPrint('⏳ Wake attempt $attempt/5...');
         final response = await _dio.get(
           '/',
           options: Options(
-            receiveTimeout: const Duration(
-              seconds: 60,
-            ), // Longer timeout for cold start
+            receiveTimeout: const Duration(seconds: 60),
             sendTimeout: const Duration(seconds: 30),
           ),
         );
         if (response.statusCode == 200) {
-          debugPrint('✅ Server is awake!');
           return true;
         }
       } catch (e) {
-        debugPrint('⚠️ Wake attempt $attempt failed: $e');
         if (attempt < 5) {
           await Future.delayed(const Duration(seconds: 3));
         }
       }
     }
-    debugPrint('❌ Server wake-up failed after 5 attempts');
     return false;
   }
 
@@ -102,7 +92,6 @@ class YtDownloadService {
     }
   }
 
-  // --- MAIN DOWNLOAD FUNCTION (Fixed for Offline Image) ---
   Future<DownloadResult> downloadAudio(
     String youtubeUrl, {
     bool includeMetadata = true,
@@ -180,7 +169,6 @@ class YtDownloadService {
         throw Exception("Download failed (Empty file received).");
       }
 
-      // --- Download Image ---
       String? localImagePath;
       if (metadata.thumbnailUrl != null && metadata.thumbnailUrl!.isNotEmpty) {
         try {
@@ -190,14 +178,10 @@ class YtDownloadService {
 
           await _dio.download(metadata.thumbnailUrl!, imagePath);
           localImagePath = imagePath;
-          debugPrint("✅ Image saved: $imagePath");
         } catch (e) {
-          debugPrint("⚠️ Image download failed: $e");
+          // Image download failed
         }
       }
-
-      // --- 🎵 FETCH LYRICS (Fire & Forget) ---
-      // Hum await nahi kar rahe taake UI block na ho
       double durationSeconds = 0.0;
       if (metadata.duration != null) {
         durationSeconds = double.tryParse(metadata.duration.toString()) ?? 0.0;
@@ -354,31 +338,24 @@ class YtDownloadService {
     }
   }
 
-  // --- FINAL LYRICS FETCHING (ORIGINAL ONLY) ---
-  // --- LYRICS FETCHING LOGIC ---
   Future<void> _fetchAndSaveLyrics(
     String rawTitle,
     String savePath,
     double durationSeconds,
   ) async {
     try {
-      // 1. Clean Title (Remove brackets, etc.)
       String cleanTitle = rawTitle
           .replaceAll(RegExp(r"\(.*?\)|\[.*?\]"), "")
           .replaceAll(RegExp(r"[^a-zA-Z0-9\s]"), "")
           .replaceAll(RegExp(r"\s+"), " ")
           .trim();
 
-      debugPrint("🔍 Searching Lyrics for: $cleanTitle");
-
-      // 2. Call Free API
       final url = Uri.parse('https://lrclib.net/api/search?q=$cleanTitle');
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
         final List data = jsonDecode(response.body);
         if (data.isNotEmpty) {
-          // 3. Find Best Match (Duration check)
           var bestMatch = data.firstWhere((track) {
             final trackDuration = track['duration'];
             return (trackDuration - durationSeconds).abs() < 5;
@@ -387,17 +364,15 @@ class YtDownloadService {
           String? finalLyrics =
               bestMatch['syncedLyrics'] ?? bestMatch['plainLyrics'];
 
-          // 4. Save .lrc File
           if (finalLyrics != null && finalLyrics.isNotEmpty) {
             final lrcPath = savePath.replaceAll('.mp3', '.lrc');
             final file = File(lrcPath);
             await file.writeAsString(finalLyrics);
-            debugPrint("✅ Lyrics Saved: $lrcPath");
           }
         }
       }
     } catch (e) {
-      debugPrint("❌ Lyrics Error: $e");
+      // Lyrics fetch failed
     }
   }
 }

@@ -27,7 +27,6 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
   @override
   void initState() {
     super.initState();
-    // Ensure songs are loaded
     if (controller.songs.value.isEmpty) {
       controller.loadSongs();
     }
@@ -39,16 +38,13 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
     super.dispose();
   }
 
-  /// Filter downloaded songs based on search query
   List<LocalSongModel> _getFilteredDownloadedSongs(
     List<LocalSongModel> allSongs,
   ) {
-    // First filter only downloaded songs
     final downloadedSongs = allSongs
         .where((song) => song.isDownloaded)
         .toList();
 
-    // Then filter by search query if not empty
     if (_searchQuery.isEmpty) {
       return downloadedSongs;
     }
@@ -76,10 +72,8 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
         children: [
           Column(
             children: [
-              // Custom App Bar
               _buildAppBar(textColor, backgroundColor),
 
-              // Songs List
               Expanded(
                 child: ValueListenableBuilder<List<LocalSongModel>>(
                   valueListenable: controller.songs,
@@ -88,22 +82,18 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
                       allSongs,
                     );
 
-                    // Empty state
                     if (downloadedSongs.isEmpty) {
                       return _buildEmptyState(textColor, isDarkTheme);
                     }
 
-                    // Songs list
                     return CustomScrollView(
                       slivers: [
-                        // Search bar section
                         SliverToBoxAdapter(
                           child: Padding(
                             padding: EdgeInsets.symmetric(horizontal: 15.w),
                             child: Column(
                               children: [
                                 SizedBox(height: 14.h),
-                                // Search Bar
                                 CustomTextField(
                                   hintText: 'Search downloads',
                                   prefixIcon: Icons.search,
@@ -116,7 +106,6 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
                                   },
                                 ),
                                 SizedBox(height: 14.h),
-                                // Songs count row
                                 Row(
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
@@ -139,7 +128,7 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
                                         ),
                                       ],
                                     ),
-                                    // Play all button
+
                                     if (downloadedSongs.isNotEmpty)
                                       _buildPlayAllButton(
                                         allSongs,
@@ -161,8 +150,7 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
                             return ValueListenableBuilder<List<LocalSongModel>>(
                               valueListenable: AudioController.instance.songs,
                               builder: (context, allSongs, _) {
-                                return // Songs List
-                                SliverPadding(
+                                return SliverPadding(
                                   padding: EdgeInsets.symmetric(
                                     horizontal: 15.w,
                                   ),
@@ -188,7 +176,6 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
                                         isPlaying: isPlaying,
                                         imageUrl: song.artworkUrl,
                                         onTap: () {
-                                          // Play from downloaded songs queue only
                                           controller.playFromPlaylist(
                                             downloadedSongs,
                                             index,
@@ -220,7 +207,6 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
                           },
                         ),
 
-                        // Extra space at bottom for MiniPlayer
                         SliverToBoxAdapter(child: SizedBox(height: 88.h)),
                       ],
                     );

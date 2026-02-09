@@ -142,25 +142,17 @@ class MetadataDatabaseService {
     if (_isInitialized) return;
 
     try {
-      // ✅ Request storage permissions first (needed for external storage on Android 11+)
       await _permissionService.initialize();
       if (!_permissionService.hasFullStorageAccess) {
-        debugPrint(
-          '⚠️ Requesting storage permissions for metadata persistence...',
-        );
         await _permissionService.requestStoragePermissions();
       }
 
-      // 1. Initialize internal database (in app's data directory)
       await _initInternalDatabase();
-
-      // 2. Initialize external database (in Music folder - survives reinstall)
       await _initExternalDatabase();
 
       _isInitialized = true;
-      debugPrint('✅ MetadataDatabaseService initialized');
     } catch (e) {
-      debugPrint('❌ MetadataDatabaseService initialization error: $e');
+      // Initialization error
     }
   }
 
@@ -174,7 +166,6 @@ class MetadataDatabaseService {
       onCreate: _createDatabase,
       onUpgrade: _onUpgrade,
     );
-    debugPrint('✅ Internal database opened: $internalPath');
   }
 
   Future<void> _initExternalDatabase() async {
@@ -190,7 +181,6 @@ class MetadataDatabaseService {
         onCreate: _createDatabase,
         onUpgrade: _onUpgrade,
       );
-      debugPrint('✅ External database opened: $externalPath');
       return;
     }
 
@@ -226,7 +216,7 @@ class MetadataDatabaseService {
         debugPrint('✅ External database opened (Music folder): $externalPath');
         return;
       } catch (e) {
-        debugPrint('⚠️ Could not create external database in Music folder: $e');
+        // Could not create external database in Music folder
       }
     }
 
@@ -250,7 +240,7 @@ class MetadataDatabaseService {
         return;
       }
     } catch (e) {
-      debugPrint('⚠️ Could not create external database in external files: $e');
+      // Could not create external database in external files
     }
 
     // Fallback to documents directory
@@ -265,9 +255,8 @@ class MetadataDatabaseService {
         onCreate: _createDatabase,
         onUpgrade: _onUpgrade,
       );
-      debugPrint('✅ Fallback external database opened: $fallbackPath');
     } catch (e) {
-      debugPrint('❌ Could not create any external database: $e');
+      // Could not create any external database
     }
   }
 
@@ -290,45 +279,31 @@ class MetadataDatabaseService {
       )
     ''');
 
-    // Create index on file_path for fast lookups
     await db.execute('CREATE INDEX idx_file_path ON $_tableName(file_path)');
-
-    // Create index on file_name for matching songs by name
     await db.execute('CREATE INDEX idx_file_name ON $_tableName(file_name)');
-
-    debugPrint('✅ Database table created');
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     // Handle database migrations here in future versions
-    debugPrint('📦 Database upgrade from v$oldVersion to v$newVersion');
   }
 
-  /// Save or update metadata in both databases
   Future<void> saveMetadata(PersistentSongMetadata metadata) async {
     await initialize();
 
     final map = metadata.toMap();
-    map.remove('id'); // Remove id for insert (auto-generated)
+    map.remove('id');
     map['updated_at'] = DateTime.now().toIso8601String();
 
-    // Save to internal database
     if (_internalDatabase != null) {
       await _upsertMetadata(_internalDatabase!, map);
     }
 
-    // Save to external database (backup)
     if (_externalDatabase != null) {
       await _upsertMetadata(_externalDatabase!, map);
     }
 
-    // ✅ Also save to JSON backup file (survives reinstall)
     await _saveToJsonBackup(metadata);
-
-    // ✅ Also save as sidecar JSON file next to the song (most reliable for reinstall)
     await _saveSidecarJson(metadata);
-
-    debugPrint('✅ Metadata saved for: ${metadata.title}');
   }
 
   /// ✅ Save metadata as a sidecar JSON file in the hidden .meta/ folder
@@ -347,9 +322,8 @@ class MetadataDatabaseService {
       ).convert(metadata.toMap());
 
       await sidecarFile.writeAsString(jsonContent);
-      debugPrint('📎 Sidecar JSON saved to .meta/: $sidecarPath');
     } catch (e) {
-      debugPrint('⚠️ Could not save sidecar JSON: $e');
+      // Could not save sidecar JSON
     }
   }
 
@@ -361,7 +335,7 @@ class MetadataDatabaseService {
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
     } catch (e) {
-      debugPrint('⚠️ Error saving metadata: $e');
+      // Error saving metadata
     }
   }
 
@@ -387,10 +361,8 @@ class MetadataDatabaseService {
       }
     }
 
-    // ✅ Final fallback: check for sidecar JSON file
     final sidecarResult = await _loadFromSidecarJson(filePath);
     if (sidecarResult != null) {
-      // Save to databases for future quick lookups
       if (_internalDatabase != null) {
         await _upsertMetadata(_internalDatabase!, sidecarResult.toMap());
       }
@@ -422,10 +394,8 @@ class MetadataDatabaseService {
       final content = await sidecarFile.readAsString();
       final map = Map<String, dynamic>.from(jsonDecode(content));
 
-      debugPrint('📎 Loaded metadata from sidecar: $sidecarPath');
       return PersistentSongMetadata.fromMap(map);
     } catch (e) {
-      debugPrint('⚠️ Error loading sidecar JSON: $e');
       return null;
     }
   }
@@ -446,7 +416,7 @@ class MetadataDatabaseService {
         return PersistentSongMetadata.fromMap(results.first);
       }
     } catch (e) {
-      debugPrint('⚠️ Error querying metadata: $e');
+      // Error querying metadata
     }
     return null;
   }
@@ -492,7 +462,7 @@ class MetadataDatabaseService {
         return PersistentSongMetadata.fromMap(results.first);
       }
     } catch (e) {
-      debugPrint('⚠️ Error querying metadata by filename: $e');
+      // Error querying metadata by filename
     }
     return null;
   }
@@ -510,7 +480,7 @@ class MetadataDatabaseService {
         );
         return results.map((m) => PersistentSongMetadata.fromMap(m)).toList();
       } catch (e) {
-        debugPrint('⚠️ Error getting all metadata from external: $e');
+        // Error getting all metadata from external
       }
     }
 
@@ -523,7 +493,7 @@ class MetadataDatabaseService {
         );
         return results.map((m) => PersistentSongMetadata.fromMap(m)).toList();
       } catch (e) {
-        debugPrint('⚠️ Error getting all metadata from internal: $e');
+        // Error getting all metadata from internal
       }
     }
 
@@ -567,8 +537,6 @@ class MetadataDatabaseService {
         whereArgs: [filePath],
       );
     }
-
-    debugPrint('🗑️ Metadata deleted for: $filePath');
   }
 
   /// Sync external database to internal (useful after app reinstall)
@@ -585,9 +553,7 @@ class MetadataDatabaseService {
         final filePath = row['file_path'] as String?;
         if (filePath == null) continue;
 
-        // Only sync if the MP3 file still exists
         if (!await File(filePath).exists()) {
-          debugPrint('⏭️ Skipping (file missing): $filePath');
           continue;
         }
 
@@ -607,27 +573,18 @@ class MetadataDatabaseService {
         );
         syncedCount++;
       }
-
-      debugPrint('✅ Synced $syncedCount records from external database');
     } catch (e) {
-      debugPrint('⚠️ Error syncing databases: $e');
+      // Error syncing databases
     }
 
-    // ✅ Also restore from JSON backup file (survives reinstall)
     await _restoreFromJsonBackup();
-
-    // ✅ Also restore from sidecar JSON files (most reliable for reinstall)
     await _restoreFromSidecarJsonFiles();
   }
 
-  /// ✅ Restore metadata from sidecar JSON files next to songs
   Future<void> _restoreFromSidecarJsonFiles() async {
     try {
-      debugPrint('🔄 Looking for sidecar JSON files...');
-
       final musicDir = Directory('/storage/emulated/0/Music/LumenLyric');
       if (!await musicDir.exists()) {
-        debugPrint('📁 Music directory does not exist: ${musicDir.path}');
         return;
       }
 
@@ -636,137 +593,82 @@ class MetadataDatabaseService {
       await for (final entity in musicDir.list()) {
         if (entity is File && entity.path.endsWith('.json')) {
           try {
-            // Check if corresponding MP3 file exists
             final mp3Path = entity.path.replaceAll('.json', '.mp3');
             if (!await File(mp3Path).exists()) {
-              continue; // Skip orphaned JSON files
+              continue;
             }
 
             final content = await entity.readAsString();
             final map = Map<String, dynamic>.from(jsonDecode(content));
 
-            // Update file path in case it changed
             map['file_path'] = mp3Path;
             map['file_name'] = path.basename(mp3Path);
 
-            // ✅ FIX: Update artwork_path to match the current song location
-            // The artwork should be a JPG file with the same name as the MP3
             final expectedArtworkPath = mp3Path.replaceAll('.mp3', '.jpg');
             if (await File(expectedArtworkPath).exists()) {
               map['artwork_path'] = expectedArtworkPath;
-              debugPrint('🖼️ Found artwork at: $expectedArtworkPath');
             } else {
-              // Clear artwork_path if file doesn't exist
               map['artwork_path'] = null;
-              debugPrint('⚠️ Artwork not found at: $expectedArtworkPath');
             }
 
             if (_internalDatabase != null) {
               await _upsertMetadata(_internalDatabase!, map);
               restoredCount++;
-              debugPrint(
-                '📎 Restored from sidecar: ${map['title']} (${map['file_name']})',
-              );
             }
           } catch (e) {
-            debugPrint('⚠️ Could not parse sidecar ${entity.path}: $e');
+            // Could not parse sidecar
           }
         }
       }
-
-      if (restoredCount > 0) {
-        debugPrint('🎉 Restored $restoredCount songs from sidecar JSON files');
-      } else {
-        debugPrint('📄 No sidecar JSON files found');
-      }
     } catch (e) {
-      debugPrint('⚠️ Error restoring from sidecar files: $e');
+      // Error restoring from sidecar files
     }
   }
 
-  /// ✅ Save metadata to JSON backup file (survives reinstall)
   Future<void> _saveToJsonBackup(PersistentSongMetadata metadata) async {
     try {
-      debugPrint('📝 Attempting to save JSON backup for: ${metadata.title}');
-
       final backupFile = await _getJsonBackupFile();
       if (backupFile == null) {
-        debugPrint('❌ Could not get backup file path');
         return;
       }
 
-      debugPrint('📁 Backup file path: ${backupFile.path}');
-
       Map<String, dynamic> backupData = {};
 
-      // Load existing data
       if (await backupFile.exists()) {
         try {
           final content = await backupFile.readAsString();
           backupData = Map<String, dynamic>.from(jsonDecode(content));
-          debugPrint(
-            '📖 Loaded existing backup with ${backupData.length} entries',
-          );
         } catch (e) {
-          debugPrint('⚠️ Could not parse existing backup: $e');
-          // Start fresh
           backupData = {};
         }
-      } else {
-        debugPrint('📄 Creating new backup file');
       }
 
-      // Add/update this metadata
       backupData[metadata.filePath] = metadata.toMap();
 
-      // Save back
       final jsonContent = const JsonEncoder.withIndent(
         '  ',
       ).convert(backupData);
       await backupFile.writeAsString(jsonContent);
-
-      // Verify the write
-      if (await backupFile.exists()) {
-        final fileSize = await backupFile.length();
-        debugPrint(
-          '✅ JSON backup saved: ${backupFile.path} (${fileSize} bytes, ${backupData.length} songs)',
-        );
-      } else {
-        debugPrint('❌ Backup file does not exist after write!');
-      }
     } catch (e, stackTrace) {
-      debugPrint('❌ Could not save to JSON backup: $e');
-      debugPrint('📜 Stack trace: $stackTrace');
+      // Could not save to JSON backup
     }
   }
 
-  /// ✅ Restore metadata from JSON backup file
   Future<void> _restoreFromJsonBackup() async {
     try {
-      debugPrint('🔄 Checking for JSON backup to restore...');
-
       final backupFile = await _getJsonBackupFile();
       if (backupFile == null) {
-        debugPrint('❌ Could not get backup file path for restore');
         return;
       }
-
-      debugPrint('📁 Looking for backup at: ${backupFile.path}');
 
       if (!await backupFile.exists()) {
-        debugPrint('📄 No JSON backup file found at: ${backupFile.path}');
         return;
       }
-
-      final fileSize = await backupFile.length();
-      debugPrint('📖 Found backup file (${fileSize} bytes), reading...');
 
       final content = await backupFile.readAsString();
       final Map<String, dynamic> backupData = Map<String, dynamic>.from(
         jsonDecode(content),
       );
-
-      debugPrint('📦 Backup contains ${backupData.length} song entries');
 
       int restoredCount = 0;
       int skippedCount = 0;
@@ -778,9 +680,7 @@ class MetadataDatabaseService {
 
           if (filePath == null) continue;
 
-          // Only restore if file still exists
           if (await File(filePath).exists()) {
-            // ✅ FIX: Update artwork_path to match the current song location
             final expectedArtworkPath = filePath.replaceAll('.mp3', '.jpg');
             if (await File(expectedArtworkPath).exists()) {
               map['artwork_path'] = expectedArtworkPath;
@@ -791,30 +691,21 @@ class MetadataDatabaseService {
             if (_internalDatabase != null) {
               await _upsertMetadata(_internalDatabase!, map);
               restoredCount++;
-              debugPrint('✅ Restored: ${map['title']}');
             }
           } else {
             skippedCount++;
-            debugPrint('⏭️ Skipped (file missing): $filePath');
           }
         } catch (e) {
-          debugPrint('⚠️ Could not restore entry ${entry.key}: $e');
+          // Could not restore entry
         }
       }
-
-      debugPrint(
-        '🎉 Restore complete: $restoredCount restored, $skippedCount skipped (files missing)',
-      );
     } catch (e, stackTrace) {
-      debugPrint('❌ Could not restore from JSON backup: $e');
-      debugPrint('📜 Stack trace: $stackTrace');
+      // Could not restore from JSON backup
     }
   }
 
-  /// ✅ Get JSON backup file path (stored alongside music files)
   Future<File?> _getJsonBackupFile() async {
     if (!Platform.isAndroid) {
-      // On iOS/other platforms, use documents directory
       try {
         final dir = await getApplicationDocumentsDirectory();
         final backupDir = Directory('${dir.path}/LumenLyric');
@@ -823,31 +714,23 @@ class MetadataDatabaseService {
         }
         return File('${backupDir.path}/.metadata_backup.json');
       } catch (e) {
-        debugPrint('❌ Could not get backup file path (non-Android): $e');
         return null;
       }
     }
-
-    // On Android, try multiple locations
-    // Priority 1: Music folder (survives reinstall)
     try {
       final musicDir = Directory('/storage/emulated/0/Music/LumenLyric');
 
-      // Check if directory exists or can be created
       if (!await musicDir.exists()) {
-        debugPrint('📁 Creating LumenLyric directory...');
         await musicDir.create(recursive: true);
       }
 
       if (await musicDir.exists()) {
-        debugPrint('✅ LumenLyric directory exists: ${musicDir.path}');
         return File('${musicDir.path}/.metadata_backup.json');
       }
     } catch (e) {
-      debugPrint('⚠️ Could not access Music folder: $e');
+      // Could not access Music folder
     }
 
-    // Priority 2: External storage directory
     try {
       final extDir = await getExternalStorageDirectory();
       if (extDir != null) {
@@ -855,24 +738,20 @@ class MetadataDatabaseService {
         if (!await backupDir.exists()) {
           await backupDir.create(recursive: true);
         }
-        debugPrint('📁 Using external storage for backup: ${backupDir.path}');
         return File('${backupDir.path}/.metadata_backup.json');
       }
     } catch (e) {
-      debugPrint('⚠️ Could not access external storage: $e');
+      // Could not access external storage
     }
 
-    // Priority 3: App documents directory (fallback)
     try {
       final dir = await getApplicationDocumentsDirectory();
       final backupDir = Directory('${dir.path}/LumenLyric');
       if (!await backupDir.exists()) {
         await backupDir.create(recursive: true);
       }
-      debugPrint('📁 Using app documents for backup: ${backupDir.path}');
       return File('${backupDir.path}/.metadata_backup.json');
     } catch (e) {
-      debugPrint('❌ Could not get any backup file path: $e');
       return null;
     }
   }
@@ -891,10 +770,6 @@ class MetadataDatabaseService {
         cleaned++;
       }
     }
-
-    if (cleaned > 0) {
-      debugPrint('🧹 Cleaned up $cleaned orphaned metadata records');
-    }
   }
 
   /// Check if metadata exists for a file
@@ -910,27 +785,20 @@ class MetadataDatabaseService {
     try {
       if (_internalDatabase != null) {
         await _internalDatabase!.delete(_tableName);
-        debugPrint('🗑️ Cleared internal database');
       }
 
       if (_externalDatabase != null) {
         await _externalDatabase!.delete(_tableName);
-        debugPrint('🗑️ Cleared external database');
       }
 
-      // Also clear JSON backup
       final backupFile = await _getJsonBackupFile();
       if (backupFile != null && await backupFile.exists()) {
         await backupFile.delete();
-        debugPrint('🗑️ Deleted JSON backup file');
       }
 
-      // Also clear all sidecar JSON files
       await _clearSidecarJsonFiles();
-
-      debugPrint('✅ All metadata cleared successfully');
     } catch (e) {
-      debugPrint('❌ Error clearing metadata: $e');
+      // Error clearing metadata
     }
   }
 
@@ -949,16 +817,12 @@ class MetadataDatabaseService {
             await entity.delete();
             deletedCount++;
           } catch (e) {
-            debugPrint('⚠️ Could not delete sidecar file: ${entity.path}');
+            // Could not delete sidecar file
           }
         }
       }
-
-      if (deletedCount > 0) {
-        debugPrint('🗑️ Deleted $deletedCount sidecar JSON files');
-      }
     } catch (e) {
-      debugPrint('❌ Error clearing sidecar JSON files: $e');
+      // Error clearing sidecar JSON files
     }
   }
 
@@ -967,6 +831,5 @@ class MetadataDatabaseService {
     await _internalDatabase?.close();
     await _externalDatabase?.close();
     _isInitialized = false;
-    debugPrint('📴 MetadataDatabaseService closed');
   }
 }
