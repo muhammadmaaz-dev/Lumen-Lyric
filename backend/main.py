@@ -24,6 +24,8 @@ app.add_middleware(
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DOWNLOAD_DIR = "/tmp/downloads"
+
+# ✅ Restored: Define the cookies file path for the Ghost Session trick
 COOKIES_FILE = os.path.join(BASE_DIR, "cookies.txt")
 
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
@@ -41,30 +43,33 @@ class MetadataRequest(BaseModel):
 def check_deno():
     """Check if Deno is available"""
     try:
-        result = subprocess.run(['deno', '--version'], capture_output=True, text=True)
-        return result.returncode == 0, result.stdout.split('\n')[0] if result.returncode == 0 else None
-    except:
+        result = subprocess.run(
+            ['deno', '--version'],
+            capture_output=True,
+            text=True
+        )
+        return (
+            result.returncode == 0,
+            result.stdout.split('\n')[0] if result.returncode == 0 else None
+        )
+    except Exception:
         return False, None
 
 
 def get_ydl_opts():
     """Get yt-dlp options"""
     opts = {
-        'quiet': True,
-        'no_warnings': True,
+        'quiet': False,
+        'no_warnings': False,
         'extract_flat': False,
         'geo_bypass': True,
         'nocheckcertificate': True,
-        'http_headers': {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-            'Accept-Language': 'en-US,en;q=0.9',
-        },
     }
-    
+
     if os.path.exists(COOKIES_FILE):
         opts['cookiefile'] = COOKIES_FILE
-        logger.info(f"✅ Using cookies from: {COOKIES_FILE}")
-    
+        logger.info(f"Using cookies from: {COOKIES_FILE}")
+
     return opts
 
 
@@ -143,12 +148,11 @@ def download_audio(request: DownloadRequest):
     os.makedirs(download_path, exist_ok=True)
 
     try:
-        # ✅ FIX: Use a fixed filename 'audio' to avoid URL encoding issues with special characters in titles
         output_template = os.path.join(download_path, "audio.%(ext)s")
 
         ydl_opts = get_ydl_opts()
         ydl_opts.update({
-            'format': 'bestaudio[ext=m4a]/bestaudio/best',
+            'format': 'bestaudio/best',
             'outtmpl': output_template,
             'postprocessors': [{
                 'key': 'FFmpegExtractAudio',
@@ -174,7 +178,6 @@ def download_audio(request: DownloadRequest):
         if not mp3_file:
             raise HTTPException(status_code=500, detail="MP3 not created - conversion failed")
 
-        # Check if file is empty
         if os.path.getsize(mp3_file) == 0:
             shutil.rmtree(download_path, ignore_errors=True)
             raise HTTPException(status_code=500, detail="Download failed - video may be unavailable or age-restricted")
@@ -184,12 +187,12 @@ def download_audio(request: DownloadRequest):
         return {
             "success": True,
             "download_id": download_id,
-            "filename": os.path.basename(mp3_file), # This will now be 'audio.mp3'
+            "filename": os.path.basename(mp3_file),
             "metadata": {
-                "title": info.get("title"), # The REAL title is sent here
+                "title": info.get("title"),
                 "artist": info.get("artist") or info.get("uploader"),
                 "duration": info.get("duration", 0),
-                "thumbnail": info.get("thumbnail") # Ensure thumbnail is passed
+                "thumbnail": info.get("thumbnail") 
             }
         }
     except Exception as e:
@@ -213,3 +216,6 @@ def cleanup(download_id: str):
         shutil.rmtree(download_path)
         return {"success": True}
     return {"success": False}
+
+
+
