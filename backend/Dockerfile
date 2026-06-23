@@ -5,16 +5,17 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     ffmpeg \
     curl \
-    unzip \
     ca-certificates \
     && apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Install Deno properly
-RUN curl -fsSL https://deno.land/x/install/install.sh | DENO_INSTALL=/usr/local sh -s v2.1.4
+# Install Deno with proper PATH
+ENV DENO_INSTALL=/usr/local
+RUN curl -fsSL https://deno.land/x/install/install.sh | sh
+ENV PATH="${DENO_INSTALL}/bin:${PATH}"
 
-# Verify Deno is installed
-RUN deno --version
+# Verify Deno is in PATH
+RUN deno --version && which deno
 
 WORKDIR /app
 
@@ -22,10 +23,7 @@ COPY requirements.txt .
 
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt && \
-    pip install --no-cache-dir --upgrade yt-dlp
-
-# Install yt-dlp JavaScript challenge solver
-RUN pip install --no-cache-dir yt-dlp-ejs
+    pip install --no-cache-dir --upgrade yt-dlp yt-dlp-ejs
 
 COPY . .
 
