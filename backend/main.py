@@ -60,8 +60,8 @@ def get_ydl_opts():
         'extract_flat': False,
         'geo_bypass': True,
         'nocheckcertificate': True,
-        # ✅ Force use of EJS solver
-        'extractor_args': {'youtube': {'player_client': ['ios', 'web']}},
+        # ✅ CRITICAL FIX 1: Tell yt-dlp to use Node.js instead of Deno
+        'js_runtimes': ['node'], 
     }
 
     if os.path.exists(COOKIES_FILE):
