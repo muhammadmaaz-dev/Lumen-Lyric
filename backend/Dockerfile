@@ -1,21 +1,15 @@
 FROM python:3.11-slim
 
-# Install system dependencies
+# Install system dependencies + Node.js
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     ffmpeg \
-    curl \
-    ca-certificates \
+    nodejs \
     && apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Install Deno with proper PATH
-ENV DENO_INSTALL=/usr/local
-RUN curl -fsSL https://deno.land/x/install/install.sh | sh
-ENV PATH="${DENO_INSTALL}/bin:${PATH}"
-
-# Verify Deno is in PATH
-RUN deno --version && which deno
+# Verify Node.js
+RUN node --version
 
 WORKDIR /app
 
