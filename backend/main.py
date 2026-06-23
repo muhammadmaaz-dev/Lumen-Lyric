@@ -60,8 +60,8 @@ def get_ydl_opts():
         'extract_flat': False,
         'geo_bypass': True,
         'nocheckcertificate': True,
-        # ✅ CRITICAL FIX 1: Tell yt-dlp to use Node.js instead of Deno
-        'js_runtimes': ['node'], 
+        # ✅ CORRECT FORMAT: Dictionary, not a list!
+        'js_runtimes': {'node': {}}, 
     }
 
     if os.path.exists(COOKIES_FILE):
