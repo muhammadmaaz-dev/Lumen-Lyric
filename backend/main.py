@@ -24,36 +24,32 @@ app.add_middleware(
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DOWNLOAD_DIR = "/tmp/downloads"
-
-# ✅ Restored: Define the cookies file path for the Ghost Session trick
 COOKIES_FILE = os.path.join(BASE_DIR, "cookies.txt")
 
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
 
-class DownloadRequest(BaseModel):
-    url: str
-    include_metadata: bool = True
-
-
-class MetadataRequest(BaseModel):
-    url: str
-
-
-def check_deno():
-    """Check if Deno is available"""
+def check_js_runtime():
+    """Check for Node.js or Deno"""
+    runtimes = []
+    
+    # Check Node.js
     try:
-        result = subprocess.run(
-            ['deno', '--version'],
-            capture_output=True,
-            text=True
-        )
-        return (
-            result.returncode == 0,
-            result.stdout.split('\n')[0] if result.returncode == 0 else None
-        )
+        result = subprocess.run(['node', '--version'], capture_output=True, text=True)
+        if result.returncode == 0:
+            runtimes.append({"name": "node", "version": result.stdout.strip()})
     except Exception:
-        return False, None
+        pass
+    
+    # Check Deno
+    try:
+        result = subprocess.run(['deno', '--version'], capture_output=True, text=True)
+        if result.returncode == 0:
+            runtimes.append({"name": "deno", "version": result.stdout.split('\n')[0]})
+    except Exception:
+        pass
+    
+    return runtimes
 
 
 def get_ydl_opts():
@@ -64,6 +60,8 @@ def get_ydl_opts():
         'extract_flat': False,
         'geo_bypass': True,
         'nocheckcertificate': True,
+        # ✅ Force use of EJS solver
+        'extractor_args': {'youtube': {'player_client': ['ios', 'web']}},
     }
 
     if os.path.exists(COOKIES_FILE):
@@ -75,38 +73,40 @@ def get_ydl_opts():
 
 @app.get("/")
 def root():
-    deno_ok, deno_ver = check_deno()
+    runtimes = check_js_runtime()
     return {
         "status": "YT-DLP MP3 API is running",
-        "deno_installed": deno_ok,
-        "deno_version": deno_ver,
+        "js_runtimes": runtimes,
+        "js_runtime_available": len(runtimes) > 0,
         "cookies_exists": os.path.exists(COOKIES_FILE),
+        "yt_dlp_version": yt_dlp.version.__version__,
     }
 
 
 @app.get("/health")
 def health():
-    deno_ok, deno_ver = check_deno()
+    runtimes = check_js_runtime()
     return {
-        "status": "running",
+        "status": "running" if runtimes else "degraded",
         "yt_dlp_version": yt_dlp.version.__version__,
-        "deno_installed": deno_ok,
-        "deno_version": deno_ver,
+        "js_runtimes": runtimes,
+        "js_runtime_available": len(runtimes) > 0,
         "cookies_file_exists": os.path.exists(COOKIES_FILE),
     }
 
 
 @app.post("/metadata")
-def get_metadata(request: MetadataRequest):
+def get_metadata(request: dict):
     """Extract video metadata"""
-    logger.info(f"📡 Fetching metadata for: {request.url}")
+    url = request.get("url")
+    logger.info(f"📡 Fetching metadata for: {url}")
     
     try:
         ydl_opts = get_ydl_opts()
         ydl_opts['skip_download'] = True
         
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(request.url, download=False)
+            info = ydl.extract_info(url, download=False)
         
         if info is None:
             raise HTTPException(status_code=400, detail="Could not extract video info")
@@ -139,9 +139,11 @@ def get_metadata(request: MetadataRequest):
 
 
 @app.post("/download")
-def download_audio(request: DownloadRequest):
+def download_audio(request: dict):
     """Download audio as MP3"""
-    logger.info(f"📥 Starting download for: {request.url}")
+    url = request.get("url")
+    include_metadata = request.get("include_metadata", True)
+    logger.info(f"📥 Starting download for: {url}")
 
     download_id = str(uuid.uuid4())
     download_path = os.path.join(DOWNLOAD_DIR, download_id)
@@ -167,7 +169,7 @@ def download_audio(request: DownloadRequest):
         })
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(request.url, download=True)
+            info = ydl.extract_info(url, download=True)
 
         mp3_file = None
         for file in os.listdir(download_path):
@@ -184,17 +186,21 @@ def download_audio(request: DownloadRequest):
 
         logger.info(f"✅ Download complete: {os.path.basename(mp3_file)} ({os.path.getsize(mp3_file)} bytes)")
 
-        return {
+        response = {
             "success": True,
             "download_id": download_id,
             "filename": os.path.basename(mp3_file),
-            "metadata": {
+        }
+
+        if include_metadata:
+            response["metadata"] = {
                 "title": info.get("title"),
                 "artist": info.get("artist") or info.get("uploader"),
                 "duration": info.get("duration", 0),
-                "thumbnail": info.get("thumbnail") 
+                "thumbnail": info.get("thumbnail")
             }
-        }
+
+        return response
     except Exception as e:
         shutil.rmtree(download_path, ignore_errors=True)
         logger.error(f"❌ Download error: {str(e)[:200]}")
@@ -216,6 +222,3 @@ def cleanup(download_id: str):
         shutil.rmtree(download_path)
         return {"success": True}
     return {"success": False}
-
-
-
