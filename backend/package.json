@@ -1,0 +1,7 @@
+{
+  "name": "yt-mp3-api",
+  "version": "1.0.0",
+  "engines": {
+    "node": "22.x"
+  }
+}
